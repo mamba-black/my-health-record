@@ -6,8 +6,6 @@ import org.scalajs.dom.raw.HTMLTableCellElement
 
 import scala.scalajs.js.|
 
-case class Patient(id: String, name: String)
-
 object SearchSection {
   private val patients = Var(List[PatientBasic]())
 

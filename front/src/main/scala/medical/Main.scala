@@ -22,7 +22,7 @@ object Main {
     val searchSection = SearchSection(eventBus.writer)
     val mainContent = div(
       searchSection,
-      child <-- eventBus.events.observable.map(xx => div(xx.get.name)),
+      child <-- eventBus.events.observable.map(xx => PatientSection(xx.get)),
     )
 
     body(
