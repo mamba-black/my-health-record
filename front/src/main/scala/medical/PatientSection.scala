@@ -17,7 +17,11 @@ object PatientSection {
       ),
       div(
         className := "my-3 p-3 bg-white rounded shadow-sm",
-        h6(className := "border-bottom pb-2 mb-0", "Historias clinicas"),
+        h6(
+          className := "d-flex flex-column flex-md-row align-items-center border-bottom pb-2 mb-0",
+          span(className := "me-md-auto", "Historias clinicas"),
+          a(className := "btn btn-outline-primary", i(className := "bi bi-plus"), " Agregar historia"),
+        ),
         div(
           className := "d-flex text-muted pt-3",
           p(className := "pb-3 mb-0 small lh-sm border-bottom", "Test"),

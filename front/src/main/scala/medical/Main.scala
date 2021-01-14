@@ -10,9 +10,9 @@ object Main {
     println("Test")
     //    dom.window.addEventListener("load", init)
     documentEvents.onDomContentLoaded.foreach { _ =>
-      dom.document.querySelector("html").removeChild(dom.document.querySelector("body"))
-      //      dom.document.querySelector("html").removeChild(dom.document.getElementById("delete"))
-      render(dom.document.querySelector("html"), init())
+//      dom.document.querySelector("html").removeChild(dom.document.querySelector("body"))
+//      render(dom.document.querySelector("html"), init())
+      render(dom.document.body, init())
     }(unsafeWindowOwner)
   }
 
@@ -21,11 +21,13 @@ object Main {
     val eventBus = new EventBus[Option[PatientBasic]]
     val searchSection = SearchSection(eventBus.writer)
     val mainContent = div(
+      className := "main",
       searchSection,
       child <-- eventBus.events.observable.map(xx => PatientSection(xx.get)),
     )
 
-    body(
+    div(
+      className := "wrapper",
       header(
         className := "d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-white border-bottom shadow-sm",
         h1("Historias Medicas", className := "my-0 me-md-auto fw-normal"),
@@ -35,7 +37,15 @@ object Main {
         ),
         a("Entrar", className := "btn btn-outline-primary"),
       ),
-      br(),
+      nav(
+        ul(
+          className := "nav flex-column",
+          li(className := "nav-item", a(className := "nav-link active", "Home")),
+          li(className := "nav-item", a(className := "nav-link", "Paciente")),
+          li(className := "nav-item", a(className := "nav-link", "Historias")),
+          li(className := "nav-item", a(className := "nav-link", "Facturacion")),
+        ),
+      ),
       mainContent,
       eventBus.events --> Observer[Option[medical.PatientBasic]](onNext = { event =>
         mainContent.ref.removeChild(searchSection.ref)
