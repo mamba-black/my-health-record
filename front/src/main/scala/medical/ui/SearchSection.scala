@@ -1,12 +1,12 @@
-package medical
+package medical.ui
 
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveHtmlElement
+import medical.dtos.PatientBasic
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.html.Table
 import org.scalajs.dom.raw.HTMLTableCellElement
-
 
 object SearchSection {
   private val patients = Var(List[PatientBasic]())
@@ -68,7 +68,7 @@ object SearchSection {
   }
 
   def searchTable(patientBasicWriteBus: WriteBus[Option[PatientBasic]]): ReactiveHtmlElement[Table] = {
-    val obsHistory = Observer[dom.MouseEvent](onNext = {event =>
+    val obsHistory = Observer[dom.MouseEvent](onNext = { event =>
       scribe.info(s"event: ${event}")
       scribe.info(s"1: ${event.target.isInstanceOf[HTMLTableCellElement]}")
       val target = event.target.asInstanceOf[HTMLTableCellElement]
@@ -87,5 +87,3 @@ object SearchSection {
     )
   }
 }
-
-

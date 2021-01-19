@@ -1,20 +1,20 @@
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSUseMainModuleInitializer
+
 ThisBuild / scalaVersion := "2.13.4"
 //ThisBuild / scalaVersion := "3.0.0-M3"
 ThisBuild / organization := "miuler"
 
-//lazy val dtos = crossProject(JSPlatform, JVMPlatform).in(file("dtos"))
-//  .settings(
-//    name := "my-health-record.dtos"
-//  ).
-//  jsSettings(
-//    // Add JS-specific settings here
-//    scalaJSUseMainModuleInitializer := true,
-//  )
+lazy val dtos = (project in file("dtos"))
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .settings(
+    name := "my-health-record.dtos",
+    scalaJSUseMainModuleInitializer := true,
+  )
 
 lazy val record = (project in file("front"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
 //  .aggregate(dtos.js, dtos.jvm)
-//  .dependsOn(dtos.js, dtos.jvm)
+  .dependsOn(dtos)
   .settings(
     name := "my-health-record.ui",
     scalaJSUseMainModuleInitializer := true,

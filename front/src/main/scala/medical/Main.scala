@@ -2,6 +2,8 @@ package medical
 
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveHtmlElement
+import medical.dtos.PatientBasic
+import medical.ui.{ PatientSection, SearchSection }
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
 
@@ -47,7 +49,7 @@ object Main {
         ),
       ),
       mainContent,
-      eventBus.events --> Observer[Option[medical.PatientBasic]](onNext = { event =>
+      eventBus.events --> Observer[Option[PatientBasic]](onNext = { event =>
         mainContent.ref.removeChild(searchSection.ref)
         scribe.info(s"$mainContent")
         scribe.info(s"main event: $event")}

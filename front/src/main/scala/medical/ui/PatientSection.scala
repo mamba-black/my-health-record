@@ -1,6 +1,7 @@
-package medical
+package medical.ui
 
 import com.raquo.laminar.api.L._
+import medical.dtos.PatientBasic
 
 object PatientSection {
   def apply(patientBasic: PatientBasic): HtmlElement = {
