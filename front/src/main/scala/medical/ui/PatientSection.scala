@@ -23,19 +23,17 @@ object PatientSection {
           span(className := "me-md-auto", "Historias clinicas"),
           a(className := "btn btn-outline-primary", i(className := "bi bi-plus"), " Agregar historia"),
         ),
-        div(
-          className := "d-flex text-muted pt-3",
-          p(className := "pb-3 mb-0 small lh-sm border-bottom", "Test"),
-        ),
-        div(
-          className := "d-flex text-muted pt-3",
-          p(className := "pb-3 mb-0 small lh-sm border-bottom", "Test"),
-        ),
-        div(
-          className := "d-flex text-muted pt-3",
-          p(className := "pb-3 mb-0 small lh-sm border-bottom", "Test"),
-        ),
+        register("Test"),
+        register("Test"),
       ),
+    )
+  }
+
+  def register(value: String) = {
+
+    div(
+      className := "d-flex text-muted pt-3",
+      p(className := "pb-3 mb-0 small lh-sm border-bottom", value),
     )
   }
 }
