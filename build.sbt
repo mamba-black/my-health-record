@@ -12,12 +12,44 @@ lazy val dtos = (project in file("dtos"))
     scalaJSUseMainModuleInitializer := true,
   )
 
+lazy val akkaVersion = "2.6.12"
+lazy val akkaHttpVersion = "10.2.3"
+lazy val back = (project in file("back"))
+  .enablePlugins(AkkaGrpcPlugin)
+  .settings(
+    name := "my-health-record.back",
+//    scalaVersion := "3.0.0-M3",
+    Compile / PB.targets := Seq(
+      scalapb.gen() -> (Compile / sourceManaged).value / "scalapb",
+    ),
+    libraryDependencies += "org.wvlet.airframe" %% "airframe-log" % "21.1.1",
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-http2-support" % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
+      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+      "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
+      "com.typesafe.akka" %% "akka-pki" % akkaVersion,
+
+      // The Akka HTTP overwrites are required because Akka-gRPC depends on 10.1.x
+      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-http2-support" % akkaHttpVersion,
+
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+
+      "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
+      "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
+      "org.scalatest" %% "scalatest" % "3.1.1" % Test
+    ),
+  )
+
 lazy val front = (project in file("front"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
 //  .aggregate(dtos.js, dtos.jvm)
   .dependsOn(dtos)
   .settings(
     name := "my-health-record.ui",
+//    scalaVersion := "2.13.4",
     Compile / PB.targets := Seq(
       scalapb.gen(grpc=false) -> (Compile / sourceManaged).value / "scalapb",
       scalapb.grpcweb.GrpcWebCodeGenerator -> (Compile / sourceManaged).value,
@@ -30,6 +62,7 @@ lazy val front = (project in file("front"))
     libraryDependencies += "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion,
     libraryDependencies += "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
     libraryDependencies += "com.thesamet.scalapb.grpcweb" %%% "scalapb-grpcweb" % scalapb.grpcweb.BuildInfo.version,
+    libraryDependencies += "org.wvlet.airframe" %%% "airframe-log" % "21.1.1",
     libraryDependencies ++= Seq(
       "com.raquo" %%% "laminar" % "0.11.0",
       "com.outr" %%% "scribe" % "3.1.9",
