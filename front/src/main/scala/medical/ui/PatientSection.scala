@@ -1,10 +1,10 @@
 package medical.ui
 
 import com.raquo.laminar.api.L._
-import medical.dtos.PatientBasic
+import medical.backend.patient.PatientReply
 
 object PatientSection {
-  def apply(patientBasic: PatientBasic): HtmlElement = {
+  def apply(patientBasic: PatientReply): HtmlElement = {
     section(
       className := "container",
       div(

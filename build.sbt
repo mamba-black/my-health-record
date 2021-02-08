@@ -18,11 +18,18 @@ lazy val front = (project in file("front"))
   .dependsOn(dtos)
   .settings(
     name := "my-health-record.ui",
+    Compile / PB.targets := Seq(
+      scalapb.gen(grpc=false) -> (Compile / sourceManaged).value / "scalapb",
+      scalapb.grpcweb.GrpcWebCodeGenerator -> (Compile / sourceManaged).value,
+    ),
     scalaJSUseMainModuleInitializer := true,
     npmDevDependencies in Compile += "autoprefixer" -> "10.2.4",
     npmDevDependencies in Compile += "tailwindcss" -> "2.0.2",
     npmDevDependencies in Compile += "postcss" -> "8.2.4",
     npmDevDependencies in Compile += "postcss-cli" -> "8.3.1",
+    libraryDependencies += "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion,
+    libraryDependencies += "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
+    libraryDependencies += "com.thesamet.scalapb.grpcweb" %%% "scalapb-grpcweb" % scalapb.grpcweb.BuildInfo.version,
     libraryDependencies ++= Seq(
       "com.raquo" %%% "laminar" % "0.11.0",
       "com.outr" %%% "scribe" % "3.1.9",

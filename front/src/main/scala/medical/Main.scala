@@ -2,7 +2,7 @@ package medical
 
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveHtmlElement
-import medical.dtos.PatientBasic
+import medical.backend.patient.PatientReply
 import medical.ui.{ PatientSection, SearchSection }
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
@@ -20,7 +20,7 @@ object Main {
 
   def init(): ReactiveHtmlElement[HTMLElement] = {
 
-    val eventBus = new EventBus[Option[PatientBasic]]
+    val eventBus = new EventBus[Option[PatientReply]]
     val searchSection = SearchSection(eventBus.writer)
     val mainContent = div(
       className := "main",
@@ -49,7 +49,7 @@ object Main {
         ),
       ),
       mainContent,
-      eventBus.events --> Observer[Option[PatientBasic]](onNext = { event =>
+      eventBus.events --> Observer[Option[PatientReply]](onNext = { event =>
         mainContent.ref.removeChild(searchSection.ref)
         scribe.info(s"$mainContent")
         scribe.info(s"main event: $event")}
