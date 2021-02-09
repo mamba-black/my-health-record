@@ -3,7 +3,7 @@ package medical.ui
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import io.grpc.stub.StreamObserver
-import medical.backend.patient.{ PatientClientGrpcWeb, PatientReply, PatientRequest }
+import medical.backend.patient.{ PatientServiceGrpcWeb, PatientReply, PatientRequest }
 import scalapb.grpc.Channels
 import org.scalajs.dom
 import org.scalajs.dom.html
@@ -16,7 +16,7 @@ object SearchSection {
 
   def apply(patientBasicWriteBus: WriteBus[Option[PatientReply]]): HtmlElement = {
     val patientNameEventBus = new EventBus[dom.html.Element]
-    val stub = PatientClientGrpcWeb.stub(Channels.grpcwebChannel("http://localhost:8080"))
+    val stub = PatientServiceGrpcWeb.stub(Channels.grpcwebChannel("https://192.168.1.3:8080"))
     val input = searchInput(patientNameEventBus, stub)
 
     section(
@@ -30,12 +30,12 @@ object SearchSection {
     )
   }
 
-  def searchInput(eventBus: EventBus[dom.html.Element], patientClient: PatientClientGrpcWeb.PatientClient[grpcweb.Metadata]): ReactiveHtmlElement[html.Input] = {
+  def searchInput(eventBus: EventBus[dom.html.Element], patientClient: PatientServiceGrpcWeb.PatientService[grpcweb.Metadata]): ReactiveHtmlElement[html.Input] = {
     def obsInput(input: Input) = Observer[dom.KeyboardEvent](onNext = { event =>
       val text = input.ref.value
       val search = text.trim.nonEmpty
-      scribe.info("Buscar!")
       if (search) {
+        scribe.info("Buscar!")
         eventBus.writer.onNext(div(text).ref)
         patientClient.find(PatientRequest(text), new StreamObserver[PatientReply] {
           override def onNext(value: PatientReply): Unit = patients.update(_ :+ value)
