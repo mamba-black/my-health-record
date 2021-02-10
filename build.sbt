@@ -15,9 +15,15 @@ lazy val dtos = (project in file("dtos"))
 lazy val akkaVersion = "2.6.12"
 lazy val akkaHttpVersion = "10.2.3"
 lazy val back = (project in file("back"))
-  .enablePlugins(AkkaGrpcPlugin)
+  .enablePlugins(AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin)
   .settings(
     name := "my-health-record.back",
+//    Docker / packageName := "gcr.io/miuler-medical-001",
+//    dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
+    dockerBaseImage := "adoptopenjdk:11-jre-hotspot",
+    dockerRepository := Some("gcr.io/miuler-medical-001"),
+    ThisBuild / dynverSeparator := "-",
+    dockerUpdateLatest := true,
 //    scalaVersion := "3.0.0-M3",
     libraryDependencies += "org.wvlet.airframe" %% "airframe-log" % "21.1.1",
     libraryDependencies ++= Seq(
