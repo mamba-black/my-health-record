@@ -5,6 +5,7 @@ ThisBuild / scalaVersion := "2.13.4"
 //ThisBuild / scalaVersion := "3.0.0-M3"
 ThisBuild / organization := "miuler"
 
+
 lazy val dtos = (project in file("dtos"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .settings(
@@ -18,11 +19,16 @@ lazy val back = (project in file("back"))
   .enablePlugins(AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin)
   .settings(
     name := "my-health-record.back",
-//    Docker / packageName := "gcr.io/miuler-medical-001",
+    scalacOptions ++= Seq(
+      "-Xlint:unused",
+      "-Xlint:nullary-unit",
+    ),
+      //    Docker / packageName := "gcr.io/miuler-medical-001",
 //    dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
     dockerBaseImage := "adoptopenjdk:11-jre-hotspot",
     dockerRepository := Some("gcr.io/miuler-medical-001"),
-    ThisBuild / dynverSeparator := "-",
+    dockerExposedPorts := Seq(8080),
+      ThisBuild / dynverSeparator := "-",
     dockerUpdateLatest := true,
 //    scalaVersion := "3.0.0-M3",
     libraryDependencies += "org.wvlet.airframe" %% "airframe-log" % "21.1.1",
@@ -32,7 +38,7 @@ lazy val back = (project in file("back"))
       "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
-      "com.typesafe.akka" %% "akka-pki" % akkaVersion,
+//      "com.typesafe.akka" %% "akka-pki" % akkaVersion,
       "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "1.0.2",
 
 
