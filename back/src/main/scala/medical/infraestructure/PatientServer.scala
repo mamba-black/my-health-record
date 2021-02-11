@@ -1,11 +1,12 @@
-package medical
+package medical.infraestructure
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.grpc.scaladsl.{ ServerReflection, WebHandler }
 import akka.http.scaladsl.Http
 import com.typesafe.config.ConfigFactory
-import medical.backend.{ PatientService, PatientServiceHandler }
+import medical.api.{ PatientApi, PatientApiHandler }
+import medical.presentation.PatientApiImpl
 import wvlet.log.LogFormatter.PlainSourceCodeLogFormatter
 import wvlet.log.LogSupport
 
@@ -29,8 +30,8 @@ class PatientServer(system: ActorSystem[_]) extends LogSupport {
     implicit val sys = system
     implicit val ec = sys.executionContext
 
-    val patientService = PatientServiceHandler.partial(new PatientServiceImpl(system))
-    val serverReflection = ServerReflection.partial(List(PatientService))
+    val patientService = PatientApiHandler.partial(new PatientApiImpl(system))
+    val serverReflection = ServerReflection.partial(List(PatientApi))
     val services = WebHandler.grpcWebHandler(serverReflection, patientService)
 
     val bindingFuture = Http(system)

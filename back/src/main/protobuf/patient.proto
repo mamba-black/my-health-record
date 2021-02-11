@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package medical.backend;
+package medical.api;
 
 //import "scalapb/scalapb.proto";
 
-service PatientService {
+service PatientApi {
   // Sends a greeting
   rpc Find (PatientRequest) returns (stream PatientReply) {}
   rpc Get (PatientIdRequest) returns (PatientReply) {}

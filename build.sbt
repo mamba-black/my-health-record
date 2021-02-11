@@ -15,6 +15,7 @@ lazy val dtos = (project in file("dtos"))
 
 lazy val akkaVersion = "2.6.12"
 lazy val akkaHttpVersion = "10.2.3"
+lazy val algolia = "3.10.0"
 lazy val back = (project in file("back"))
   .enablePlugins(AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin)
   .settings(
@@ -39,18 +40,18 @@ lazy val back = (project in file("back"))
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
 //      "com.typesafe.akka" %% "akka-pki" % akkaVersion,
+      "ch.megard" %% "akka-http-cors" % "1.1.1", // Para poder usar akka grpc con grpc-web
       "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "1.0.2",
+      "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
 
+      "com.algolia" % "algoliasearch-core" % algolia,
+      "com.algolia" % "algoliasearch-java-net" % algolia,
 
 //      // The Akka HTTP overwrites are required because Akka-gRPC depends on 10.1.x
 //      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
 //      "com.typesafe.akka" %% "akka-http2-support" % akkaHttpVersion,
 
-      "ch.megard" %% "akka-http-cors" % "1.1.1", // Para poder usar akka grpc con grpc-web
-
-      "ch.qos.logback" % "logback-classic" % "1.2.3",
-
-      "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
 
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
       "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
@@ -87,6 +88,7 @@ lazy val front = (project in file("front"))
       "org.scalatest" %%% "scalatest" % "3.2.3" % Test
     ),
   )
+
 
 logLevel := Level.Debug
 import sbt.Keys.streams
