@@ -2,30 +2,59 @@ package medical
 
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveHtmlElement
+import io.frontroute._
 import medical.backend.patient.PatientReply
-import medical.ui.{ PatientSection, SearchSection }
+import medical.ui.SearchSection
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
+import wvlet.log.LogSupport
 
-object Main {
+object Main extends LogSupport {
   def main(args: Array[String]): Unit = {
     println("Test")
-    //    dom.window.addEventListener("load", init)
+
     documentEvents.onDomContentLoaded.foreach { _ =>
-//      dom.document.querySelector("html").removeChild(dom.document.querySelector("body"))
-//      render(dom.document.querySelector("html"), init())
+      LinkHandler.install()
       render(dom.document.body, init())
+      ()
     }(unsafeWindowOwner)
+    ()
+  }
+
+  def router(patientReplyEventBus: EventBus[Option[PatientReply]]): Signal[Element] = {
+    //    dom.window.addEventListener("load", init)
+    val (routeResult, route) = makeRoute[Element] { render =>
+      concat(
+        pathEnd {
+          dom.console.log("page home")
+          render {
+            div("HOME! 🏠")
+          }
+        },
+        path("patient") {
+          dom.console.log("page patient")
+          render {
+            SearchSection(patientReplyEventBus.writer)
+          }
+        },
+        render {
+          div("pageX")
+        }
+      )
+    }
+    runRoute(route, LocationProvider.browser(windowEvents.onPopState))(unsafeWindowOwner)
+    BrowserNavigation.emitPopStateEvent()
+    routeResult.map(_.getOrElse(div("initializing...")))
   }
 
   def init(): ReactiveHtmlElement[HTMLElement] = {
+    info("init")
 
     val eventBus = new EventBus[Option[PatientReply]]
-    val searchSection = SearchSection(eventBus.writer)
     val mainContent = div(
       className := "main",
-      searchSection,
-      child <-- eventBus.events.observable.map(xx => PatientSection(xx.get)),
+      child <-- router(eventBus),
+//      child <-- eventBus.events.observable.map(xx => PatientSection(xx.get)),
     )
 
     div(
@@ -42,18 +71,18 @@ object Main {
       nav(
         ul(
           className := "nav flex-column",
-          li(className := "nav-item", a(className := "nav-link active", "Home")),
-          li(className := "nav-item", a(className := "nav-link", "Paciente")),
-          li(className := "nav-item", a(className := "nav-link", "Historias")),
-          li(className := "nav-item", a(className := "nav-link", "Facturacion")),
+          li(className := "nav-item", a(href := "/", className := "nav-link active", "Home")),
+          li(className := "nav-item", a(href := "/patient", className := "nav-link", "Paciente")),
+//          li(className := "nav-item", a(href := "/", className := "nav-link", "Historias")),
+//          li(className := "nav-item", a(href := "/", className := "nav-link", "Facturacion")),
         ),
       ),
       mainContent,
       eventBus.events --> Observer[Option[PatientReply]](onNext = { event =>
-        mainContent.ref.removeChild(searchSection.ref)
-        scribe.info(s"$mainContent")
-        scribe.info(s"main event: $event")}
-      ),
+//        mainContent.ref.removeChild(searchSection.ref)
+        info(s"$mainContent")
+        info(s"main event: $event")
+      }),
     )
   }
 }

@@ -13,7 +13,7 @@ import scala.concurrent.Future
 
 class PatientApiImpl(system: ActorSystem[_],
                      patientService: PatientService) extends PatientApi with LogSupport {
-  private implicit val sys: ActorSystem[_] = system
+//  private implicit val sys: ActorSystem[_] = system
 
   /**
    * Sends a greeting

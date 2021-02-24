@@ -6,6 +6,8 @@ import akka.grpc.scaladsl.{ ServerReflection, WebHandler }
 import akka.http.scaladsl.Http
 import com.typesafe.config.ConfigFactory
 import medical.api.{ PatientApi, PatientApiHandler }
+import medical.application.PatientServiceImpl
+import medical.infraestructure.repository.PatientRepositoryImpl
 import medical.presentation.PatientApiImpl
 import wvlet.log.LogFormatter.PlainSourceCodeLogFormatter
 import wvlet.log.LogSupport
@@ -22,6 +24,7 @@ object PatientServer extends LogSupport {
       .withFallback(ConfigFactory.defaultApplication())
     val system = ActorSystem[Nothing](Behaviors.empty, "PatientServer", conf)
     new PatientServer(system).run()
+    ()
   }
 }
 
@@ -30,14 +33,14 @@ class PatientServer(system: ActorSystem[_]) extends LogSupport {
     implicit val sys = system
     implicit val ec = sys.executionContext
 
-    val patientService = PatientApiHandler.partial(new PatientApiImpl(system))
     val serverReflection = ServerReflection.partial(List(PatientApi))
-    val services = WebHandler.grpcWebHandler(serverReflection, patientService)
+    val patientApi = PatientApiHandler.partial(new PatientApiImpl(system, new PatientServiceImpl(new PatientRepositoryImpl)))
+    val apis = WebHandler.grpcWebHandler(serverReflection, patientApi)
 
     val bindingFuture = Http(system)
       .newServerAt(interface = "0.0.0.0", port = 8080)
 //      .enableHttps(serverHttpContext)
-      .bind(services)
+      .bind(apis)
       .map(_.addToCoordinatedShutdown(hardTerminationDeadline = 10.seconds))
 
     bindingFuture.onComplete {

@@ -5,6 +5,14 @@ ThisBuild / scalaVersion := "2.13.4"
 //ThisBuild / scalaVersion := "3.0.0-M3"
 ThisBuild / organization := "miuler"
 
+ThisBuild / libraryDependencies ++= Seq(
+  compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.2" cross CrossVersion.full),
+  "com.github.ghik" % "silencer-lib" % "1.7.2" % Provided cross CrossVersion.full
+)
+ThisBuild / scalacOptions ++= Seq(
+  "-P:silencer:pathFilters=.*[/]src_managed[/].*",
+//  "-Wconf:src=src_managed/.*:silent",
+)
 
 lazy val dtos = (project in file("dtos"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
@@ -20,10 +28,6 @@ lazy val back = (project in file("back"))
   .enablePlugins(AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin)
   .settings(
     name := "my-health-record.back",
-    scalacOptions ++= Seq(
-      "-Xlint:unused",
-      "-Xlint:nullary-unit",
-    ),
       //    Docker / packageName := "gcr.io/miuler-medical-001",
 //    dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
     dockerBaseImage := "adoptopenjdk:11-jre-hotspot",
@@ -81,9 +85,9 @@ lazy val front = (project in file("front"))
       "com.thesamet.scalapb.grpcweb" %%% "scalapb-grpcweb" % scalapb.grpcweb.BuildInfo.version,
     ),
     libraryDependencies ++= Seq(
-      "com.raquo" %%% "laminar" % "0.11.0",
-      "org.wvlet.airframe" %%% "airframe-log" % "21.1.1",
-      "com.outr" %%% "scribe" % "3.1.9",
+      "com.raquo" %%% "laminar" % "0.12.0-RC1",
+      "io.frontroute" %%% "frontroute" % "0.12.0-RC1",
+      "org.wvlet.airframe" %%% "airframe-log" % "21.2.0",
 //      "org.wvlet.airframe" %%% "airframe-log" % "21.1.0",
       "org.scalatest" %%% "scalatest" % "3.2.3" % Test
     ),
@@ -95,9 +99,8 @@ import sbt.Keys.streams
 import scalajsbundler.BundlerFile.WebpackConfig
 lazy val css = taskKey[Unit]("Compilal el CSS")
 css := {
-//  val logger: Logger = ConsoleLogger()
+  //val result = npmInstallDependencies.value
   val logger = streams.value.log
-  npmInstallDependencies
   logger.info("1=================================>")
   logger.info(s"${front}")
   logger.info(s"${front.base}")
@@ -108,7 +111,7 @@ css := {
 //  Npm.run("exec", "tailwindcss", "build", "-o tailwind.css")(front.base / "target" / "scala-2.13" / "scalajs-bundler" / "main", logger)
   Npm.run("exec", "--", "postcss",
     "--config", (baseDirectory.in(front).value / "postcss.config.js").getAbsolutePath,
-    "-o", (baseDirectory.in(front).value / "target" / "scala-2.13" / "my-health-record-ui-fastopt" / "compiled.css").getAbsolutePath,
+    "-o", (baseDirectory.in(front).value / "target" / "compiled.css").getAbsolutePath,
     (baseDirectory.in(front).value / "styles.css").getAbsolutePath)(front.base / "target" / "scala-2.13" / "scalajs-bundler" / "main", logger)
 //  logger.info("2=================================<")
 }
