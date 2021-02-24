@@ -11,7 +11,7 @@ ThisBuild / libraryDependencies ++= Seq(
 )
 ThisBuild / scalacOptions ++= Seq(
   "-P:silencer:pathFilters=.*[/]src_managed[/].*",
-//  "-Wconf:src=src_managed/.*:silent",
+  //  "-Wconf:src=src_managed/.*:silent",
 )
 
 lazy val dtos = (project in file("dtos"))
@@ -28,14 +28,14 @@ lazy val back = (project in file("back"))
   .enablePlugins(AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin)
   .settings(
     name := "my-health-record.back",
-      //    Docker / packageName := "gcr.io/miuler-medical-001",
-//    dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
+    //    Docker / packageName := "gcr.io/miuler-medical-001",
+    //    dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
     dockerBaseImage := "adoptopenjdk:11-jre-hotspot",
     dockerRepository := Some("gcr.io/miuler-medical-001"),
     dockerExposedPorts := Seq(8080),
-      ThisBuild / dynverSeparator := "-",
+    ThisBuild / dynverSeparator := "-",
     dockerUpdateLatest := true,
-//    scalaVersion := "3.0.0-M3",
+    //    scalaVersion := "3.0.0-M3",
     libraryDependencies += "org.wvlet.airframe" %% "airframe-log" % "21.1.1",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
@@ -43,7 +43,7 @@ lazy val back = (project in file("back"))
       "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
-//      "com.typesafe.akka" %% "akka-pki" % akkaVersion,
+      //      "com.typesafe.akka" %% "akka-pki" % akkaVersion,
       "ch.megard" %% "akka-http-cors" % "1.1.1", // Para poder usar akka grpc con grpc-web
       "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "1.0.2",
       "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
@@ -52,9 +52,9 @@ lazy val back = (project in file("back"))
       "com.algolia" % "algoliasearch-core" % algolia,
       "com.algolia" % "algoliasearch-java-net" % algolia,
 
-//      // The Akka HTTP overwrites are required because Akka-gRPC depends on 10.1.x
-//      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-//      "com.typesafe.akka" %% "akka-http2-support" % akkaHttpVersion,
+      //      // The Akka HTTP overwrites are required because Akka-gRPC depends on 10.1.x
+      //      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
+      //      "com.typesafe.akka" %% "akka-http2-support" % akkaHttpVersion,
 
 
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
@@ -65,20 +65,22 @@ lazy val back = (project in file("back"))
 
 lazy val front = (project in file("front"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-//  .aggregate(dtos.js, dtos.jvm)
+  //  .aggregate(dtos.js, dtos.jvm)
   .dependsOn(dtos)
   .settings(
     name := "my-health-record.ui",
-//    scalaVersion := "2.13.4",
+    //    scalaVersion := "2.13.4",
     Compile / PB.targets := Seq(
-      scalapb.gen(grpc=false) -> (Compile / sourceManaged).value / "scalapb",
+      scalapb.gen(grpc = false) -> (Compile / sourceManaged).value / "scalapb",
       scalapb.grpcweb.GrpcWebCodeGenerator -> (Compile / sourceManaged).value,
     ),
     scalaJSUseMainModuleInitializer := true,
-    npmDevDependencies in Compile += "autoprefixer" -> "10.2.4",
-    npmDevDependencies in Compile += "tailwindcss" -> "2.0.2",
-    npmDevDependencies in Compile += "postcss" -> "8.2.4",
-    npmDevDependencies in Compile += "postcss-cli" -> "8.3.1",
+    npmDevDependencies in Compile ++= Seq(
+      "autoprefixer" -> "10.2.4",
+      "tailwindcss" -> "2.0.2",
+      "postcss" -> "8.2.4",
+      "postcss-cli" -> "8.3.1",
+    ),
     libraryDependencies ++= Seq(
       "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion,
       "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
@@ -88,15 +90,18 @@ lazy val front = (project in file("front"))
       "com.raquo" %%% "laminar" % "0.12.0-RC1",
       "io.frontroute" %%% "frontroute" % "0.12.0-RC1",
       "org.wvlet.airframe" %%% "airframe-log" % "21.2.0",
-//      "org.wvlet.airframe" %%% "airframe-log" % "21.1.0",
-      "org.scalatest" %%% "scalatest" % "3.2.3" % Test
+    ),
+    libraryDependencies ++= Seq(
+      "org.scalatest" %%% "scalatest" % "3.2.3" % Test,
     ),
   )
 
 
 logLevel := Level.Debug
+
 import sbt.Keys.streams
 import scalajsbundler.BundlerFile.WebpackConfig
+
 lazy val css = taskKey[Unit]("Compilal el CSS")
 css := {
   //val result = npmInstallDependencies.value
@@ -107,11 +112,11 @@ css := {
   logger.info(s"${WebpackConfig}")
   logger.info(s"${webpackConfigFile}")
   logger.info("1=================================<")
-//  logger.info("2=================================>")
-//  Npm.run("exec", "tailwindcss", "build", "-o tailwind.css")(front.base / "target" / "scala-2.13" / "scalajs-bundler" / "main", logger)
+  //  logger.info("2=================================>")
+  //  Npm.run("exec", "tailwindcss", "build", "-o tailwind.css")(front.base / "target" / "scala-2.13" / "scalajs-bundler" / "main", logger)
   Npm.run("exec", "--", "postcss",
     "--config", (baseDirectory.in(front).value / "postcss.config.js").getAbsolutePath,
     "-o", (baseDirectory.in(front).value / "target" / "compiled.css").getAbsolutePath,
     (baseDirectory.in(front).value / "styles.css").getAbsolutePath)(front.base / "target" / "scala-2.13" / "scalajs-bundler" / "main", logger)
-//  logger.info("2=================================<")
+  //  logger.info("2=================================<")
 }
