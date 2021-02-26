@@ -5,6 +5,7 @@ import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import io.grpc.stub.StreamObserver
 import medical.backend.patient.{ PatientReply, PatientRequest, PatientServiceGrpcWeb }
+import medical.domain.Patient
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLTableCellElement
@@ -14,7 +15,7 @@ import wvlet.log.LogSupport
 
 object SearchSection extends LogSupport {
 
-  def apply(patientBasicWriteBus: WriteBus[Option[PatientReply]]): HtmlElement = {
+  def apply(patientBasicWriteBus: WriteBus[Option[Patient]]): HtmlElement = {
     val patientReplyEventBus = new EventBus[PatientReply]
     val stub = PatientServiceGrpcWeb.stub(Channels.grpcwebChannel("https://192.168.1.3:8080"))
     val input = searchInput(patientReplyEventBus, stub)
@@ -75,7 +76,7 @@ object SearchSection extends LogSupport {
     )
   }
 
-  def searchTable(eventBus: EventBus[PatientReply], patientBasicWriteBus: WriteBus[Option[PatientReply]]): ReactiveHtmlElement[html.Div] = {
+  def searchTable(eventBus: EventBus[PatientReply], patientBasicWriteBus: WriteBus[Option[Patient]]): ReactiveHtmlElement[html.Div] = {
 
     div(
       className := "max-w-7xl mx-auto sm:px-6 lg:px-8", // FIXME saque el hidden
@@ -112,12 +113,12 @@ object SearchSection extends LogSupport {
     )
   }
 
-  private def _td(patientReply: PatientReply, eventBus: EventBus[PatientReply], patientBasicWriteBus: WriteBus[Option[PatientReply]]) = {
+  private def _td(patientReply: PatientReply, eventBus: EventBus[PatientReply], patientBasicWriteBus: WriteBus[Option[Patient]]) = {
 
     val obsHistory = Observer[dom.MouseEvent](onNext = { event =>
       info(s"event: ${event}")
       info(s"1: ${event.target.isInstanceOf[HTMLTableCellElement]}")
-      val _ = eventBus.events --> (e => patientBasicWriteBus.onNext(Some(e)))
+      val _ = eventBus.events --> (_ => patientBasicWriteBus.onNext(Some(Patient()))) // FIXME: crear el paciente con algo de data
     })
 
     //                    tr(td(idAttr := s"${i._2}", i._1.name, onClick --> obsHistory))
