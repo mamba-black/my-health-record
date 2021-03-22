@@ -10,8 +10,7 @@ object MainUI extends LogSupport {
 
     div(
       className := "wrapper",
-      _header(),
-      _nav(),
+      mainHeader(),
       _main(signalElements),
       CommandHandler(commandBus),
     )
@@ -25,24 +24,52 @@ object MainUI extends LogSupport {
     mainContent
   }
 
-  private def _header(): HtmlElement = {
-    header(
-      className := "d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-white border-bottom shadow-sm",
-      h1("Historias Medicas", className := "my-0 me-md-auto fw-normal"),
-      nav(
-        className := "my-2 my-md-0 me-md-3",
-        a(href := "/", "test", className := "p-2 text-dark"),
-      ),
-      a(href := "/patient", "Entrar", className := "btn btn-outline-primary"),
-    )
-  }
-
-  private def _nav(): HtmlElement = {
+  private def mainHeader(): HtmlElement = {
     nav(
-      ul(
-        className := "nav flex-column",
-        li(className := "nav-item", a(href := "/", className := "nav-link active", "Home")),
-        li(className := "nav-item", a(href := "/patient", className := "nav-link", "Paciente")),
+      cls := "w-full z-30 bg-white shadow-lg border-b border-gray-300 ",
+      div(
+        cls := "w-full flex items-center justify-between mt-0 px-6 py-0",
+        div(
+          cls := "hidden md:flex md:items-center md:w-auto w-full order-3 md:order-1",
+          nav(
+            div(
+              cls := "inline-flex",
+              div(
+                cls := "mx-auto h-10  pt-4 w-auto pr-10",
+                svg.svg(
+                  svg.className := "w-8 -8 text-orange", svg.width := "54", svg.height:="54", svg.viewBox:="0 0 54 54",
+                  svg.path( svg.d := "M13.5 22.1c1.8-7.2 6.3-10.8 13.5-10.8 10.8 0 12.15 8.1 17.55 9.45 3.6.9 6.75-.45 9.45-4.05-1.8 7.2-6.3 10.8-13.5 10.8-10.8 0-12.15-8.1-17.55-9.45-3.6-.9-6.75.45-9.45 4.05zM0 38.3c1.8-7.2 6.3-10.8 13.5-10.8 10.8 0 12.15 8.1 17.55 9.45 3.6.9 6.75-.45 9.45-4.05-1.8 7.2-6.3 10.8-13.5 10.8-10.8 0-12.15-8.1-17.55-9.45-3.6-.9-6.75.45-9.45 4.05z" ),
+                ),
+              ),
+            ),
+            div(
+              cls := "inline-flex",
+              ul(
+                cls := "md:flex items-center justify-center text-base text-gray-400  md:pt-0",
+                li(a(
+                  cls := "inline-block no-underline hover:text-black font-medium text-md text-gray-800 py-2 px-4 lg:-ml-2",
+                  href := "/",
+                  "Home",
+                )),
+                li(a(
+                  cls := "inline-block no-underline hover:text-gray-700 font-medium text-md py-2 px-4 lg:-ml-2",
+                  href := "/patient",
+                  "Pacientes",
+                )),
+                li(a(
+                  cls := "inline-block no-underline hover:text-gray-700 font-medium text-md py-2 px-4 lg:-ml-2",
+                  href := "/configuration",
+                  "Configuración",
+                )),
+                li(a(
+                  cls := "inline-block no-underline hover:text-gray-700 font-medium text-md py-2 px-4 lg:-ml-2",
+                  href := "/about",
+                  "About",
+                )),
+              ),
+            ),
+          )
+        ),
       ),
     )
   }
