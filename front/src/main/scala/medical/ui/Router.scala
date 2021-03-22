@@ -2,11 +2,13 @@ package medical.ui
 
 import com.raquo.laminar.api.L._
 import io.frontroute.{ BrowserNavigation, LocationProvider, concat, makeRoute, path, pathEnd, runRoute }
-import medical.domain.Patient
+import medical.command.CommandBus
+import medical.ui.component.SearchSection
 import org.scalajs.dom
+import wvlet.log.LogSupport
 
-object Router {
-  def apply(patientEventBus: EventBus[Option[Patient]]): Signal[Element] = {
+object Router extends LogSupport {
+  def apply(commandBus: CommandBus): Signal[Element] = {
 
     val (routeResult, route) = makeRoute[Element] { render =>
       concat(
@@ -19,7 +21,7 @@ object Router {
         path("patient") {
           dom.console.log("page patient")
           render {
-            SearchSection(patientEventBus.writer)
+            SearchSection(commandBus.writer)
           }
         },
         render {

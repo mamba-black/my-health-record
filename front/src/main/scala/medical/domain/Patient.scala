@@ -1,3 +1,3 @@
 package medical.domain
 
-case class Patient()
+case class Patient(id: String, name: String)

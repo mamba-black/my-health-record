@@ -1,4 +1,4 @@
-package medical.ui
+package medical.ui.component
 
 import com.raquo.laminar.api.L._
 import medical.backend.patient.PatientReply
@@ -29,7 +29,7 @@ object PatientSection {
     )
   }
 
-  def register(value: String) = {
+  def register(value: String): HtmlElement = {
 
     div(
       className := "d-flex text-muted pt-3",

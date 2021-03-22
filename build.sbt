@@ -87,8 +87,8 @@ lazy val front = (project in file("front"))
       "com.thesamet.scalapb.grpcweb" %%% "scalapb-grpcweb" % scalapb.grpcweb.BuildInfo.version,
     ),
     libraryDependencies ++= Seq(
-      "com.raquo" %%% "laminar" % "0.12.0-RC1",
-      "io.frontroute" %%% "frontroute" % "0.12.0-RC1",
+      "com.raquo" %%% "laminar" % "0.12.0",
+      "io.frontroute" %%% "frontroute" % "0.12.0",
       "org.wvlet.airframe" %%% "airframe-log" % "21.2.0",
     ),
     libraryDependencies ++= Seq(
