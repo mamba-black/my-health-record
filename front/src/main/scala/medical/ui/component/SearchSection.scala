@@ -30,7 +30,7 @@ object SearchSection extends LogSupport {
   }
 
   def searchInput(eventBus: EventBus[PatientReply], patientClient: PatientServiceGrpcWeb.PatientService[grpcweb.Metadata]): ReactiveHtmlElement[html.Div] = {
-    def obsInput(input: Input) = Observer[dom.KeyboardEvent](onNext = { _ =>
+    def searchName(input: Input): Unit = {
       val text = input.ref.value
       val search = text.trim.nonEmpty
       if (search) {
@@ -45,24 +45,31 @@ object SearchSection extends LogSupport {
         })
       }
       ()
+    }
+    def obsInput(input: Input) = Observer[dom.KeyboardEvent](onNext = { _ =>
+      searchName(input)
+      ()
     })
+
+    val _input = input(
+      className := "border-2 border-gray-300 bg-white h-10 px-5 pr-10 rounded-lg text-sm focus:outline-none",
+      typ := "search",
+      name := "search",
+      placeholder := "Nombre del paciente",
+      "searchInput",
+      autoFocus(true),
+      inContext(thisNode => onKeyPress.filter(e => e.keyCode == dom.ext.KeyCode.Enter) --> obsInput(thisNode)),
+    )
 
     div(
       className := "py-6 flex flex-col justify-center sm:py-12",
       div(
         className := "pt-2 relative mx-auto text-gray-600",
-        input(
-          className := "border-2 border-gray-300 bg-white h-10 px-5 pr-10 rounded-lg text-sm focus:outline-none",
-          typ := "search",
-          name := "search",
-          placeholder := "Nombre del paciente",
-          "searchInput",
-          autoFocus(true),
-          inContext(thisNode => onKeyPress.filter(e => e.keyCode == dom.ext.KeyCode.Enter) --> obsInput(thisNode)),
-        ),
+        _input,
         button(
-          typ := "submit",
+//          typ := "submit",
           className := "absolute right-0 top-0 mt-5 mr-4",
+          onClick --> Observer[dom.MouseEvent](onNext = { _ => searchName(_input); () }),
           svg.svg(
             svg.className := "text-gray-600 h-4 w-4 fill-current",
             //            svg.xmlns := "http://www.w3.org/2000/svg",
