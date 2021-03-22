@@ -21,12 +21,10 @@ object SearchSection extends LogSupport {
   def apply(commandWriteBus: WriteBus[Command]): HtmlElement = {
     val patientReplyEventBus = new EventBus[PatientReply]
 
+    val stub = PatientServiceGrpcWeb.stub(Channels.grpcwebChannel("https://192.168.1.3:8080"))
+
     section(
-      div(
-        className := "container input-group mb-3",
-//        searchButton(patientReplyEventBus, input),
-      ),
-      br(),
+      searchInput(patientReplyEventBus, stub),
       searchTable(patientReplyEventBus, commandWriteBus),
     )
   }
@@ -54,7 +52,7 @@ object SearchSection extends LogSupport {
       div(
         className := "pt-2 relative mx-auto text-gray-600",
         input(
-          className := "border-2 border-gray-300 bg-white h-10 px-5 pr-16 rounded-lg text-sm focus:outline-none",
+          className := "border-2 border-gray-300 bg-white h-10 px-5 pr-10 rounded-lg text-sm focus:outline-none",
           typ := "search",
           name := "search",
           placeholder := "Nombre del paciente",
@@ -65,28 +63,44 @@ object SearchSection extends LogSupport {
         button(
           typ := "submit",
           className := "absolute right-0 top-0 mt-5 mr-4",
+          svg.svg(
+            svg.className := "text-gray-600 h-4 w-4 fill-current",
+            //            svg.xmlns := "http://www.w3.org/2000/svg",
+            //            svg.xlinkHref := "http://www.w3.org/1999/xlink",
+            svg.idAttr := "Capa_1",
+            svg.x := "0px",
+            svg.y := "0px",
+            svg.viewBox := "0 0 56.966 56.966",
+            svg.style := "enable-background:new 0 0 56.966 56.966;",
+            svg.xmlSpace := "preserve",
+            svg.width := "512px",
+            svg.height := "512px",
+            svg.path(
+              svg.d := "M55.146,51.887L41.588,37.786c3.486-4.144,5.396-9.358,5.396-14.786c0-12.682-10.318-23-23-23s-23,10.318-23,23  s10.318,23,23,23c4.761,0,9.298-1.436,13.177-4.162l13.661,14.208c0.571,0.593,1.339,0.92,2.162,0.92  c0.779,0,1.518-0.297,2.079-0.837C56.255,54.982,56.293,53.08,55.146,51.887z M23.984,6c9.374,0,17,7.626,17,17s-7.626,17-17,17  s-17-7.626-17-17S14.61,6,23.984,6z",
+            ),
+          )
         )
       )
     )
   }
-/*
-    <div class="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
-          <div class="pt-2 relative mx-auto text-gray-600">
+  /*
+      <div class="py-6 flex flex-col justify-center sm:py-12">
+            <div class="pt-2 relative mx-auto text-gray-600">
 
-            <input class="border-2 border-gray-300 bg-white h-10 px-5 pr-16 rounded-lg text-sm focus:outline-none"
-              type="search" name="search" placeholder="Search">
-            <button type="submit" class="absolute right-0 top-0 mt-5 mr-4">
-              <svg class="text-gray-600 h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg"
-                xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Capa_1" x="0px" y="0px"
-                viewBox="0 0 56.966 56.966" style="enable-background:new 0 0 56.966 56.966;" xml:space="preserve"
-                width="512px" height="512px">
-                <path
-                  d="M55.146,51.887L41.588,37.786c3.486-4.144,5.396-9.358,5.396-14.786c0-12.682-10.318-23-23-23s-23,10.318-23,23  s10.318,23,23,23c4.761,0,9.298-1.436,13.177-4.162l13.661,14.208c0.571,0.593,1.339,0.92,2.162,0.92  c0.779,0,1.518-0.297,2.079-0.837C56.255,54.982,56.293,53.08,55.146,51.887z M23.984,6c9.374,0,17,7.626,17,17s-7.626,17-17,17  s-17-7.626-17-17S14.61,6,23.984,6z" />
-              </svg>
-            </button>
-          </div>
-    </div>
-*/
+              <input class="border-2 border-gray-300 bg-white h-10 px-5 pr-16 rounded-lg text-sm focus:outline-none"
+                type="search" name="search" placeholder="Search">
+              <button type="submit" class="absolute right-0 top-0 mt-5 mr-4">
+                <svg class="text-gray-600 h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg"
+                  xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Capa_1" x="0px" y="0px"
+                  viewBox="0 0 56.966 56.966" style="enable-background:new 0 0 56.966 56.966;" xml:space="preserve"
+                  width="512px" height="512px">
+                  <path
+                    d="M55.146,51.887L41.588,37.786c3.486-4.144,5.396-9.358,5.396-14.786c0-12.682-10.318-23-23-23s-23,10.318-23,23  s10.318,23,23,23c4.761,0,9.298-1.436,13.177-4.162l13.661,14.208c0.571,0.593,1.339,0.92,2.162,0.92  c0.779,0,1.518-0.297,2.079-0.837C56.255,54.982,56.293,53.08,55.146,51.887z M23.984,6c9.374,0,17,7.626,17,17s-7.626,17-17,17  s-17-7.626-17-17S14.61,6,23.984,6z" />
+                </svg>
+              </button>
+            </div>
+      </div>
+  */
 
   def searchButton(eventBus: EventBus[PatientReply], input: ReactiveHtmlElement[html.Input]): ReactiveHtmlElement[html.Button] = {
 
@@ -107,14 +121,11 @@ object SearchSection extends LogSupport {
   }
 
   def searchTable(eventBus: EventBus[PatientReply], commandWriteBus: WriteBus[Command]): ReactiveHtmlElement[html.Div] = {
-    val stub = PatientServiceGrpcWeb.stub(Channels.grpcwebChannel("https://192.168.1.3:8080"))
-    val input =
-      searchInput(eventBus, stub)
-
     div(
       className := "max-w-7xl mx-auto sm:px-6 lg:px-8", // FIXME saque el hidden
       cls.toggle("hidden") <-- eventBus.events.map(_ => {
-        info("hidden:"); false
+        info("hidden:")
+        false
       }),
       div(
         className := "flex flex-col",
@@ -122,7 +133,6 @@ object SearchSection extends LogSupport {
           className := "-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8",
           div(
             className := "py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8",
-            input,
             div(
               className := "shadow overflow-hidden border-b border-gray-200 sm:rounded-lg",
               table(
