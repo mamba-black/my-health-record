@@ -1,9 +1,10 @@
 package medical.ui
 
 import com.raquo.laminar.api.L._
-import io.frontroute.{ BrowserNavigation, LocationProvider, concat, makeRoute, path, pathEnd, runRoute }
+import io.frontroute._
 import medical.command.CommandBus
-import medical.ui.component.SearchSection
+import medical.domain.Patient
+import medical.ui.component.{ PatientSection, SearchSection }
 import org.scalajs.dom
 import wvlet.log.LogSupport
 
@@ -22,6 +23,13 @@ object Router extends LogSupport {
           dom.console.log("page patient")
           render {
             SearchSection(commandBus.writer)
+          }
+        },
+        (path("patient" / segment) & historyState) { (patientId, state) =>
+          info(s"patientId: $patientId")
+          info(s"state: $state")
+          render {
+            PatientSection(patientId, state.asInstanceOf[Option[Patient]])
           }
         },
         render {

@@ -1,39 +1,46 @@
 package medical.ui.component
 
 import com.raquo.laminar.api.L._
-import medical.backend.patient.PatientReply
+import medical.domain.Patient
+import wvlet.log.LogSupport
 
-object PatientSection {
-  def apply(patientBasic: PatientReply): HtmlElement = {
+import scala.scalajs.js.timers.setTimeout
+
+object PatientSection extends LogSupport {
+
+  def apply(patientId: String, patient: Option[Patient]): HtmlElement = {
+    info(s"Begin patientId: $patientId")
+
+    val _child = Var(loading(patient.get.name))
+    setTimeout(1000) {
+      val _ = _child.set(basicInfo(patient.get))
+    }
+
     section(
-      className := "container",
+      className := "container m-4 p-10 border-2 rounded-lg",
       div(
-        className := "d-flex align-items-center p-3 my-3 bg-purple rounded shadow-sm",
-        img(className := "me-3", width := "48px", height := "38px", src := "https://getbootstrap.com/docs/5.0/assets/brand/bootstrap-logo-white.svg"),
-        div(
-          className := "1h-1",
-          h1(className := "h6 mb-0 lh-1", s"Paciente"),
-          small(patientBasic.name),
-        ),
-      ),
-      div(
-        className := "my-3 p-3 bg-white rounded shadow-sm",
-        h6(
-          className := "d-flex flex-column flex-md-row align-items-center border-bottom pb-2 mb-0",
-          span(className := "me-md-auto", "Historias clinicas"),
-          a(className := "btn btn-outline-primary", i(className := "bi bi-plus"), " Agregar historia"),
-        ),
-        register("Test"),
-        register("Test"),
+        child <-- _child,
       ),
     )
   }
 
-  def register(value: String): HtmlElement = {
-
+  def loading(_name: String): HtmlElement = {
     div(
-      className := "d-flex text-muted pt-3",
-      p(className := "pb-3 mb-0 small lh-sm border-bottom", value),
+      label(forId := "name", "Nombre"),
+      input(idAttr := "name", name := "name", readOnly := true, value := _name),
+    )
+  }
+
+  def basicInfo(patient: Patient): HtmlElement = {
+    div(
+      label(forId := "name", "Nombre"),
+      input(idAttr := "name", name := "name", readOnly := true, value := patient.name),
+      label(forId := "age", "Edad"),
+      input(idAttr := "age", name := "age", readOnly := true, value := "80"),
+      label(forId := "email", "Correo"),
+      input(idAttr := "email", name := "email", readOnly := true, value := "email@gmail.com"),
+      label(forId := "phone", "Telefono"),
+      input(idAttr := "phone", name := "phone", readOnly := true, value := "+51999999999"),
     )
   }
 }

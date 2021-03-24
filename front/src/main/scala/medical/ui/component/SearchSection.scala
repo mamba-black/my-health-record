@@ -19,6 +19,7 @@ import java.util.UUID
 object SearchSection extends LogSupport {
 
   def apply(commandWriteBus: WriteBus[Command]): HtmlElement = {
+    info("Begin")
     val patientReplyEventBus = new EventBus[PatientReply]
 
     val stub = PatientServiceGrpcWeb.stub(Channels.grpcwebChannel("https://192.168.1.3:8080"))
@@ -35,7 +36,7 @@ object SearchSection extends LogSupport {
       val search = text.trim.nonEmpty
       if (search) {
         info("Buscar!")
-        eventBus.writer.onNext(PatientReply("-2", text))
+        eventBus.writer.onNext(PatientReply(UUID.randomUUID().toString, text))
         patientClient.find(PatientRequest(text), new StreamObserver[PatientReply] with LogSupport {
           override def onNext(value: PatientReply): Unit = info(s"patient: $value") // patients.update(_ :+ value)
 
@@ -52,7 +53,7 @@ object SearchSection extends LogSupport {
     })
 
     val _input = input(
-      className := "border-2 border-gray-300 bg-white h-10 px-5 pr-10 rounded-lg text-sm focus:outline-none",
+      cls := "border-2 border-gray-300 bg-white h-10 px-5 pr-10 rounded-lg text-sm focus:outline-none",
       typ := "search",
       name := "search",
       placeholder := "Nombre del paciente",
@@ -62,16 +63,16 @@ object SearchSection extends LogSupport {
     )
 
     div(
-      className := "py-6 flex flex-col justify-center sm:py-12",
+      cls := "py-6 flex flex-col justify-center sm:py-12",
       div(
-        className := "pt-2 relative mx-auto text-gray-600",
+        cls := "pt-2 relative mx-auto text-gray-600",
         _input,
         button(
 //          typ := "submit",
-          className := "absolute right-0 top-0 mt-5 mr-4",
+          cls := "absolute right-0 top-0 mt-5 mr-4",
           onClick --> Observer[dom.MouseEvent](onNext = { _ => searchName(_input); () }),
           svg.svg(
-            svg.className := "text-gray-600 h-4 w-4 fill-current",
+            svg.cls := "text-gray-600 h-4 w-4 fill-current",
             //            svg.xmlns := "http://www.w3.org/2000/svg",
             //            svg.xlinkHref := "http://www.w3.org/1999/xlink",
             svg.idAttr := "Capa_1",
@@ -122,39 +123,39 @@ object SearchSection extends LogSupport {
 
     button(
       "buscar",
-      className := "btn btn-outline-primary",
+      cls := "btn btn-outline-primary",
       onClick --> obsButton,
     )
   }
 
   def searchTable(eventBus: EventBus[PatientReply], commandWriteBus: WriteBus[Command]): ReactiveHtmlElement[html.Div] = {
     div(
-      className := "max-w-7xl mx-auto sm:px-6 lg:px-8", // FIXME saque el hidden
+      cls := "max-w-7xl mx-auto sm:px-6 lg:px-8", // FIXME saque el hidden
       cls.toggle("hidden") <-- eventBus.events.map(_ => {
         info("hidden:")
         false
       }),
       div(
-        className := "flex flex-col",
+        cls := "flex flex-col",
         div(
-          className := "-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8",
+          cls := "-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8",
           div(
-            className := "py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8",
+            cls := "py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8",
             div(
-              className := "shadow overflow-hidden border-b border-gray-200 sm:rounded-lg",
+              cls := "shadow overflow-hidden border-b border-gray-200 sm:rounded-lg",
               table(
-                className := "min-w-full divide-y divide-gray-200",
+                cls := "min-w-full divide-y divide-gray-200",
                 thead(
-                  className := "bg-gray-50",
+                  cls := "bg-gray-50",
                   tr(
                     th(
-                      className := "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
+                      cls := "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
                       "Nombre",
                     ),
                   )
                 ),
                 tbody(
-                  className := "bg-white divide-y divide-gray-200",
+                  cls := "bg-white divide-y divide-gray-200",
                   //child <-- eventBus.events.map(e => { _td(e, eventBus, patientBasicWriteBus) })
                   children.command <-- eventBus.events.map(p => CollectionCommand.Append(_td(p, commandWriteBus))),
                 ),
@@ -171,18 +172,18 @@ object SearchSection extends LogSupport {
     val obsHistory = Observer[dom.MouseEvent](onNext = { event =>
       info(s"event: ${event}")
       info(s"1: ${event.target.isInstanceOf[HTMLTableCellElement]}")
-      commandWriteBus.onNext(ShowPatient(Patient(UUID.randomUUID().toString, patientReply.name)))
+      commandWriteBus.onNext(ShowPatient(new Patient(patientReply.id, patientReply.name)))
       ()
     })
 
     //                    tr(td(idAttr := s"${i._2}", i._1.name, onClick --> obsHistory))
     tr(
       td(
-        className := "px-6 py-4 whitespace-nowrap",
+        cls := "px-6 py-4 whitespace-nowrap",
         div(
-          className := "flex items-center",
+          cls := "flex items-center",
           div(
-            className := "flex-shrink-0 h-10 w-10",
+            cls := "flex-shrink-0 h-10 w-10",
             img(cls := "h-10 w-10 rounded-full", src := "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=4&amp;w=256&amp;h=256&amp;q=60")
           ),
           div(

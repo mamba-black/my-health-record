@@ -4,8 +4,8 @@ import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import io.frontroute._
 import medical.command.{ Command, CommandBus }
-import medical.ui.{ Router }
-import medical.ui.component.{ MainUI }
+import medical.ui.component.MainUI
+import medical.ui.{ CommandHandler, Router }
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
 import wvlet.log.LogSupport
@@ -24,7 +24,11 @@ object Main extends LogSupport {
 
   def init(): ReactiveHtmlElement[HTMLElement] = {
     info("init")
+//    val user = Var[Option[Patient]](None)
     val commandBus: CommandBus = new EventBus[Command]
-    MainUI(commandBus, Router(commandBus))
+    val routeSignalElement = Router(commandBus)
+    val commandHandler = CommandHandler(commandBus)
+    MainUI(routeSignalElement, commandHandler)
   }
 }
+

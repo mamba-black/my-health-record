@@ -1,6 +1,7 @@
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSUseMainModuleInitializer
 import scalajsbundler.Npm
 
+resolvers += Resolver.sonatypeRepo("public")
 ThisBuild / scalaVersion := "2.13.4"
 //ThisBuild / scalaVersion := "3.0.0-M3"
 ThisBuild / organization := "miuler"
@@ -87,8 +88,8 @@ lazy val front = (project in file("front"))
       "com.thesamet.scalapb.grpcweb" %%% "scalapb-grpcweb" % scalapb.grpcweb.BuildInfo.version,
     ),
     libraryDependencies ++= Seq(
-      "com.raquo" %%% "laminar" % "0.12.0",
-      "io.frontroute" %%% "frontroute" % "0.12.0",
+      "com.raquo" %%% "laminar" % "0.12.1",
+      "io.frontroute" %%% "frontroute" % "0.12.2",
       "org.wvlet.airframe" %%% "airframe-log" % "21.2.0",
     ),
     libraryDependencies ++= Seq(

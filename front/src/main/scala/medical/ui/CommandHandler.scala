@@ -10,10 +10,9 @@ object CommandHandler extends LogSupport {
   def apply(commandBus: CommandBus): Binder[Base] = {
 
     commandBus.events --> Observer[Command](onNext = {
-      case ShowPatient(patient) => {
-        info(s"main event1: $patient")
-        BrowserNavigation.pushState(url = s"/patient/${patient.id}")
-      }
+      case ShowPatient(patient) =>
+        info(s"patient: $patient")
+        BrowserNavigation.pushState(data = patient, url = s"/patient/${patient.id}")
       case _ => info(s"main: no hago nada")
     })
   }

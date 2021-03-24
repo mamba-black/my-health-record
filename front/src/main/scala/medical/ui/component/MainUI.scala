@@ -1,18 +1,17 @@
 package medical.ui.component
 
 import com.raquo.laminar.api.L._
-import medical.command.CommandBus
-import medical.ui.CommandHandler
+import com.raquo.laminar.nodes.ReactiveElement.Base
 import wvlet.log.LogSupport
 
 object MainUI extends LogSupport {
-  def apply(commandBus: CommandBus, signalElements: Signal[Element]): HtmlElement = {
+  def apply(routeSignalElement: Signal[Element], commandHandler: Binder[Base]): HtmlElement = {
 
     div(
       className := "wrapper",
       mainHeader(),
-      _main(signalElements),
-      CommandHandler(commandBus),
+      _main(routeSignalElement),
+      commandHandler,
     )
   }
 
