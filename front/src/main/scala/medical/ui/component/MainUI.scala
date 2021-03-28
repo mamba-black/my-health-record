@@ -1,21 +1,25 @@
 package medical.ui.component
 
 import com.raquo.laminar.api.L._
-import com.raquo.laminar.nodes.ReactiveElement.Base
+import medical.command.{ Command, CommandBus }
+import medical.ui.{ CommandHandler, Router }
 import wvlet.log.LogSupport
 
 object MainUI extends LogSupport {
-  def apply(routeSignalElement: Signal[Element], commandHandler: Binder[Base]): HtmlElement = {
+  def apply(): HtmlElement = {
+    val commandBus: CommandBus = new EventBus[Command]
+    val routeSignalElement = Router(commandBus)
+    val commandHandler = CommandHandler(commandBus)
 
     div(
-      className := "wrapper",
+      idAttr := "test001",
       mainHeader(),
-      _main(routeSignalElement),
+      mainContent(routeSignalElement),
       commandHandler,
     )
   }
 
-  private def _main(signalElements: Signal[Element]): HtmlElement = {
+  private def mainContent(signalElements: Signal[Element]): HtmlElement = {
     val mainContent = div(
       className := "main",
       child <-- signalElements,
