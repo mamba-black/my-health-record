@@ -33,7 +33,7 @@ object MainUI extends LogSupport {
       div(
         cls := "w-full flex items-center justify-between mt-0 px-6 py-0",
         div(
-          cls := "hidden md:flex md:items-center md:w-auto w-full order-3 md:order-1",
+          cls := "md:flex md:items-center md:w-auto w-full order-3 md:order-1",
           nav(
             div(
               cls := "inline-flex",
