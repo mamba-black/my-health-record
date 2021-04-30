@@ -2,13 +2,13 @@ import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSUseMainModuleInitia
 import scalajsbundler.Npm
 
 resolvers += Resolver.sonatypeRepo("public")
-ThisBuild / scalaVersion := "2.13.4"
+ThisBuild / scalaVersion := "2.13.5"
 //ThisBuild / scalaVersion := "3.0.0-M3"
 ThisBuild / organization := "miuler"
 
 ThisBuild / libraryDependencies ++= Seq(
-  compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.2" cross CrossVersion.full),
-  "com.github.ghik" % "silencer-lib" % "1.7.2" % Provided cross CrossVersion.full
+  compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.3" cross CrossVersion.full),
+  "com.github.ghik" % "silencer-lib" % "1.7.3" % Provided cross CrossVersion.full
 )
 ThisBuild / scalacOptions ++= Seq(
   "-P:silencer:pathFilters=.*[/]src_managed[/].*",
@@ -22,9 +22,11 @@ lazy val dtos = (project in file("dtos"))
     scalaJSUseMainModuleInitializer := true,
   )
 
-lazy val akkaVersion = "2.6.12"
-lazy val akkaHttpVersion = "10.2.3"
-lazy val algolia = "3.10.0"
+lazy val akkaVersion = "2.6.14"
+lazy val akkaHttpVersion = "10.2.4"
+lazy val algolia = "3.14.1"
+lazy val scalatestVersion = "3.2.8"
+
 lazy val back = (project in file("back"))
   .enablePlugins(AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin)
   .settings(
@@ -37,7 +39,7 @@ lazy val back = (project in file("back"))
     ThisBuild / dynverSeparator := "-",
     dockerUpdateLatest := true,
     //    scalaVersion := "3.0.0-M3",
-    libraryDependencies += "org.wvlet.airframe" %% "airframe-log" % "21.1.1",
+    libraryDependencies += "org.wvlet.airframe" %% "airframe-log" % "21.4.1",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-http2-support" % akkaHttpVersion,
@@ -46,7 +48,7 @@ lazy val back = (project in file("back"))
       "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
       //      "com.typesafe.akka" %% "akka-pki" % akkaVersion,
       "ch.megard" %% "akka-http-cors" % "1.1.1", // Para poder usar akka grpc con grpc-web
-      "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "1.0.2",
+      "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "1.1.1",
       "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
 
@@ -57,10 +59,9 @@ lazy val back = (project in file("back"))
       //      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       //      "com.typesafe.akka" %% "akka-http2-support" % akkaHttpVersion,
 
-
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
       "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
-      "org.scalatest" %% "scalatest" % "3.2.3" % Test,
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
     ),
   )
 
@@ -76,7 +77,8 @@ lazy val front = (project in file("front"))
       scalapb.grpcweb.GrpcWebCodeGenerator -> (Compile / sourceManaged).value,
     ),
     scalaJSUseMainModuleInitializer := true,
-    npmDevDependencies in Compile ++= Seq(
+    webpackBundlingMode := BundlingMode.LibraryAndApplication(),
+    Compile / npmDevDependencies  ++= Seq(
       "autoprefixer" -> "10.2.4",
       "tailwindcss" -> "2.0.2",
       "postcss" -> "8.2.4",
@@ -88,12 +90,12 @@ lazy val front = (project in file("front"))
       "com.thesamet.scalapb.grpcweb" %%% "scalapb-grpcweb" % scalapb.grpcweb.BuildInfo.version,
     ),
     libraryDependencies ++= Seq(
-      "com.raquo" %%% "laminar" % "0.12.1",
-      "io.frontroute" %%% "frontroute" % "0.12.2",
-      "org.wvlet.airframe" %%% "airframe-log" % "21.2.0",
+      "com.raquo" %%% "laminar" % "0.13.0",
+      "io.frontroute" %%% "frontroute" % "0.13.1",
+      "org.wvlet.airframe" %%% "airframe-log" % "21.4.1",
     ),
     libraryDependencies ++= Seq(
-      "org.scalatest" %%% "scalatest" % "3.2.3" % Test,
+      "org.scalatest" %%% "scalatest" % scalatestVersion % Test,
     ),
   )
 
@@ -116,8 +118,8 @@ css := {
   //  logger.info("2=================================>")
   //  Npm.run("exec", "tailwindcss", "build", "-o tailwind.css")(front.base / "target" / "scala-2.13" / "scalajs-bundler" / "main", logger)
   Npm.run("exec", "--", "postcss",
-    "--config", (baseDirectory.in(front).value / "postcss.config.js").getAbsolutePath,
-    "-o", (baseDirectory.in(front).value / "target" / "compiled.css").getAbsolutePath,
-    (baseDirectory.in(front).value / "styles.css").getAbsolutePath)(front.base / "target" / "scala-2.13" / "scalajs-bundler" / "main", logger)
+    "--config", ((front / baseDirectory).value / "postcss.config.js").getAbsolutePath,
+    "-o", ((front / baseDirectory).value / "target" / "compiled.css").getAbsolutePath,
+    ((front / baseDirectory).value / "styles.css").getAbsolutePath)(front.base / "target" / "scala-2.13" / "scalajs-bundler" / "main", logger)
   //  logger.info("2=================================<")
 }
