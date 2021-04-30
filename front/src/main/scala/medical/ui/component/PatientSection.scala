@@ -2,6 +2,7 @@ package medical.ui.component
 
 import com.raquo.laminar.api.L._
 import medical.domain.Patient
+import medical.ui.component.atoms.InputLabel
 import wvlet.log.LogSupport
 
 import scala.scalajs.js.timers.setTimeout
@@ -33,18 +34,14 @@ object PatientSection extends LogSupport {
 
   def basicInfo(patient: Patient): HtmlElement = {
     div(
-      inputLabel("name", "Nombre", patient.name),
-      inputLabel("age", "Edad", "80"),
-      inputLabel("email", "Correo", "email@gmail.com"),
-      inputLabel("phone", "Telefono", "+51 555 555 555"),
+      cls := "grid grid-cols-3 gap-4",
+      InputLabel("name", "Nombre", patient.name),
+      InputLabel("name", "Apellido paterno", patient.name),
+      InputLabel("name", "Apellido materno", patient.name),
+      InputLabel("age", "Edad", "80"),
+      InputLabel("email", "Correo", "email@gmail.com"),
+      InputLabel("phone", "Telefono", "+51 555 555 555"),
     )
   }
 
-  def inputLabel(_name: String, description: String, _value: String = null): HtmlElement = {
-    span(
-      label(forId := _name, description, cls := "mx-2"),
-      input(idAttr := "name", name := _name, readOnly := true, value := Option(_value).orNull,
-        cls := "mx-2 px-3 py-2 placeholder-gray-300 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-indigo-100 focus:border-indigo-300")
-    )
-  }
 }
