@@ -71,7 +71,7 @@ lazy val front = (project in file("front"))
   .dependsOn(dtos)
   .settings(
     name := "my-health-record.ui",
-    //    scalaVersion := "2.13.4",
+    //scalaVersion := "3.0.0-RC3",
     Compile / PB.targets := Seq(
       scalapb.gen(grpc = false) -> (Compile / sourceManaged).value / "scalapb",
       scalapb.grpcweb.GrpcWebCodeGenerator -> (Compile / sourceManaged).value,
