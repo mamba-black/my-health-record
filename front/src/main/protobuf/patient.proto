@@ -20,4 +20,6 @@ message PatientIdRequest {
 message PatientReply {
   string id = 1;
   string name = 2;
+  string paternalSurname = 3;
+  string maternalSurname = 4;
 }

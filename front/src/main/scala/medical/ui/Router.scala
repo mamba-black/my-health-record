@@ -4,7 +4,7 @@ import com.raquo.laminar.api.L._
 import io.frontroute._
 import medical.command.CommandBus
 import medical.domain.Patient
-import medical.ui.component.{ PatientSection, SearchSection }
+import medical.ui.component.organism.{ PatientSection, SearchSection }
 import org.scalajs.dom
 import wvlet.log.LogSupport
 

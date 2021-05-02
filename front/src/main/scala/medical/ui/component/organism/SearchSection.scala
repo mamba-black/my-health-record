@@ -1,4 +1,4 @@
-package medical.ui.component
+package medical.ui.component.organism
 
 import com.raquo.laminar.CollectionCommand
 import com.raquo.laminar.api.L._
@@ -36,7 +36,7 @@ object SearchSection extends LogSupport {
       val search = text.trim.nonEmpty
       if (search) {
         info("Buscar!")
-        eventBus.writer.onNext(PatientReply(UUID.randomUUID().toString, text))
+        eventBus.writer.onNext(PatientReply(UUID.randomUUID().toString, text, text, text))
         patientClient.find(PatientRequest(text), new StreamObserver[PatientReply] with LogSupport {
           override def onNext(value: PatientReply): Unit = info(s"patient: $value") // patients.update(_ :+ value)
 
@@ -47,6 +47,7 @@ object SearchSection extends LogSupport {
       }
       ()
     }
+
     def obsInput(input: Input) = Observer[dom.KeyboardEvent](onNext = { _ =>
       searchName(input)
       ()
@@ -68,7 +69,7 @@ object SearchSection extends LogSupport {
         cls := "pt-2 relative mx-auto text-gray-600",
         _input,
         button(
-//          typ := "submit",
+          //          typ := "submit",
           cls := "absolute right-0 top-0 mt-5 mr-4",
           onClick --> Observer[dom.MouseEvent](onNext = { _ => searchName(_input); () }),
           svg.svg(
@@ -172,7 +173,7 @@ object SearchSection extends LogSupport {
     val obsHistory = Observer[dom.MouseEvent](onNext = { event =>
       info(s"event: ${event}")
       info(s"1: ${event.target.isInstanceOf[HTMLTableCellElement]}")
-      commandWriteBus.onNext(ShowPatient(new Patient(patientReply.id, patientReply.name)))
+      commandWriteBus.onNext(ShowPatient(new Patient(patientReply.id, patientReply.name, patientReply.paternalSurname, patientReply.maternalSurname)))
       ()
     })
 
