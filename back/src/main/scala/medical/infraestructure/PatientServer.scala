@@ -10,13 +10,13 @@ import medical.application.PatientServiceImpl
 import medical.infraestructure.repository.PatientRepositoryImpl
 import medical.presentation.PatientApiImpl
 import wvlet.log.LogFormatter.PlainSourceCodeLogFormatter
-import wvlet.log.LogSupport
+import scribe._
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.{ Failure, Success }
 
-object PatientServer extends LogSupport {
+object PatientServer {
   wvlet.log.Logger.setDefaultFormatter(PlainSourceCodeLogFormatter)
   def main(args: Array[String]): Unit = {
     info("Starting gRPC...")
@@ -28,7 +28,7 @@ object PatientServer extends LogSupport {
   }
 }
 
-class PatientServer(system: ActorSystem[_]) extends LogSupport {
+class PatientServer(system: ActorSystem[_]) {
   def run(): Future[Http.ServerBinding] = {
     implicit val sys = system
     implicit val ec = sys.executionContext

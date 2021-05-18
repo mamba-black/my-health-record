@@ -1,14 +1,14 @@
 package medical.ui.component.organism
 
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import medical.domain.Patient
 import medical.ui.component.atom.Loading
 import medical.ui.component.molecule.{ PatientBasicInfo, TableBasic }
-import wvlet.log.LogSupport
+import scribe.*
 
 import scala.scalajs.js.timers.setTimeout
 
-object PatientSection extends LogSupport {
+object PatientSection {
 
   def apply(patientId: String, patient: Option[Patient]): HtmlElement = {
     info(s"Begin patientId: $patientId")

@@ -1,12 +1,12 @@
 package medical.ui
 
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveElement.Base
 import io.frontroute.BrowserNavigation
 import medical.command.{ Command, CommandBus, ShowPatient }
-import wvlet.log.LogSupport
+import scribe.*
 
-object CommandHandler extends LogSupport {
+object CommandHandler {
   def apply(commandBus: CommandBus): Binder[Base] = {
 
     commandBus.events --> Observer[Command](onNext = {

@@ -6,7 +6,7 @@ import akka.stream.scaladsl.Source
 import medical.api.{ PatientApi, PatientIdRequest, PatientReply, PatientRequest }
 import medical.application.PatientService
 import medical.domain.PatientBasic
-import wvlet.log.LogSupport
+import scribe._
 
 import java.util.UUID
 import scala.concurrent.Future

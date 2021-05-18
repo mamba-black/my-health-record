@@ -1,17 +1,16 @@
 package medical.ui
 
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import io.frontroute.LinkHandler
 import medical.ui.component.MainUI
 import medical.ui.component.molecule.LoginGoogleOpenIdConnect
 import org.scalajs.dom
-import wvlet.log.{ LogLevel, LogSupport }
+import scribe.*
 
-object Main extends LogSupport {
-  wvlet.log.Logger.setDefaultLogLevel(LogLevel.DEBUG)
+object Main {
 
   def main(args: Array[String]): Unit = {
-    println("Test")
+    debug("Test")
 
     documentEvents.onDomContentLoaded.foreach { _ =>
       val session = dom.window.localStorage.getItem("session")

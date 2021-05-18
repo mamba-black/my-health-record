@@ -1,6 +1,6 @@
 package medical.ui.component.atom
 
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 
 object Loading {
 

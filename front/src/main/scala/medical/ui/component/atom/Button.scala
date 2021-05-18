@@ -1,10 +1,10 @@
 package medical.ui.component.atom
 
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import org.scalajs.dom.MouseEvent
-import wvlet.log.LogSupport
+import scribe.*
 
-object Button extends LogSupport {
+object Button {
 
   def apply(readOnly: Var[Boolean]): HtmlElement = {
     button(

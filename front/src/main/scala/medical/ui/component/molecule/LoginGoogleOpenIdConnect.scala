@@ -1,15 +1,15 @@
 package medical.ui.component.molecule
 
 import com.raquo.domtypes.generic.codecs.StringAsIsCodec
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import medical.domain.LoginGoogleResponse
 import org.scalajs.dom
-import wvlet.log.LogSupport
+import scribe.*
 
 import scala.scalajs.js.JSON
 import scala.scalajs.js.annotation.JSExportTopLevel
 
-object LoginGoogleOpenIdConnect extends LogSupport {
+object LoginGoogleOpenIdConnect {
   def apply(): HtmlElement = {
     div(
       div(

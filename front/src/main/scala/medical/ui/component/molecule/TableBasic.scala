@@ -1,10 +1,10 @@
 package medical.ui.component.molecule
 
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveElement.Base
-import wvlet.log.LogSupport
+import scribe.*
 
-object TableBasic extends LogSupport {
+object TableBasic {
 
   def apply(tds: Option[Inserter[Base]]): HtmlElement = {
 

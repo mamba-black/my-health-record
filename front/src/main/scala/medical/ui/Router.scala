@@ -1,14 +1,14 @@
 package medical.ui
 
-import com.raquo.laminar.api.L._
-import io.frontroute._
+import com.raquo.laminar.api.L.*
+import io.frontroute.*
 import medical.command.CommandBus
 import medical.domain.Patient
 import medical.ui.component.organism.{ PatientSection, SearchSection }
 import org.scalajs.dom
-import wvlet.log.LogSupport
+import scribe.*
 
-object Router extends LogSupport {
+object Router {
   def apply(commandBus: CommandBus): Signal[Element] = {
 
     val (routeResult, route) = makeRoute[Element] { render =>

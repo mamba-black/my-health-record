@@ -1,6 +1,6 @@
 package medical.ui.component.molecule
 
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import medical.domain.Patient
 import medical.ui.component.atom.{ Button, InputLabel }
 

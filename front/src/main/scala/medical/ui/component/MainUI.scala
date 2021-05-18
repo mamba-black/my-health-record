@@ -1,11 +1,11 @@
 package medical.ui.component
 
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import medical.command.{ Command, CommandBus }
 import medical.ui.{ CommandHandler, Router }
-import wvlet.log.LogSupport
+import scribe.*
 
-object MainUI extends LogSupport {
+object MainUI {
   def apply(): HtmlElement = {
     val commandBus: CommandBus = new EventBus[Command]
     val routeSignalElement = Router(commandBus)

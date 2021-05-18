@@ -1,7 +1,7 @@
 package medical.ui.component.organism
 
 import com.raquo.laminar.CollectionCommand
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import io.grpc.stub.StreamObserver
 import medical.backend.patient.{ PatientReply, PatientRequest, PatientServiceGrpcWeb }
@@ -13,11 +13,11 @@ import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLTableCellElement
 import scalapb.grpc.Channels
 import scalapb.grpcweb
-import wvlet.log.LogSupport
+import scribe.*
 
 import java.util.UUID
 
-object SearchSection extends LogSupport {
+object SearchSection {
 
   def apply(commandWriteBus: WriteBus[Command]): HtmlElement = {
     info("Begin")
@@ -38,7 +38,7 @@ object SearchSection extends LogSupport {
       if (search) {
         info("Buscar!")
         eventBus.writer.onNext(PatientReply(UUID.randomUUID().toString, text, text, text))
-        patientClient.find(PatientRequest(text), new StreamObserver[PatientReply] with LogSupport {
+        patientClient.find(PatientRequest(text), new StreamObserver[PatientReply] {
           override def onNext(value: PatientReply): Unit = info(s"patient: $value") // patients.update(_ :+ value)
 
           override def onError(throwable: Throwable): Unit = warn("onError")
