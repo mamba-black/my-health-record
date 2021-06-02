@@ -22,7 +22,7 @@ object PatientSection {
       val _ = patientBasicInfo.set(PatientBasicInfo(_patient))
     }
     setTimeout(1000) {
-      val _ = patientHistories.set(TableBasic(None))
+      val _ = patientHistories.set(TableBasic(List("Fecha", "Nota"), None))
     }
 
 
@@ -32,6 +32,7 @@ object PatientSection {
         child <-- patientBasicInfo,
       ),
       div(
+        cls := "mt-5",
         child <-- patientHistories,
       ),
     )

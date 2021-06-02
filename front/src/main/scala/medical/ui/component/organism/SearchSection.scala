@@ -131,8 +131,9 @@ object SearchSection {
   }
 
   def searchTable(eventBus: EventBus[PatientReply], commandWriteBus: WriteBus[Command]): HtmlElement = {
+    val a = eventBus.events.map(p => CollectionCommand.Append(_td(p, commandWriteBus)))
     val tds = children.command <-- eventBus.events.map(p => CollectionCommand.Append(_td(p, commandWriteBus)))
-    TableBasic(Some(tds))
+    TableBasic(List("Paciente"), Some(tds))
   }
 
   private def _td(patientReply: PatientReply, commandWriteBus: WriteBus[Command]) : HtmlElement = {

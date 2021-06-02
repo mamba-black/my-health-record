@@ -84,11 +84,13 @@ lazy val front = (project in file("front"))
       "tailwindcss" -> "2.0.2",
       "postcss" -> "8.2.4",
       "postcss-cli" -> "8.3.1",
+//      "webpack-dev-server" -> "3.11.2",
     ),
     Compile / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
     fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryAndApplication(),
+//    webpackDevServerExtraArgs := Seq("--inline", "--hot"),
     libraryDependencies ++= Seq(
       "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion,
       "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",

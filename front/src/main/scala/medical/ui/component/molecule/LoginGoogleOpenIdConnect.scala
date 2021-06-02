@@ -15,9 +15,9 @@ object LoginGoogleOpenIdConnect {
       div(
         idAttr := "g_id_onload",
         customHtmlAttr("data-client_id", StringAsIsCodec) := "937186309482-uc7dm6bc6o6p3disa546hq25n8dbov42.apps.googleusercontent.com",
-        customHtmlAttr("data-login_uri", StringAsIsCodec) := "http://localhost",
+        customHtmlAttr("data-login_uri", StringAsIsCodec) := "http://localhost:8080",
         customHtmlAttr("data-callback", StringAsIsCodec) := "handleCredentialResponse",
-        //              customHtmlAttr("data-auto_prompt", StringAsIsCodec) := "false",
+        customHtmlAttr("data-auto_prompt", StringAsIsCodec) := "true",
       ),
       div(
         idAttr := "g_id_signin",
