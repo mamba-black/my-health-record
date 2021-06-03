@@ -9,7 +9,7 @@ ThisBuild / organization := "miuler"
 //)
 ThisBuild / scalacOptions ++= Seq(
 //  "-P:silencer:pathFilters=.*[/]src_managed[/].*",
-  //  "-Wconf:src=src_managed/.*:silent",
+  "-Wconf:src=src_managed/.*:silent",
 )
 
 val scala2Version = "2.13.6"
@@ -71,7 +71,7 @@ lazy val scalatestVersion = "3.2.9"
 lazy val front = (project in file("front"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   //  .aggregate(dtos.js, dtos.jvm)
-//  .dependsOn(dtos)
+  //  .dependsOn(dtos)
   .settings(
     name := "my-health-record.ui",
     scalaVersion := scala2Version,
@@ -79,18 +79,22 @@ lazy val front = (project in file("front"))
       scalapb.gen(grpc = false) -> (Compile / sourceManaged).value / "scalapb",
       scalapb.grpcweb.GrpcWebCodeGenerator -> (Compile / sourceManaged).value,
     ),
-    Compile / npmDevDependencies  ++= Seq(
+    Compile / npmDevDependencies ++= Seq(
       "autoprefixer" -> "10.2.4",
       "tailwindcss" -> "2.0.2",
       "postcss" -> "8.2.4",
       "postcss-cli" -> "8.3.1",
-//      "webpack-dev-server" -> "3.11.2",
+      //      "webpack-dev-server" -> "3.11.2",
     ),
-    Compile / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
-    fullOptJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
+    Compile / scalaJSLinkerConfig ~= {
+      _.withSourceMap(false)
+    },
+    fullOptJS / scalaJSLinkerConfig ~= {
+      _.withSourceMap(false)
+    },
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryAndApplication(),
-//    webpackDevServerExtraArgs := Seq("--inline", "--hot"),
+    //    webpackDevServerExtraArgs := Seq("--inline", "--hot"),
     libraryDependencies ++= Seq(
       "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion,
       "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
@@ -100,7 +104,7 @@ lazy val front = (project in file("front"))
       "com.raquo" %%% "laminar" % "0.13.0",
       "io.frontroute" %%% "frontroute" % "0.13.1",
       "com.outr" %%% "scribe" % "3.5.5",
-//      "org.wvlet.airframe" %%% "airframe-log" % "21.4.1",
+      //      "org.wvlet.airframe" %%% "airframe-log" % "21.4.1",
     ),
     libraryDependencies ++= Seq(
       "org.scalatest" %%% "scalatest" % scalatestVersion % Test,
