@@ -1,12 +1,12 @@
-package medical.ui
+package medical.infrastructure.ui
 
-import com.raquo.laminar.api.L.*
-import io.frontroute.*
+import com.raquo.laminar.api.L._
+import io.frontroute._
 import medical.infrastructure.ui.command.CommandBus
 import medical.domain.Patient
-import medical.ui.component.organism.{ PatientSection, SearchSection }
+import medical.infrastructure.ui.organism.{ PatientSection, SearchSection }
 import org.scalajs.dom
-import scribe.*
+import scribe._
 
 object Router {
   def apply(commandBus: CommandBus): Signal[Element] = {

@@ -1,5 +1,7 @@
-package medical.infrastructure.ui.command
+package medical.infrastructure.ui
 
 import com.raquo.laminar.api.L.EventBus
 
-type CommandBus = EventBus[Command]
+package object command {
+  type CommandBus = EventBus[Command]
+}

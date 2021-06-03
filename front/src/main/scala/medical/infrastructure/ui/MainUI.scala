@@ -1,8 +1,8 @@
 package medical.infrastructure.ui
 
-import com.raquo.laminar.api.L.*
-import medical.infrastructure.ui.command.*
-import medical.ui.{ CommandHandler, Router }
+import com.raquo.laminar.api.L._
+import medical.infrastructure.ui.command._
+import medical.infrastructure.ui.{ CommandHandler, Router }
 
 object MainUI {
   def apply(): HtmlElement = {

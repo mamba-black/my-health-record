@@ -1,10 +1,10 @@
-package medical.ui.component.organism
+package medical.infrastructure.ui.organism
 
-import com.raquo.laminar.api.L.*
+import com.raquo.laminar.api.L._
 import medical.domain.Patient
-import medical.ui.component.atom.Loading
-import medical.ui.component.molecule.{ PatientBasicInfo, TableBasic }
-import scribe.*
+import medical.infrastructure.ui.atom.Loading
+import medical.infrastructure.ui.molecule.{ PatientBasicInfo, TableBasic }
+import scribe._
 
 import scala.scalajs.js.timers.setTimeout
 

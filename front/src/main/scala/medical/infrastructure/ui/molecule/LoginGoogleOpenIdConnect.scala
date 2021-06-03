@@ -1,9 +1,9 @@
-package medical.ui.component.molecule
+package medical.infrastructure.ui.molecule
 
 import com.raquo.domtypes.generic.codecs.StringAsIsCodec
-import com.raquo.laminar.api.L.*
+import com.raquo.laminar.api.L._
 import org.scalajs.dom
-import scribe.*
+import scribe._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSON

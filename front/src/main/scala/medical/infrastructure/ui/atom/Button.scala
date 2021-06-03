@@ -1,8 +1,8 @@
-package medical.ui.component.atom
+package medical.infrastructure.ui.atom
 
-import com.raquo.laminar.api.L.*
+import com.raquo.laminar.api.L._
 import org.scalajs.dom.MouseEvent
-import scribe.*
+import scribe._
 
 object Button {
 

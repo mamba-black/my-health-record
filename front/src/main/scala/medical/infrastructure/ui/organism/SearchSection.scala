@@ -1,19 +1,19 @@
-package medical.ui.component.organism
+package medical.infrastructure.ui.organism
 
 import com.raquo.laminar.CollectionCommand
-import com.raquo.laminar.api.L.*
+import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import io.grpc.stub.StreamObserver
 import medical.backend.patient.{ PatientReply, PatientRequest, PatientServiceGrpcWeb }
 import medical.infrastructure.ui.command.{ Command, ShowPatient }
 import medical.domain.Patient
-import medical.ui.component.molecule.TableBasic
+import medical.infrastructure.ui.molecule.TableBasic
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLTableCellElement
 import scalapb.grpc.Channels
 import scalapb.grpcweb
-import scribe.*
+import scribe._
 
 import java.util.UUID
 
@@ -131,7 +131,6 @@ object SearchSection {
   }
 
   def searchTable(eventBus: EventBus[PatientReply], commandWriteBus: WriteBus[Command]): HtmlElement = {
-    val a = eventBus.events.map(p => CollectionCommand.Append(_td(p, commandWriteBus)))
     val tds = children.command <-- eventBus.events.map(p => CollectionCommand.Append(_td(p, commandWriteBus)))
     TableBasic(List("Paciente"), Some(tds))
   }

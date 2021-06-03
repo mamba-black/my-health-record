@@ -1,12 +1,13 @@
-package medical.ui.component.molecule
+package medical.infrastructure.ui.molecule
 
-import com.raquo.laminar.api.L.*
+import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveElement.Base
-import scribe.*
+import scribe._
 
 object TableBasic {
 
   def apply(ths: List[String], tds: Option[Inserter[Base]]): HtmlElement = {
+    debug("Table Basic")
 
     val _tds = tds.getOrElse(children.command <-- EventStream.empty)
 
@@ -33,7 +34,7 @@ object TableBasic {
                       th(
                         cls := "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
                         name,
-                      ),
+                      )
                     }
                   )
                 ),

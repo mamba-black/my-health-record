@@ -1,10 +1,10 @@
-package medical.ui
+package medical.infrastructure.ui
 
-import com.raquo.laminar.api.L.*
+import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveElement.Base
 import io.frontroute.BrowserNavigation
 import medical.infrastructure.ui.command.{ Command, CommandBus, ShowPatient }
-import scribe.*
+import scribe._
 
 object CommandHandler {
   def apply(commandBus: CommandBus): Binder[Base] = {

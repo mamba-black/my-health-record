@@ -1,11 +1,9 @@
-package medical.ui
+package medical.infrastructure.ui
 
-import com.raquo.laminar.api.L.*
-import scribe.*
+import com.raquo.laminar.api.L._
 import io.frontroute.LinkHandler
-import medical.infrastructure.ui.MainUI
-import medical.ui.component.molecule.LoginGoogleOpenIdConnect
 import org.scalajs.dom
+import scribe._
 
 object Main {
 
@@ -14,6 +12,7 @@ object Main {
 
     documentEvents.onDomContentLoaded.foreach { _ =>
       val session = dom.window.localStorage.getItem("session")
+      debug(s"session: $session")
 //      if (session != null && session.nonEmpty) {
         LinkHandler.install()
         render(dom.document.body, MainUI())
