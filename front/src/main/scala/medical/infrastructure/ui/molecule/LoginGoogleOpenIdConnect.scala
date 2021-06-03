@@ -2,10 +2,10 @@ package medical.ui.component.molecule
 
 import com.raquo.domtypes.generic.codecs.StringAsIsCodec
 import com.raquo.laminar.api.L.*
-import medical.domain.LoginGoogleResponse
 import org.scalajs.dom
 import scribe.*
 
+import scala.scalajs.js
 import scala.scalajs.js.JSON
 import scala.scalajs.js.annotation.JSExportTopLevel
 
@@ -37,3 +37,7 @@ object LoginGoogleOpenIdConnect {
     dom.window.localStorage.setItem("session", response.credential)
   }
 }
+
+class LoginGoogleResponse(val clientId: String,
+                          val credential: String,
+                          val select_by: String) extends js.Object

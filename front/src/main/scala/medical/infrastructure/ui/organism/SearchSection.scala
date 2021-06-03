@@ -5,7 +5,7 @@ import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import io.grpc.stub.StreamObserver
 import medical.backend.patient.{ PatientReply, PatientRequest, PatientServiceGrpcWeb }
-import medical.command.{ Command, ShowPatient }
+import medical.infrastructure.ui.command.{ Command, ShowPatient }
 import medical.domain.Patient
 import medical.ui.component.molecule.TableBasic
 import org.scalajs.dom

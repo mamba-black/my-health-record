@@ -6,7 +6,10 @@ object Loading {
 
   def apply(): HtmlElement = {
     div(
-      img(src := "https://ignitecxmp.com/Images/Newloading.gif")
+      img(
+        src := "https://ignitecxmp.com/Images/Newloading.gif",
+        cls := "",
+      )
     )
   }
 

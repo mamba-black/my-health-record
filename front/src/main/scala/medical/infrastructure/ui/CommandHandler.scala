@@ -3,7 +3,7 @@ package medical.ui
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveElement.Base
 import io.frontroute.BrowserNavigation
-import medical.command.{ Command, CommandBus, ShowPatient }
+import medical.infrastructure.ui.command.{ Command, CommandBus, ShowPatient }
 import scribe.*
 
 object CommandHandler {

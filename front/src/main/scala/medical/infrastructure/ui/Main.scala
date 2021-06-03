@@ -1,15 +1,13 @@
 package medical.ui
 
 import com.raquo.laminar.api.L.*
+import scribe.*
 import io.frontroute.LinkHandler
-import medical.ui.component.MainUI
+import medical.infrastructure.ui.MainUI
 import medical.ui.component.molecule.LoginGoogleOpenIdConnect
 import org.scalajs.dom
-import scribe.*
 
 object Main {
-  val t: Test = new TestImpl();
-  t.uno()
 
   def main(args: Array[String]): Unit = {
     debug("Test")
@@ -29,16 +27,5 @@ object Main {
       ()
     }(unsafeWindowOwner)
     ()
-  }
-}
-
-
-trait Test {
-  def uno(): String
-}
-
-class TestImpl extends Test {
-  def uno(): String = {
-    "uno"
   }
 }

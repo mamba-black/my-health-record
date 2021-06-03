@@ -12,7 +12,7 @@ ThisBuild / scalacOptions ++= Seq(
   //  "-Wconf:src=src_managed/.*:silent",
 )
 
-val scala2Version = "2.13.5"
+val scala2Version = "2.13.6"
 val scala3Version = "3.0.0"
 
 //lazy val dtos = project

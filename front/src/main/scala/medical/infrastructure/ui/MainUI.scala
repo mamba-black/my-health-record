@@ -1,9 +1,8 @@
-package medical.ui.component
+package medical.infrastructure.ui
 
 import com.raquo.laminar.api.L.*
-import medical.command.{ Command, CommandBus }
+import medical.infrastructure.ui.command.*
 import medical.ui.{ CommandHandler, Router }
-import scribe.*
 
 object MainUI {
   def apply(): HtmlElement = {
@@ -40,8 +39,8 @@ object MainUI {
               div(
                 cls := "mx-auto h-10  pt-4 w-auto pr-10",
                 svg.svg(
-                  svg.className := "w-8 -8 text-orange", svg.viewBox:="0 0 54 54",
-                  svg.path( svg.d := "M13.5 22.1c1.8-7.2 6.3-10.8 13.5-10.8 10.8 0 12.15 8.1 17.55 9.45 3.6.9 6.75-.45 9.45-4.05-1.8 7.2-6.3 10.8-13.5 10.8-10.8 0-12.15-8.1-17.55-9.45-3.6-.9-6.75.45-9.45 4.05zM0 38.3c1.8-7.2 6.3-10.8 13.5-10.8 10.8 0 12.15 8.1 17.55 9.45 3.6.9 6.75-.45 9.45-4.05-1.8 7.2-6.3 10.8-13.5 10.8-10.8 0-12.15-8.1-17.55-9.45-3.6-.9-6.75.45-9.45 4.05z" ),
+                  svg.className := "w-8 -8 text-orange", svg.viewBox := "0 0 54 54",
+                  svg.path(svg.d := "M13.5 22.1c1.8-7.2 6.3-10.8 13.5-10.8 10.8 0 12.15 8.1 17.55 9.45 3.6.9 6.75-.45 9.45-4.05-1.8 7.2-6.3 10.8-13.5 10.8-10.8 0-12.15-8.1-17.55-9.45-3.6-.9-6.75.45-9.45 4.05zM0 38.3c1.8-7.2 6.3-10.8 13.5-10.8 10.8 0 12.15 8.1 17.55 9.45 3.6.9 6.75-.45 9.45-4.05-1.8 7.2-6.3 10.8-13.5 10.8-10.8 0-12.15-8.1-17.55-9.45-3.6-.9-6.75.45-9.45 4.05z"),
                 ),
               ),
             ),

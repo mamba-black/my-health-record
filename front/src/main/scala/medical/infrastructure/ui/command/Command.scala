@@ -1,4 +1,4 @@
-package medical.command
+package medical.infrastructure.ui.command
 
 import medical.domain.Patient
 
