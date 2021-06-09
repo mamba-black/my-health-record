@@ -4,6 +4,7 @@ import com.raquo.laminar.api.L._
 import io.frontroute._
 import medical.infrastructure.ui.command.CommandBus
 import medical.domain.Patient
+import medical.infrastructure.ui.atom.Loading
 import medical.infrastructure.ui.organism.{ PatientSection, SearchSection }
 import org.scalajs.dom
 import scribe._
@@ -32,9 +33,14 @@ object Router {
             PatientSection(patientId, state.asInstanceOf[Option[Patient]])
           }
         },
+        path("test") {
+          render {
+            div(Loading())
+          }
+        },
         render {
           div("pageX")
-        }
+        },
       )
     }
     runRoute(route, LocationProvider.browser(windowEvents.onPopState))(unsafeWindowOwner)

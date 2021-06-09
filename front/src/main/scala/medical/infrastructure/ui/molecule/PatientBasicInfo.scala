@@ -9,7 +9,7 @@ import scribe._
 
 object PatientBasicInfo {
 
-  def apply(patient: Patient): HtmlElement = {
+  def apply(patient: Signal[Option[Patient]]): HtmlElement = {
 
     val readOnly = Var[Boolean](true)
     div(
@@ -19,11 +19,6 @@ object PatientBasicInfo {
       form(
         inContext(thisNode => onSubmit --> Observer[dom.Event](e => {
           e.preventDefault()
-          info(s"e: $e")
-          info(s"e.target: ${e.target}")
-          info(s"readOnly.tryNow(): ${readOnly.tryNow()}")
-          info(s"thisNode.ref.elements.length: ${thisNode.ref.elements.length}")
-          info(s"thisNode.ref.elements.item(0): ${thisNode.ref.elements.item(0)}")
           val elements = thisNode.ref.elements
           for (i <- 0 until elements.length ) {
             val input = elements(i).asInstanceOf[HTMLInputElement]
@@ -34,13 +29,13 @@ object PatientBasicInfo {
           ()
         })),
         cls := "grid grid-cols-3 gap-4",
-        InputLabel("name", "Nombre", patient.name, readOnly.signal),
-        InputLabel("name", "Apellido paterno", patient.paternalSurname, readOnly.signal),
-        InputLabel("name", "Apellido materno", patient.maternalSurname, readOnly.signal),
-        InputLabel("age", "Edad", "80", readOnly.signal, Some("number")),
-        InputLabel("email", "Correo", "email@gmail.com", readOnly.signal, Some("email")),
-        InputLabel("phone", "Telefono", "+51 555 555 555", readOnly.signal, Some("tel")),
-        InputLabel("allergies", "Alergias", "", readOnly.signal),
+        InputLabel("name", "Nombre", patient.map(p => p.map(_.name)), readOnly.signal),
+        InputLabel("name", "Apellido paterno", patient.map(p => p.map(_.paternalSurname)), readOnly.signal),
+        InputLabel("name", "Apellido materno", patient.map(p => p.map(_.maternalSurname)), readOnly.signal),
+        InputLabel("age", "Edad", Signal.fromValue(Some("80")), readOnly.signal, Some("number")),
+        InputLabel("email", "Correo", Signal.fromValue(Some("email@gmail.com")), readOnly.signal, Some("email")),
+        InputLabel("phone", "Telefono", Signal.fromValue(Some("+51 555 555 555")), readOnly.signal, Some("tel")),
+        InputLabel("allergies", "Alergias", Signal.fromValue(Some("")), readOnly.signal),
         div(cls := "col-start-3 flex justify-end",
           Button(readOnly),
         ),
