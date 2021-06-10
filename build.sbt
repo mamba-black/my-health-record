@@ -8,21 +8,31 @@ ThisBuild / organization := "miuler"
 //  "com.github.ghik" % "silencer-lib" % "1.7.4" % Provided cross CrossVersion.full
 //)
 ThisBuild / scalacOptions ++= Seq(
-//  "-P:silencer:pathFilters=.*[/]src_managed[/].*",
+  //  "-P:silencer:pathFilters=.*[/]src_managed[/].*",
   "-Wconf:src=src_managed/.*:silent",
 )
 
 val scala2Version = "2.13.6"
 val scala3Version = "3.0.0"
 
-//lazy val dtos = project
-//  .in(file("dtos"))
-//  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-//  .settings(
-//    name := "my-health-record.dtos",
-//    scalaVersion := scala2Version,
-//    scalaJSUseMainModuleInitializer := true,
-//  )
+lazy val dtos = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .in(file("dtos"))
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .settings(
+    name := "my-health-record.dtos",
+    scalaVersion := scala2Version,
+    scalaJSUseMainModuleInitializer := true,
+    Compile / PB.targets := Seq(
+      scalapb.gen(grpc = false) -> (Compile / sourceManaged).value / "scalapb",
+      scalapb.grpcweb.GrpcWebCodeGenerator -> (Compile / sourceManaged).value,
+    ),
+    libraryDependencies ++= Seq(
+      "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion,
+      "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
+      "com.thesamet.scalapb.grpcweb" %%% "scalapb-grpcweb" % scalapb.grpcweb.BuildInfo.version,
+    ),
+  )
 
 //lazy val akkaVersion = "2.6.14"
 //lazy val akkaHttpVersion = "10.2.4"
@@ -71,39 +81,32 @@ lazy val scalatestVersion = "3.2.9"
 lazy val front = (project in file("front"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   //  .aggregate(dtos.js, dtos.jvm)
-  //  .dependsOn(dtos)
+  .dependsOn(dtos)
   .settings(
     name := "my-health-record.ui",
     scalaVersion := scala2Version,
-    Compile / PB.targets := Seq(
-      scalapb.gen(grpc = false) -> (Compile / sourceManaged).value / "scalapb",
-      scalapb.grpcweb.GrpcWebCodeGenerator -> (Compile / sourceManaged).value,
-    ),
     Compile / npmDevDependencies ++= Seq(
       "autoprefixer" -> "10.2.4",
       "tailwindcss" -> "2.0.2",
       "postcss" -> "8.2.4",
       "postcss-cli" -> "8.3.1",
-      //      "webpack-dev-server" -> "3.11.2",
+      //"webpack-dev-server" -> "3.11.2",
     ),
-    Compile / scalaJSLinkerConfig ~= {
-      _.withSourceMap(false)
-    },
-    fullOptJS / scalaJSLinkerConfig ~= {
-      _.withSourceMap(false)
-    },
+//    Compile / scalaJSLinkerConfig ~= {
+//      _.withSourceMap(false)
+//    },
+//    fullOptJS / scalaJSLinkerConfig ~= {
+//      _.withSourceMap(false)
+//    },
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryAndApplication(),
-    //    webpackDevServerExtraArgs := Seq("--inline", "--hot"),
-    libraryDependencies ++= Seq(
-      "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion,
-      "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
-      "com.thesamet.scalapb.grpcweb" %%% "scalapb-grpcweb" % scalapb.grpcweb.BuildInfo.version,
-    ),
+    webpackDevServerExtraArgs := Seq("--inline", "--hot", "--history-api-fallback"),
     libraryDependencies ++= Seq(
       "com.raquo" %%% "laminar" % "0.13.0",
       "io.frontroute" %%% "frontroute" % "0.13.1",
       "com.outr" %%% "scribe" % "3.5.5",
+      "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
+      "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.3.0",
       //      "org.wvlet.airframe" %%% "airframe-log" % "21.4.1",
     ),
     libraryDependencies ++= Seq(

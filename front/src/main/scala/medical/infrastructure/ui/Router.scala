@@ -2,9 +2,9 @@ package medical.infrastructure.ui
 
 import com.raquo.laminar.api.L._
 import io.frontroute._
-import medical.infrastructure.ui.command.CommandBus
 import medical.domain.Patient
 import medical.infrastructure.ui.atom.Loading
+import medical.infrastructure.ui.command.CommandBus
 import medical.infrastructure.ui.organism.{ PatientSection, SearchSection }
 import org.scalajs.dom
 import scribe._

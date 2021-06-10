@@ -4,9 +4,9 @@ import com.raquo.laminar.CollectionCommand
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import io.grpc.stub.StreamObserver
-import medical.backend.patient.{ PatientReply, PatientRequest, PatientServiceGrpcWeb }
+import medical.backend.patientapi.{ PatientReply, PatientRequest, PatientServiceGrpcWeb }
+import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
 import medical.infrastructure.ui.command.{ Command, ShowPatient }
-import medical.domain.Patient
 import medical.infrastructure.ui.molecule.TableBasic
 import org.scalajs.dom
 import org.scalajs.dom.html
@@ -15,6 +15,7 @@ import scalapb.grpc.Channels
 import scalapb.grpcweb
 import scribe._
 
+import java.time.LocalDate
 import java.util.UUID
 
 object SearchSection {
@@ -140,7 +141,14 @@ object SearchSection {
     val obsHistory = Observer[dom.MouseEvent](onNext = { event =>
       info(s"event: ${event}")
       info(s"1: ${event.target.isInstanceOf[HTMLTableCellElement]}")
-      commandWriteBus.onNext(ShowPatient(new Patient(patientReply.id, patientReply.name, patientReply.paternalSurname, patientReply.maternalSurname)))
+      val patient = new Patient(
+        "Test",
+        new HumanName("Malpica", "Gallegos", Seq("Hector", "Miuler")),
+        true,
+        LocalDate.of(1979,10, 13),
+        Seq(new ContactPoint(SystemContactPoint.PHONE, "993990103")),
+      )
+      commandWriteBus.onNext(ShowPatient(patient))
       ()
     })
 

@@ -1,10 +1,11 @@
 package medical.infrastructure.ui.organism
 
 import com.raquo.laminar.api.L._
-import medical.domain.Patient
+import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
 import medical.infrastructure.ui.molecule.{ PatientBasicInfo, TableBasic }
 import scribe._
 
+import java.time.LocalDate
 import scala.scalajs.js.timers.setTimeout
 
 object PatientSection {
@@ -18,7 +19,14 @@ object PatientSection {
       // FIXME: Aqui colocar el servicio para traer la data si patient es None
       // FIXME: Quitar, esto solo es paro demo
       setTimeout(2000) {
-        patientBus.writer.onNext(Some(new Patient("Test", "Test", "Test", "Test")))
+        val patient = new Patient(
+          "Test",
+          new HumanName("Malpica", "Gallegos", Seq("Hector", "Miuler")),
+          true,
+          LocalDate.of(1979,10, 13),
+          Seq(new ContactPoint(SystemContactPoint.PHONE, "993990103")),
+        )
+        patientBus.writer.onNext(Some(patient))
         info("TIMEOUT")
       }
     }
