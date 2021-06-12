@@ -41,10 +41,10 @@ object PatientBasicInfo {
       h1("Informacion del paciente",
         cls := ("text-2xl", "py-8"),
       ),
+      child <-- showModal.signal.changes.map(a => if (a) Modal("Esto es una prueba", readOnly, showModal) else div()),
       form(
         cls := "grid grid-cols-3 gap-4",
         inContext(thisForm => onSubmit --> Observer[dom.Event](_onSubmit(thisForm, showModal, readOnly))),
-        child <-- showModal.signal.changes.map(a => if (a) Modal("Esto es una prueba") else div()),
         InputLabel("name", "Nombre", name, readOnly.signal),
         InputLabel("name", "Apellido paterno", fathersFamily, readOnly.signal),
         InputLabel("name", "Apellido materno", mothersFamily, readOnly.signal),
@@ -53,7 +53,7 @@ object PatientBasicInfo {
         InputLabel("phone", "Telefono", phone, readOnly.signal, Some("tel")),
         InputLabel("allergies", "Alergias", Signal.fromValue(Some("")), readOnly.signal),
         div(cls := "col-start-3 flex justify-end",
-          Button(readOnly),
+          Button("Editar", readOnly, "Guardar"),
         ),
       ),
     )

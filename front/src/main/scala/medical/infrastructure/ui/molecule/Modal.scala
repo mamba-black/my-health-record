@@ -2,11 +2,22 @@ package medical.infrastructure.ui.molecule
 
 import com.raquo.laminar.api.L._
 import medical.infrastructure.ui.atom.{ Button, CloseSvg }
+import scribe.info
 
 object Modal {
-  def apply(text: String): HtmlElement =
+  def apply(text: String, toggleVar: Var[Boolean], showModal: Var[Boolean]): HtmlElement = {
+    val discard = Var[Boolean](false)
+    val save = Var[Boolean](false)
+
     div(
       cls := "flex items-center justify-center fixed left-0 bottom-0 w-full h-full bg-gray-800  bg-opacity-25",
+      inContext(modal => discard --> Observer[Boolean](_discard => {
+        toggleVar.set(!toggleVar.now())
+//        if(_discard) modal.ref.parentElement.removeChild(modal.ref)
+        info(s"$modal")
+        if(_discard) showModal.set(!showModal.now())
+        ()
+      })),
       div(
         cls := "bg-white rounded-lg w-1/2",
         div(
@@ -24,12 +35,13 @@ object Modal {
           hr(),
           div(
             cls := "ml-auto",
-            Button(Var(true)),
-            Button(Var(false)),
+            Button("Guardar", save),
+            Button("Descartar", discard),
           ),
         ),
       ),
     )
+  }
 }
 
 /*
