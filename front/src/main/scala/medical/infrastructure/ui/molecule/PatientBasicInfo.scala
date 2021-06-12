@@ -11,8 +11,9 @@ object PatientBasicInfo {
 
   def apply(patientSignal: Signal[Option[Patient]]): HtmlElement = {
     val now = java.time.LocalDate.now()
-
     val readOnly = Var[Boolean](true)
+    val showModal = Var[Boolean](false)
+
     val name = patientSignal.map(p => p.map(_.name.`given`.foldLeft(" ")(_ + _)))
     val fathersFamily = patientSignal.map(p => p.map(_.name.fathersFamily))
     val mothersFamily = patientSignal.map(p => p.map(_.name.mothersFamily))
@@ -41,18 +42,9 @@ object PatientBasicInfo {
         cls := ("text-2xl", "py-8"),
       ),
       form(
-        inContext(thisNode => onSubmit --> Observer[dom.Event](e => {
-          e.preventDefault()
-          val elements = thisNode.ref.elements
-          for (i <- 0 until elements.length) {
-            val input = elements(i).asInstanceOf[HTMLInputElement]
-            info(s"$i input.name: ${input.name}")
-            info(s"$i input.value: ${input.value}")
-            info(s"$i input.validity.valid: ${input.validity.valid}")
-          }
-          ()
-        })),
         cls := "grid grid-cols-3 gap-4",
+        inContext(thisNode => onSubmit --> Observer[dom.Event](_onSubmit(thisNode))),
+        child <-- showModal.signal.changes.map(a => div(s"a: $a")),
         InputLabel("name", "Nombre", name, readOnly.signal),
         InputLabel("name", "Apellido paterno", fathersFamily, readOnly.signal),
         InputLabel("name", "Apellido materno", mothersFamily, readOnly.signal),
@@ -64,8 +56,19 @@ object PatientBasicInfo {
           Button(readOnly),
         ),
       ),
-      child <-- readOnly.signal.changes.map(a => div(s"a: $a")),
     )
   }
 
+
+  private def _onSubmit(_form: FormElement)(e: dom.Event): Unit = {
+    e.preventDefault()
+    val elements = _form.ref.elements
+    for (i <- 0 until elements.length) {
+      val input = elements(i).asInstanceOf[HTMLInputElement]
+      info(s"$i input.name: ${input.name}")
+      info(s"$i input.value: ${input.value}")
+      info(s"$i input.validity.valid: ${input.validity.valid}")
+    }
+    ()
+  }
 }
