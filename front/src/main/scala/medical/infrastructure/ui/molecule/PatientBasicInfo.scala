@@ -64,6 +64,7 @@ object PatientBasicInfo {
           Button(readOnly),
         ),
       ),
+      child <-- readOnly.signal.changes.map(a => div(s"a: $a")),
     )
   }
 
