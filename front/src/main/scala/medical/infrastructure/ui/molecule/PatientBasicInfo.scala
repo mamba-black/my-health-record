@@ -38,9 +38,7 @@ object PatientBasicInfo {
     })
 
     div(
-      h1("Informacion del paciente",
-        cls := ("text-2xl", "py-8"),
-      ),
+      h1("Informacion del paciente", cls := ("text-2xl", "py-8")),
       child <-- showModal.signal.changes.map(a => if (a) Modal("Esto es una prueba", readOnly, showModal) else div()),
       form(
         cls := "grid grid-cols-3 gap-4",
@@ -60,7 +58,9 @@ object PatientBasicInfo {
   }
 
 
-  private def _onSubmit(_form: FormElement, showModal: Var[Boolean], readOnly: Var[Boolean])(e: dom.Event): Unit = {
+  private def _onSubmit(_form: FormElement,
+                        showModal: Var[Boolean],
+                        readOnly: Var[Boolean])(e: dom.Event): Unit = {
     e.preventDefault()
     info(s"readOnly: ${readOnly.now()}")
     if (readOnly.now()) {
