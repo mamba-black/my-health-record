@@ -103,7 +103,7 @@ lazy val front = (project in file("front"))
     webpackDevServerExtraArgs := Seq("--inline", "--hot", "--history-api-fallback"),
     libraryDependencies ++= Seq(
       "com.raquo" %%% "laminar" % "0.13.0",
-      "io.frontroute" %%% "frontroute" % "0.13.1",
+      "io.frontroute" %%% "frontroute" % "0.13.2",
       "com.outr" %%% "scribe" % "3.5.5",
       "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
       "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.3.0",
