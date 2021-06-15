@@ -1,9 +1,9 @@
-package medical.infrastructure.ui
+package medical.ui
 
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveElement.Base
 import io.frontroute.BrowserNavigation
-import medical.infrastructure.ui.command.{ Command, CommandBus, ShowPatient }
+import medical.ui.command.{ Command, CommandBus, ShowPatient }
 import scribe._
 
 object CommandHandler {

@@ -1,11 +1,11 @@
-package medical.infrastructure.ui
+package medical.ui
 
 import com.raquo.laminar.api.L._
 import io.frontroute._
 import medical.domain.Patient
-import medical.infrastructure.ui.atom.Loading
-import medical.infrastructure.ui.command.CommandBus
-import medical.infrastructure.ui.organism.{ PatientSection, SearchSection }
+import medical.ui.atom.Loading
+import medical.ui.command.CommandBus
+import medical.ui.organism.{ PatientSection, SearchSection }
 import org.scalajs.dom
 
 object Router {

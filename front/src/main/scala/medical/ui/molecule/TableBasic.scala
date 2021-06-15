@@ -1,4 +1,4 @@
-package medical.infrastructure.ui.molecule
+package medical.ui.molecule
 
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveElement.Base

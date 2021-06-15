@@ -107,7 +107,8 @@ lazy val front = (project in file("front"))
       "com.outr" %%% "scribe" % "3.5.5",
       "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
       "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.3.0",
-      //      "org.wvlet.airframe" %%% "airframe-log" % "21.4.1",
+      //"org.wvlet.airframe" %%% "airframe" % "21.6.0",
+      //"org.wvlet.airframe" %%% "airframe-log" % "21.4.1",
     ),
     libraryDependencies ++= Seq(
       "org.scalatest" %%% "scalatest" % scalatestVersion % Test,

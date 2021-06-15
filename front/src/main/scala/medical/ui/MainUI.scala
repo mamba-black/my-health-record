@@ -1,7 +1,7 @@
-package medical.infrastructure.ui
+package medical.ui
 
 import com.raquo.laminar.api.L._
-import medical.infrastructure.ui.command._
+import medical.ui.command.{ Command, _ }
 
 object MainUI {
   def apply(): HtmlElement = {

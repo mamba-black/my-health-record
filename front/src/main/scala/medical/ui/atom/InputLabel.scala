@@ -1,4 +1,4 @@
-package medical.infrastructure.ui.atom
+package medical.ui.atom
 
 import com.raquo.laminar.api.L._
 

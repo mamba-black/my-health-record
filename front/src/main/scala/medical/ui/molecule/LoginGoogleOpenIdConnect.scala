@@ -1,4 +1,4 @@
-package medical.infrastructure.ui.molecule
+package medical.ui.molecule
 
 import com.raquo.domtypes.generic.codecs.StringAsIsCodec
 import com.raquo.laminar.api.L._

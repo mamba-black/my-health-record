@@ -1,4 +1,4 @@
-package medical.infrastructure.ui
+package medical.ui
 
 import com.raquo.laminar.api.L.EventBus
 

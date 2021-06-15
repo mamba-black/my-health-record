@@ -1,4 +1,4 @@
-package medical.infrastructure.ui.organism
+package medical.ui.organism
 
 import com.raquo.laminar.CollectionCommand
 import com.raquo.laminar.api.L._
@@ -6,8 +6,8 @@ import com.raquo.laminar.nodes.ReactiveHtmlElement
 import io.grpc.stub.StreamObserver
 import medical.backend.patientapi.{ PatientReply, PatientRequest, PatientServiceGrpcWeb }
 import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
-import medical.infrastructure.ui.command.{ Command, ShowPatient }
-import medical.infrastructure.ui.molecule.TableBasic
+import medical.ui.command.{ Command, ShowPatient }
+import medical.ui.molecule.TableBasic
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLTableCellElement

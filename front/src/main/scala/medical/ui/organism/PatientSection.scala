@@ -1,8 +1,8 @@
-package medical.infrastructure.ui.organism
+package medical.ui.organism
 
 import com.raquo.laminar.api.L._
 import medical.domain.Patient
-import medical.infrastructure.ui.molecule.{ PatientBasicInfo, TableBasic }
+import medical.ui.molecule.{ PatientBasicInfo, TableBasic }
 import scribe._
 
 object PatientSection {

@@ -1,14 +1,14 @@
-package medical.infrastructure.ui.molecule
+package medical.ui.molecule
 
 import com.raquo.laminar.api.L._
 import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
-import medical.infrastructure.ui.atom.{ Button, InputLabel }
+import medical.infrastructure.patientRepository
+import medical.ui.atom.{ Button, InputLabel }
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLInputElement
 import scribe._
 
 import java.time.LocalDate
-import scala.scalajs.js.timers.setTimeout
 
 object PatientBasicInfo {
   val NAME = "name"
@@ -25,19 +25,7 @@ object PatientBasicInfo {
     val patientSignal: Signal[Option[Patient]] = patientVar.signal
 
     if (patient.isEmpty) {
-      // FIXME: Aqui colocar el servicio para traer la data si patient es None
-      // FIXME: Quitar, esto solo es paro demo
-      setTimeout(2000) {
-        val patient = new Patient(
-          patientId,
-          new HumanName("Malpica", "Gallegos", Seq("Hector", "Miuler")),
-          true,
-          LocalDate.of(1979,10, 13),
-          Seq(new ContactPoint(SystemContactPoint.PHONE, "993990103")),
-        )
-        patientVar.set(Some(patient))
-        debug("TIMEOUT")
-      }
+      patientRepository.findById(patientId, patientVar.writer)
     }
 
     val name = patientSignal.map(p => p.map(_.name.`given`.foldLeft(" ")(_ + _)))
@@ -120,7 +108,7 @@ object PatientBasicInfo {
           LocalDate.of(1979,10, 13),
           Seq(new ContactPoint(SystemContactPoint.PHONE, "993990103")),
         )
-        patientVar.set(Some(patient))
+        patientRepository.save(patient, patientVar.writer)
       }))
     }
     ()

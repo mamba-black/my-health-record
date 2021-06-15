@@ -1,8 +1,8 @@
-package medical.infrastructure.ui.molecule
+package medical.ui.molecule
 
-import org.scalajs.dom
 import com.raquo.laminar.api.L._
-import medical.infrastructure.ui.atom.{ Button, ButtonAlt, CloseSvg }
+import medical.ui.atom.{ Button, ButtonAlt, CloseSvg }
+import org.scalajs.dom
 
 object Modal {
   def apply(text: String, onCancel: () => Unit, onAccept: () => Unit): HtmlElement = {
