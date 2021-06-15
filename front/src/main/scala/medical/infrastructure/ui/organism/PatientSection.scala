@@ -11,7 +11,7 @@ import scala.scalajs.js.timers.setTimeout
 object PatientSection {
 
   def apply(patientId: String, patient: Option[Patient]): HtmlElement = {
-    info(s"Begin patientId: $patientId")
+    debug(s"Begin patientId: $patientId")
 
     val patientBus = new EventBus[Option[Patient]]
 
@@ -27,7 +27,7 @@ object PatientSection {
           Seq(new ContactPoint(SystemContactPoint.PHONE, "993990103")),
         )
         patientBus.writer.onNext(Some(patient))
-        info("TIMEOUT")
+        debug("TIMEOUT")
       }
     }
 

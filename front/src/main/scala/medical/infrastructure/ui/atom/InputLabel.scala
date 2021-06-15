@@ -25,6 +25,7 @@ object InputLabel {
         `type` := inputType.orNull,
         readOnly <-- readOnlySignal,
         value <-- _value.map(_.orNull),
+        defaultValue <-- _value.map(_.orNull),
         cls := ("px-3", " py-2", "w-full", "placeholder-gray-300", "border", "border-gray-300", "rounded-md", "focus:outline-none", "focus:ring", "focus:ring-indigo-100", "focus:border-indigo-300", "block"),
         cls.toggle("bg-gray-50") <-- readOnlySignal,
         cls.toggle("hidden") <-- isLoaded.map(!_),

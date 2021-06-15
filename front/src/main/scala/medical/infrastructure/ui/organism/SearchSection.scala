@@ -21,7 +21,7 @@ import java.util.UUID
 object SearchSection {
 
   def apply(commandWriteBus: WriteBus[Command]): HtmlElement = {
-    info("Begin")
+    debug("Begin")
     val patientReplyEventBus = new EventBus[PatientReply]
 
     val stub = PatientServiceGrpcWeb.stub(Channels.grpcwebChannel("https://192.168.1.3:8080"))
@@ -37,14 +37,14 @@ object SearchSection {
       val text = input.ref.value
       val search = text.trim.nonEmpty
       if (search) {
-        info("Buscar!")
+        debug("Buscar!")
         eventBus.writer.onNext(PatientReply(UUID.randomUUID().toString, text, text, text))
         patientClient.find(PatientRequest(text), new StreamObserver[PatientReply] {
-          override def onNext(value: PatientReply): Unit = info(s"patient: $value") // patients.update(_ :+ value)
+          override def onNext(value: PatientReply): Unit = debug(s"patient: $value") // patients.update(_ :+ value)
 
           override def onError(throwable: Throwable): Unit = warn("onError")
 
-          override def onCompleted(): Unit = info("onCompleted")
+          override def onCompleted(): Unit = debug("onCompleted")
         })
       }
       ()
@@ -116,10 +116,10 @@ object SearchSection {
   def searchButton(eventBus: EventBus[PatientReply], input: ReactiveHtmlElement[html.Input]): ReactiveHtmlElement[html.Button] = {
 
     val obsButton = Observer[dom.MouseEvent](onNext = { event =>
-      info(s"mouseEvent: $event")
+      debug(s"mouseEvent: $event")
       val text = input.ref.value
       if (text.trim.nonEmpty) {
-        info(s"Buscar! $text")
+        debug(s"Buscar! $text")
         eventBus.writer.onNext(PatientReply("-3", text))
       }
     })
@@ -139,8 +139,8 @@ object SearchSection {
   private def _td(patientReply: PatientReply, commandWriteBus: WriteBus[Command]) : HtmlElement = {
 
     val obsHistory = Observer[dom.MouseEvent](onNext = { event =>
-      info(s"event: ${event}")
-      info(s"1: ${event.target.isInstanceOf[HTMLTableCellElement]}")
+      debug(s"event: ${event}")
+      debug(s"1: ${event.target.isInstanceOf[HTMLTableCellElement]}")
       val patient = new Patient(
         "Test",
         new HumanName("Malpica", "Gallegos", Seq("Hector", "Miuler")),

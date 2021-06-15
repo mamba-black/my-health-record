@@ -8,7 +8,13 @@ import scribe._
 object Main {
 
   def main(args: Array[String]): Unit = {
-    debug("Test")
+    debug("Test1")
+    scribe.Logger.root
+      .clearHandlers()
+      .clearModifiers()
+      .withHandler(minimumLevel = Some(Level.Debug))
+      .replace()
+    debug("Test2")
 
     documentEvents.onDomContentLoaded.foreach { _ =>
       val session = dom.window.localStorage.getItem("session")

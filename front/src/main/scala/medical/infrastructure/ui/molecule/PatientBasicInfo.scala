@@ -11,8 +11,7 @@ object PatientBasicInfo {
 
   def apply(patientSignal: Signal[Option[Patient]]): HtmlElement = {
     val now = java.time.LocalDate.now()
-    val readOnly = Var[Boolean](true)
-    val showModal = Var[Boolean](false)
+    val readOnlyFlag = Var[Boolean](true)
 
     val name = patientSignal.map(p => p.map(_.name.`given`.foldLeft(" ")(_ + _)))
     val fathersFamily = patientSignal.map(p => p.map(_.name.fathersFamily))
@@ -39,19 +38,18 @@ object PatientBasicInfo {
 
     div(
       h1("Informacion del paciente", cls := ("text-2xl", "py-8")),
-      child <-- showModal.signal.changes.map(a => if (a) Modal("Esto es una prueba", readOnly, showModal) else div()),
       form(
         cls := "grid grid-cols-3 gap-4",
-        inContext(thisForm => onSubmit --> Observer[dom.Event](_onSubmit(thisForm, showModal, readOnly))),
-        InputLabel("name", "Nombre", name, readOnly.signal),
-        InputLabel("name", "Apellido paterno", fathersFamily, readOnly.signal),
-        InputLabel("name", "Apellido materno", mothersFamily, readOnly.signal),
-        InputLabel("age", "Edad", age, readOnly.signal, Some("number")),
-        InputLabel("email", "Correo", email, readOnly.signal, Some("email")),
-        InputLabel("phone", "Telefono", phone, readOnly.signal, Some("tel")),
-        InputLabel("allergies", "Alergias", Signal.fromValue(Some("")), readOnly.signal),
+        inContext(thisForm => onSubmit --> Observer[dom.Event](_onSubmit(thisForm, readOnlyFlag))),
+        InputLabel("name", "Nombre", name, readOnlyFlag.signal),
+        InputLabel("name", "Apellido paterno", fathersFamily, readOnlyFlag.signal),
+        InputLabel("name", "Apellido materno", mothersFamily, readOnlyFlag.signal),
+        InputLabel("age", "Edad", age, readOnlyFlag.signal, Some("number")),
+        InputLabel("email", "Correo", email, readOnlyFlag.signal, Some("email")),
+        InputLabel("phone", "Telefono", phone, readOnlyFlag.signal, Some("tel")),
+        InputLabel("allergies", "Alergias", Signal.fromValue(Some("")), readOnlyFlag.signal),
         div(cls := "col-start-3 flex justify-end",
-          Button("Editar", readOnly, "Guardar"),
+          Button("Editar", readOnlyFlag, "Guardar"),
         ),
       ),
     )
@@ -59,19 +57,20 @@ object PatientBasicInfo {
 
 
   private def _onSubmit(_form: FormElement,
-                        showModal: Var[Boolean],
-                        readOnly: Var[Boolean])(e: dom.Event): Unit = {
+                        readOnlyFlag: Var[Boolean]
+                        )(e: dom.Event): Unit = {
     e.preventDefault()
-    info(s"readOnly: ${readOnly.now()}")
-    if (readOnly.now()) {
-      val elements = _form.ref.elements
-      for (i <- 0 until elements.length) {
-        val input = elements(i).asInstanceOf[HTMLInputElement]
-        info(s"$i input.name: ${input.name}")
-        info(s"$i input.value: ${input.value}")
-        info(s"$i input.validity.valid: ${input.validity.valid}")
-      }
-      showModal.set(true)
+    val elements = _form.ref.elements
+    for (i <- 0 until elements.length) {
+      val input = elements(i).asInstanceOf[HTMLInputElement]
+      debug(s"$i input.name: ${input.name}")
+      debug(s"$i input.value: ${input.value}")
+      debug(s"$i input.validity.valid: ${input.validity.valid}")
+    }
+    if (readOnlyFlag.now() ) {
+      val dd = div()
+      _form.ref.parentElement.appendChild(dd.ref)
+      render(dd.ref, Modal("Esto es una prueba", () => _form.ref.reset(), () => _form.ref.submit()))
     }
     ()
   }

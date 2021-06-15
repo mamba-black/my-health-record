@@ -7,7 +7,6 @@ import medical.infrastructure.ui.atom.Loading
 import medical.infrastructure.ui.command.CommandBus
 import medical.infrastructure.ui.organism.{ PatientSection, SearchSection }
 import org.scalajs.dom
-import scribe._
 
 object Router {
   def apply(commandBus: CommandBus): Signal[Element] = {
@@ -27,8 +26,8 @@ object Router {
           }
         },
         (path("patient" / segment) & historyState) { (patientId, state) =>
-          info(s"patientId: $patientId")
-          info(s"state: $state")
+          scribe.debug(s"patientId: $patientId")
+          scribe.debug(s"state: $state")
           render {
             PatientSection(patientId, state.asInstanceOf[Option[Patient]])
           }

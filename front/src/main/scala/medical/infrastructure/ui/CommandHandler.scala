@@ -11,9 +11,9 @@ object CommandHandler {
 
     commandBus.events --> Observer[Command](onNext = {
       case ShowPatient(patient) =>
-        info(s"patient: $patient")
+        debug(s"patient: $patient")
         BrowserNavigation.pushState(data = patient, url = s"/patient/${patient.id}")
-      case _ => info(s"main: no hago nada")
+      case _ => warn(s"main: No implementado")
     })
   }
 }
