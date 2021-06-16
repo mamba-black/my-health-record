@@ -12,7 +12,7 @@ import java.util.UUID
 import scala.concurrent.Future
 
 class PatientApiImpl(system: ActorSystem[_],
-                     patientService: PatientService) extends PatientApi with LogSupport {
+                     patientService: PatientService) extends PatientApi {
 //  private implicit val sys: ActorSystem[_] = system
 
   /**

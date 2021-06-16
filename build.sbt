@@ -34,49 +34,52 @@ lazy val dtos = project
     ),
   )
 
-//lazy val akkaVersion = "2.6.14"
-//lazy val akkaHttpVersion = "10.2.4"
+lazy val akkaVersion = "2.6.15"
+lazy val akkaHttpVersion = "10.2.4"
 //lazy val algolia = "3.14.1"
 lazy val scalatestVersion = "3.2.9"
 
-//lazy val back = (project in file("back"))
-//  .enablePlugins(AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin)
-//  .settings(
-//    name := "my-health-record.back",
-//    scalaVersion := scala2Version,
-//    //    Docker / packageName := "gcr.io/miuler-medical-001",
-//    //    dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
+lazy val back = (project in file("back"))
+  .enablePlugins(AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin)
+  .settings(
+    name := "my-health-record.back",
+    scalaVersion := scala2Version,
+    ThisBuild / dynverSeparator := "-",
+    //    Docker / packageName := "gcr.io/miuler-medical-001",
+    //    dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
 //    dockerBaseImage := "adoptopenjdk:11-jre-hotspot",
 //    dockerRepository := Some("gcr.io/miuler-medical-001"),
 //    dockerExposedPorts := Seq(8080),
-//    ThisBuild / dynverSeparator := "-",
-//    dockerUpdateLatest := true,
+    //    dockerUpdateLatest := true,
 //    //    scalaVersion := "3.0.0-M3",
 //    libraryDependencies += "org.wvlet.airframe" %% "airframe-log" % "21.4.1",
-//    libraryDependencies ++= Seq(
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-http2-support" % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
+      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+      "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
+      //      "com.typesafe.akka" %% "akka-pki" % akkaVersion,
+
+//      // The Akka HTTP overwrites are required because Akka-gRPC depends on 10.1.x
 //      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
 //      "com.typesafe.akka" %% "akka-http2-support" % akkaHttpVersion,
-//      "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
-//      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-//      "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
-//      //      "com.typesafe.akka" %% "akka-pki" % akkaVersion,
-//      "ch.megard" %% "akka-http-cors" % "1.1.1", // Para poder usar akka grpc con grpc-web
-//      "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "1.1.1",
+
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "com.outr" %%% "scribe" % "3.5.5",
+
+      "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.0.0",
+      "ch.megard" %% "akka-http-cors" % "1.1.1", // Para poder usar akka grpc con grpc-web
 //      "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
-//      "ch.qos.logback" % "logback-classic" % "1.2.3",
-//
+
 //      "com.algolia" % "algoliasearch-core" % algolia,
 //      "com.algolia" % "algoliasearch-java-net" % algolia,
-//
-//      //      // The Akka HTTP overwrites are required because Akka-gRPC depends on 10.1.x
-//      //      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-//      //      "com.typesafe.akka" %% "akka-http2-support" % akkaHttpVersion,
-//
-//      "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
-//      "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
-//      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-//    ),
-//  )
+
+      "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
+      "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+    ),
+  )
 
 lazy val front = (project in file("front"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)

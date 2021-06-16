@@ -9,7 +9,7 @@ import medical.api.{ PatientApi, PatientApiHandler }
 import medical.application.PatientServiceImpl
 import medical.infraestructure.repository.PatientRepositoryImpl
 import medical.presentation.PatientApiImpl
-import wvlet.log.LogFormatter.PlainSourceCodeLogFormatter
+//import wvlet.log.LogFormatter.PlainSourceCodeLogFormatter
 import scribe._
 
 import scala.concurrent.Future
@@ -17,7 +17,7 @@ import scala.concurrent.duration.DurationInt
 import scala.util.{ Failure, Success }
 
 object PatientServer {
-  wvlet.log.Logger.setDefaultFormatter(PlainSourceCodeLogFormatter)
+//  wvlet.log.Logger.setDefaultFormatter(PlainSourceCodeLogFormatter)
   def main(args: Array[String]): Unit = {
     info("Starting gRPC...")
     val conf = ConfigFactory.parseString("akka.http.server.preview.enable-http2 = on")
@@ -37,7 +37,7 @@ class PatientServer(system: ActorSystem[_]) {
     val patientApi = PatientApiHandler.partial(new PatientApiImpl(system, new PatientServiceImpl(new PatientRepositoryImpl)))
     val apis = WebHandler.grpcWebHandler(serverReflection, patientApi)
 
-    val bindingFuture = Http(system)
+    val bindingFuture = Http()
       .newServerAt(interface = "0.0.0.0", port = 8080)
 //      .enableHttps(serverHttpContext)
       .bind(apis)
@@ -52,7 +52,6 @@ class PatientServer(system: ActorSystem[_]) {
         system.log.info("Failure")
         error("Failed to bind gRPC endpoint, terminating system", exception)
         system.terminate()
-
     }
 
     bindingFuture
