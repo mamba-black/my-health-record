@@ -55,29 +55,27 @@ lazy val back = (project in file("back"))
 //    libraryDependencies += "org.wvlet.airframe" %% "airframe-log" % "21.4.1",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-      "com.typesafe.akka" %% "akka-http2-support" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
+      "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
+
       //      "com.typesafe.akka" %% "akka-pki" % akkaVersion,
-
-//      // The Akka HTTP overwrites are required because Akka-gRPC depends on 10.1.x
-//      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-//      "com.typesafe.akka" %% "akka-http2-support" % akkaHttpVersion,
-
-      "ch.qos.logback" % "logback-classic" % "1.2.3",
-      "com.outr" %%% "scribe" % "3.5.5",
-
       "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.0.0",
       "ch.megard" %% "akka-http-cors" % "1.1.1", // Para poder usar akka grpc con grpc-web
+
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "com.outr" %% "scribe" % "3.5.5",
+
 //      "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
 
 //      "com.algolia" % "algoliasearch-core" % algolia,
 //      "com.algolia" % "algoliasearch-java-net" % algolia,
 
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
       "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
-      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+      "com.typesafe.akka" %% "akka-persistence-testkit" % akkaVersion % Test,
     ),
   )
 
