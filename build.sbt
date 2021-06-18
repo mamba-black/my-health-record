@@ -45,14 +45,16 @@ lazy val back = (project in file("back"))
     name := "my-health-record.back",
     scalaVersion := scala2Version,
     ThisBuild / dynverSeparator := "-",
-    //    Docker / packageName := "gcr.io/miuler-medical-001",
-    //    dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
-//    dockerBaseImage := "adoptopenjdk:11-jre-hotspot",
-//    dockerRepository := Some("gcr.io/miuler-medical-001"),
-//    dockerExposedPorts := Seq(8080),
-    //    dockerUpdateLatest := true,
-//    //    scalaVersion := "3.0.0-M3",
-//    libraryDependencies += "org.wvlet.airframe" %% "airframe-log" % "21.4.1",
+    //dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
+    // //Docker / packageName := "gcr.io/miuler-medical-001",
+    //dockerRepository := Some("gcr.io/miuler-medical-001"),
+    dockerBaseImage := "adoptopenjdk/openjdk11:debianslim-jre",
+    dockerRepository := Some("957838095201.dkr.ecr.us-east-1.amazonaws.com/miclaro"),
+    dockerExposedPorts := Seq(8080),
+    dockerUpdateLatest := true,
+    Docker / packageName := "pocs",
+    Docker / daemonUserUid := None,
+    Docker / daemonUser := "daemon",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
@@ -67,10 +69,9 @@ lazy val back = (project in file("back"))
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "com.outr" %% "scribe" % "3.5.5",
 
-//      "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
-
-//      "com.algolia" % "algoliasearch-core" % algolia,
-//      "com.algolia" % "algoliasearch-java-net" % algolia,
+      //"com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
+      //"com.algolia" % "algoliasearch-core" % algolia,
+      //"com.algolia" % "algoliasearch-java-net" % algolia,
 
       "org.scalatest" %% "scalatest" % scalatestVersion % Test,
       "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
@@ -93,12 +94,12 @@ lazy val front = (project in file("front"))
       "postcss-cli" -> "8.3.1",
       //"webpack-dev-server" -> "3.11.2",
     ),
-//    Compile / scalaJSLinkerConfig ~= {
-//      _.withSourceMap(false)
-//    },
-//    fullOptJS / scalaJSLinkerConfig ~= {
-//      _.withSourceMap(false)
-//    },
+    //Compile / scalaJSLinkerConfig ~= {
+    //  _.withSourceMap(false)
+    //},
+    //fullOptJS / scalaJSLinkerConfig ~= {
+    //  _.withSourceMap(false)
+    //},
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryAndApplication(),
     webpackDevServerExtraArgs := Seq("--inline", "--hot", "--history-api-fallback"),
