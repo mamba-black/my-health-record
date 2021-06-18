@@ -53,8 +53,12 @@ lazy val back = (project in file("back"))
     dockerExposedPorts := Seq(8080),
     dockerUpdateLatest := true,
     Docker / packageName := "pocs",
+
+    // COLOCAR LO SIGUIENTE PARA QUE NO DE ERROR ===========>
     Docker / daemonUserUid := None,
     Docker / daemonUser := "daemon",
+    // COLOCAR LO SIGUIENTE PARA QUE NO DE ERROR ===========>
+
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
       "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
