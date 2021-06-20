@@ -40,24 +40,17 @@ lazy val akkaHttpVersion = "10.2.4"
 lazy val scalatestVersion = "3.2.9"
 
 lazy val back = (project in file("back"))
-  .enablePlugins(AkkaGrpcPlugin, JavaAppPackaging, DockerPlugin)
+  .enablePlugins(AkkaGrpcPlugin, JibPlugin)
   .settings(
     name := "my-health-record.back",
     scalaVersion := scala2Version,
     ThisBuild / dynverSeparator := "-",
-    //dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
-    // //Docker / packageName := "gcr.io/miuler-medical-001",
-    //dockerRepository := Some("gcr.io/miuler-medical-001"),
-    dockerBaseImage := "adoptopenjdk/openjdk11:debianslim-jre",
-    dockerRepository := Some("957838095201.dkr.ecr.us-east-1.amazonaws.com/miclaro"),
-    dockerExposedPorts := Seq(8080),
-    dockerUpdateLatest := true,
-    Docker / packageName := "pocs",
 
-    // COLOCAR LO SIGUIENTE PARA QUE NO DE ERROR ===========>
-    Docker / daemonUserUid := None,
-    Docker / daemonUser := "daemon",
-    // COLOCAR LO SIGUIENTE PARA QUE NO DE ERROR ===========>
+    jibBaseImage := "adoptopenjdk/openjdk11:debianslim-jre",
+    jibName := "pocs",
+    jibUser := Some("miclaro"),
+    jibRegistry := "957838095201.dkr.ecr.us-east-1.amazonaws.com",
+    //dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
 
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
