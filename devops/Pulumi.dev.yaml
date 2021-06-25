@@ -1,0 +1,9 @@
+encryptionsalt: v1:8WvRJgV85so=:v1:0e6g/zz2f6qUAJsp:oDziU4Cfjiv4DHHt0doFHhiYOf974Q==
+config:
+  aws:profile: claro
+  aws:region: us-east-1
+  cloud:ecscluster:
+    secure: v1:aB2negaNjnIx2Hgx:nirAiT4UHqqI1Tx5g3WJgoReQkSWkzTn7M81apo9vyL2l/TMsBNXva0GEOfP84N6oMmkIyAmtpiAzCdaD2V1zRJcb5sC2dWqnGJALxIiaB1Tf5nOOsY=
+  cloud:loadbalancer:
+    secure: v1:s74x1J/Nj3nUOsjj:f7N1mwgx22WJ/nOmY91QpNWEl7AhTAbwBnhLyZe1lxFQBaeKQUSnO4k1FxmdNX/XbVs/VXgM+gM7tIVval7EKutxdvecLBr2iIbIa+p1HnM/QcvoR1KFPHU+uPU73LNxiGDA/+xwLIE7J/tXtr89kotVqqzIEIIZmw==
+  gcp:project: miuler-medical-001

@@ -1,0 +1,15 @@
+{
+  "name": "poc-akka-grpc",
+  "scripts": {
+    "deploy": "$HOME/.pulumi/bin/pulumi up",
+    "destroy": "$HOME/.pulumi/bin/pulumi destroy"
+  },
+  "devDependencies": {
+    "@types/node": "^14.17.3"
+  },
+  "dependencies": {
+    "@pulumi/pulumi": "^3.5.1",
+    "@pulumi/gcp": "^5.9.0",
+    "@pulumi/aws": "^4.8.0"
+  }
+}
