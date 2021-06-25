@@ -28,6 +28,6 @@ class PatientApiImpl(system: ActorSystem[_],
   override def get(in: PatientIdRequest): Future[PatientReply] = {
     info(s"[${Thread.currentThread().getName}/${system.name}] 1.id: ${in.id}")
     system.log.info(s"2.id: ${in.id}")
-    Future.successful(PatientReply(UUID.randomUUID().toString, "GET: Hector Miuler Malpica Gallegos"))
+    Future.successful(PatientReply(UUID.randomUUID().toString, "Hector Miuler", "Malpica", "Gallegos"))
   }
 }
