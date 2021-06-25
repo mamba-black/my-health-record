@@ -4,6 +4,8 @@ import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.grpc.scaladsl.{ ServerReflection, WebHandler }
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.HttpMethods.GET
+import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpRequest, HttpResponse, Uri }
 import com.typesafe.config.ConfigFactory
 import medical.api.{ PatientApi, PatientApiHandler }
 import medical.application.PatientServiceImpl
@@ -20,9 +22,11 @@ object PatientServer {
   //  wvlet.log.Logger.setDefaultFormatter(PlainSourceCodeLogFormatter)
   def main(args: Array[String]): Unit = {
     info("Starting gRPC...")
+
     val conf = ConfigFactory.parseString("akka.http.server.preview.enable-http2 = on")
       .withFallback(ConfigFactory.defaultApplication())
     val system = ActorSystem[Nothing](Behaviors.empty, "PatientServer", conf)
+
     new PatientServer(system).run()
     ()
   }
@@ -37,10 +41,24 @@ class PatientServer(system: ActorSystem[_]) {
     val patientApi = PatientApiHandler.partial(new PatientApiImpl(system, new PatientServiceImpl(new PatientRepositoryImpl)))
     val apis = WebHandler.grpcWebHandler(serverReflection, patientApi)
 
-    val bindingFuture = Http()
-      .newServerAt(interface = "0.0.0.0", port = 8080)
+    val requestHandler: HttpRequest => Future[HttpResponse] = {
+      case HttpRequest(GET, Uri.Path("/"), _, _, _) =>
+        Future.successful(HttpResponse(entity = HttpEntity(
+          ContentTypes.`text/html(UTF-8)`,
+          "<html><body>Hello world!</body></html>")))
+
+      case HttpRequest(GET, Uri.Path("/ping"), _, _, _) =>
+        Future.successful(HttpResponse(entity = "PING!"))
+
+      case r: HttpRequest =>
+        apis(r)
+    }
+
+    val httpExt = Http()
+    val bindingFuture = httpExt
+      .newServerAt(interface = "0.0.0.0", port = 9090)
       //.enableHttps(serverHttpContext)
-      .bind(apis)
+      .bind(requestHandler)
       .map(_.addToCoordinatedShutdown(hardTerminationDeadline = 10.seconds))
 
     bindingFuture.onComplete {
