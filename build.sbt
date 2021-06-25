@@ -46,9 +46,9 @@ lazy val back = (project in file("back"))
     scalaVersion := scala2Version,
     ThisBuild / dynverSeparator := "-",
 
-    jibBaseImage := "adoptopenjdk/openjdk11:debianslim-jre",
+    jibBaseImage := "adoptopenjdk/openjdk11:alpine-jre",
     jibName := "pocs",
-    jibUser := Some("miclaro"),
+    jibOrganization := "miclaro",
     jibRegistry := "957838095201.dkr.ecr.us-east-1.amazonaws.com",
     //dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
 
@@ -58,6 +58,8 @@ lazy val back = (project in file("back"))
       "com.typesafe.akka" %% "akka-stream" % akkaVersion,
       "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
       "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
+
+      //"com.typesafe.akka" %% "akka-cluster-typed" % akkaVersion,
 
       //      "com.typesafe.akka" %% "akka-pki" % akkaVersion,
       "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.0.0",
@@ -125,10 +127,10 @@ css := {
   //val result = npmInstallDependencies.value
   val logger = streams.value.log
   logger.info("1=================================>")
-  logger.info(s"${front}")
+  logger.info(s"$front")
   logger.info(s"${front.base}")
-  logger.info(s"${WebpackConfig}")
-  logger.info(s"${webpackConfigFile}")
+  logger.info(s"$WebpackConfig")
+  logger.info(s"$webpackConfigFile")
   logger.info("1=================================<")
   //  logger.info("2=================================>")
   //  Npm.run("exec", "tailwindcss", "build", "-o tailwind.css")(front.base / "target" / "scala-2.13" / "scalajs-bundler" / "main", logger)
