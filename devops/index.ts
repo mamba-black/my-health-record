@@ -42,7 +42,7 @@ let akkaGrpcContainerDefinition: aws.ecs.ContainerDefinition = {
   portMappings: [
     {
       containerPort: 9090,
-      hostPort: 9090,
+      hostPort: 0,
       protocol: 'tcp',
     }
   ],
