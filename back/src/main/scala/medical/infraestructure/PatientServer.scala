@@ -2,28 +2,32 @@ package medical.infraestructure
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
-import akka.grpc.scaladsl.{ ServerReflection, WebHandler }
+import akka.grpc.scaladsl.{ServerReflection, WebHandler}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods.GET
-import akka.http.scaladsl.model.{ ContentTypes, HttpEntity, HttpRequest, HttpResponse, Uri }
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpRequest, HttpResponse, Uri}
 import com.typesafe.config.ConfigFactory
-import medical.api.{ PatientApi, PatientApiHandler }
+import grpc.health.v1.HealthHandler
+import medical.api.{PatientApi, PatientApiHandler}
 import medical.application.PatientServiceImpl
 import medical.infraestructure.repository.PatientRepositoryImpl
-import medical.presentation.PatientApiImpl
+import medical.presentation.{HealthImpl, PatientApiImpl}
+
+import scala.concurrent.ExecutionContextExecutor
 //import wvlet.log.LogFormatter.PlainSourceCodeLogFormatter
 import scribe._
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
-import scala.util.{ Failure, Success }
+import scala.util.{Failure, Success}
 
 object PatientServer {
   //  wvlet.log.Logger.setDefaultFormatter(PlainSourceCodeLogFormatter)
   def main(args: Array[String]): Unit = {
     info("Starting gRPC...")
 
-    val conf = ConfigFactory.parseString("akka.http.server.preview.enable-http2 = on")
+    val conf = ConfigFactory
+      .parseString("akka.http.server.preview.enable-http2 = on")
       .withFallback(ConfigFactory.defaultApplication())
     val system = ActorSystem[Nothing](Behaviors.empty, "PatientServer", conf)
 
@@ -34,18 +38,20 @@ object PatientServer {
 
 class PatientServer(system: ActorSystem[_]) {
   def run(): Future[Http.ServerBinding] = {
-    implicit val sys = system
-    implicit val ec = sys.executionContext
+    implicit val sys: ActorSystem[_] = system
+    implicit val ec: ExecutionContextExecutor = sys.executionContext
 
     val serverReflection = ServerReflection.partial(List(PatientApi))
-    val patientApi = PatientApiHandler.partial(new PatientApiImpl(system, new PatientServiceImpl(new PatientRepositoryImpl)))
-    val apis = WebHandler.grpcWebHandler(serverReflection, patientApi)
+    val health = HealthHandler.partial(new HealthImpl())
+    val patientApi =
+      PatientApiHandler.partial(new PatientApiImpl(system, new PatientServiceImpl(new PatientRepositoryImpl)))
+    val apis = WebHandler.grpcWebHandler(health, serverReflection, patientApi)
 
     val requestHandler: HttpRequest => Future[HttpResponse] = {
       case HttpRequest(GET, Uri.Path("/"), _, _, _) =>
-        Future.successful(HttpResponse(entity = HttpEntity(
-          ContentTypes.`text/html(UTF-8)`,
-          "<html><body>Hello world!</body></html>")))
+        Future.successful(
+          HttpResponse(entity = HttpEntity(ContentTypes.`text/html(UTF-8)`, "<html><body>Hello world!</body></html>"))
+        )
 
       case HttpRequest(GET, Uri.Path("/ping"), _, _, _) =>
         Future.successful(HttpResponse(entity = "PING!"))

@@ -1,3 +1,4 @@
+import Dependencies._
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSUseMainModuleInitializer
 import scalajsbundler.Npm
 
@@ -9,7 +10,7 @@ ThisBuild / organization := "miuler"
 //)
 ThisBuild / scalacOptions ++= Seq(
   //  "-P:silencer:pathFilters=.*[/]src_managed[/].*",
-  "-Wconf:src=src_managed/.*:silent",
+  "-Wconf:src=src_managed/.*:silent"
 )
 
 val scala2Version = "2.13.6"
@@ -25,58 +26,13 @@ lazy val dtos = project
     scalaJSUseMainModuleInitializer := true,
     Compile / PB.targets := Seq(
       scalapb.gen(grpc = false) -> (Compile / sourceManaged).value / "scalapb",
-      scalapb.grpcweb.GrpcWebCodeGenerator -> (Compile / sourceManaged).value,
+      scalapb.grpcweb.GrpcWebCodeGenerator -> (Compile / sourceManaged).value
     ),
     libraryDependencies ++= Seq(
       "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion,
       "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
-      "com.thesamet.scalapb.grpcweb" %%% "scalapb-grpcweb" % scalapb.grpcweb.BuildInfo.version,
-    ),
-  )
-
-lazy val akkaVersion = "2.6.15"
-lazy val akkaHttpVersion = "10.2.4"
-//lazy val algolia = "3.14.1"
-lazy val scalatestVersion = "3.2.9"
-
-lazy val back = (project in file("back"))
-  .enablePlugins(AkkaGrpcPlugin, JibPlugin)
-  .settings(
-    name := "my-health-record.back",
-    scalaVersion := scala2Version,
-    ThisBuild / dynverSeparator := "-",
-
-    jibBaseImage := "adoptopenjdk/openjdk11:alpine-jre",
-    jibName := "pocs",
-    jibOrganization := "miclaro",
-    jibRegistry := "957838095201.dkr.ecr.us-east-1.amazonaws.com",
-    //dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
-
-    libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-      "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
-      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-      "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
-      "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion,
-
-      //"com.typesafe.akka" %% "akka-cluster-typed" % akkaVersion,
-
-      //      "com.typesafe.akka" %% "akka-pki" % akkaVersion,
-      "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.0.0",
-      "ch.megard" %% "akka-http-cors" % "1.1.1", // Para poder usar akka grpc con grpc-web
-
-      "ch.qos.logback" % "logback-classic" % "1.2.3",
-      "com.outr" %% "scribe" % "3.5.5",
-
-      //"com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
-      //"com.algolia" % "algoliasearch-core" % algolia,
-      //"com.algolia" % "algoliasearch-java-net" % algolia,
-
-      "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-      "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
-      "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
-      "com.typesafe.akka" %% "akka-persistence-testkit" % akkaVersion % Test,
-    ),
+      "com.thesamet.scalapb.grpcweb" %%% "scalapb-grpcweb" % scalapb.grpcweb.BuildInfo.version
+    )
   )
 
 lazy val front = (project in file("front"))
@@ -90,7 +46,7 @@ lazy val front = (project in file("front"))
       "autoprefixer" -> "10.2.4",
       "tailwindcss" -> "2.0.2",
       "postcss" -> "8.2.4",
-      "postcss-cli" -> "8.3.1",
+      "postcss-cli" -> "8.3.1"
       //"webpack-dev-server" -> "3.11.2",
     ),
     //Compile / scalaJSLinkerConfig ~= {
@@ -107,15 +63,58 @@ lazy val front = (project in file("front"))
       "io.frontroute" %%% "frontroute" % "0.13.2",
       "com.outr" %%% "scribe" % "3.5.5",
       "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
-      "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.3.0",
+      "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.3.0"
       //"org.wvlet.airframe" %%% "airframe" % "21.6.0",
       //"org.wvlet.airframe" %%% "airframe-log" % "21.4.1",
     ),
-    libraryDependencies ++= Seq(
-      "org.scalatest" %%% "scalatest" % scalatestVersion % Test,
-    ),
+    libraryDependencies ++= Seq("org.scalatest" %%% "scalatest" % scalatestVersion % Test)
   )
 
+lazy val back = (project in file("back"))
+  .enablePlugins(AkkaGrpcPlugin, JibPlugin)
+  .settings(
+    name := "my-health-record.back",
+    scalaVersion := scala2Version,
+    ThisBuild / dynverSeparator := "-",
+    jibBaseImage := "adoptopenjdk/openjdk11:alpine-jre",
+    jibName := "pocs",
+    jibOrganization := "miclaro",
+    jibRegistry := "957838095201.dkr.ecr.us-east-1.amazonaws.com",
+    //dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
+    libraryDependencies ++= Seq(
+      akkaHttp,
+      akkaActorTyped,
+      akkaStream,
+      akkaDiscovery,
+      akkaPersistenceTyped,
+      akkaStreamKafka,
+      akkaSlf4j,
+      logbackClassic,
+      scribe,
+      akkaGrpcRuntime,
+      akkaHttpCors,
+      //"com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
+      scalaTest,
+      akkaActorTypedTest,
+      akkaStreamTest,
+      akkaPersistenceTest
+    )
+  )
+
+lazy val testSuite = (project in file("test-suite"))
+  .enablePlugins(GatlingPlugin)
+  .settings(
+    scalaVersion := scala2Version,
+    libraryDependencies ++= Seq(
+      gatlingTest,
+      gatlingChartsTest,
+      gatlingGrpcTest,
+      scalapbNetty,
+      scalapbRuntime,
+      scalapbRuntimeGrpc
+    ),
+    Test / PB.targets := Seq(scalapb.gen() -> (Test / sourceManaged).value)
+  )
 
 logLevel := Level.Debug
 
@@ -134,9 +133,15 @@ css := {
   logger.info("1=================================<")
   //  logger.info("2=================================>")
   //  Npm.run("exec", "tailwindcss", "build", "-o tailwind.css")(front.base / "target" / "scala-2.13" / "scalajs-bundler" / "main", logger)
-  Npm.run("exec", "--", "postcss",
-    "--config", ((front / baseDirectory).value / "postcss.config.js").getAbsolutePath,
-    "-o", ((front / baseDirectory).value / "target" / "compiled.css").getAbsolutePath,
-    (front.base / "styles.css").getAbsolutePath)((front / crossTarget).value / "scalajs-bundler" / "main", logger)
+  Npm.run(
+    "exec",
+    "--",
+    "postcss",
+    "--config",
+    ((front / baseDirectory).value / "postcss.config.js").getAbsolutePath,
+    "-o",
+    ((front / baseDirectory).value / "target" / "compiled.css").getAbsolutePath,
+    (front.base / "styles.css").getAbsolutePath
+  )((front / crossTarget).value / "scalajs-bundler" / "main", logger)
   //  logger.info("2=================================<")
 }

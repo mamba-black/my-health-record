@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@pulumi/pulumi": "^3.5.1",
-    "@pulumi/gcp": "^5.9.0",
-    "@pulumi/aws": "^4.8.0"
+    "@pulumi/gcp": "^5.10.1",
+    "@pulumi/aws": "^4.9.1"
   }
 }
