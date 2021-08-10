@@ -140,7 +140,8 @@ css := {
     "--config",
     ((front / baseDirectory).value / "postcss.config.js").getAbsolutePath,
     "-o",
-    ((front / baseDirectory).value / "target" / "compiled.css").getAbsolutePath,
+    //((front / baseDirectory).value / "target" / "compiled.css").getAbsolutePath,
+    ((front / crossTarget).value / "scalajs-bundler" / "main" / "compiled.css").getAbsolutePath,
     (front.base / "styles.css").getAbsolutePath
   )((front / crossTarget).value / "scalajs-bundler" / "main", logger)
   //  logger.info("2=================================<")
