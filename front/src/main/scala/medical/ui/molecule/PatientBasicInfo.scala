@@ -23,6 +23,8 @@ object PatientBasicInfo {
     val (readOnlyFlag, patientVar, name, fathersFamily, mothersFamily, age, email, phone) =
       generateInputs(patientId, patient)
 
+    //val bt = button("validate")
+
     div(
       h1("Informacion del paciente", cls := ("text-2xl", "py-8")),
       form(
@@ -108,7 +110,7 @@ object PatientBasicInfo {
         case MOTHERS_FAMILY => mothersFamily = input.value
         case EMAIL          => email = input.value
         case PHONE          => phone = input.value
-        case _              => info("")
+        case others @ _     => info(others)
       }
     }
     if (readOnlyFlag.now()) {

@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies extends Akka with Gatling with Grpc {
 
-  val logbackClassic = "ch.qos.logback" % "logback-classic" % "1.2.3"
+  val logbackClassic = "ch.qos.logback" % "logback-classic" % "1.2.5"
   val scribe = "com.outr" %% "scribe" % "3.5.5"
 
   //lazy val algolia = "3.14.1"
@@ -16,7 +16,7 @@ object Dependencies extends Akka with Gatling with Grpc {
 trait Akka {
 
   lazy val akkaVersion = "2.6.15"
-  lazy val alpakkaKafkaVersion = "2.1.0"
+  lazy val alpakkaKafkaVersion = "2.1.1"
   lazy val akkaHttpVersion = "10.2.4"
 
   val akkaHttp = "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
@@ -27,7 +27,7 @@ trait Akka {
   val akkaStreamKafka = "com.typesafe.akka" %% "akka-stream-kafka" % alpakkaKafkaVersion
   val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
   //"com.typesafe.akka" %% "akka-pki" % akkaVersion,
-  val akkaHttpCors = "ch.megard" %% "akka-http-cors" % "1.1.1" // Para poder usar akka grpc con grpc-web
+  val akkaHttpCors = "ch.megard" %% "akka-http-cors" % "1.1.2" // Para poder usar akka grpc con grpc-web
   val akkaGrpcRuntime = "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.0.0"
 
   val akkaActorTypedTest = "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test

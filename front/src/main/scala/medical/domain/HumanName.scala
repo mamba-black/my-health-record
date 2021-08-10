@@ -12,11 +12,7 @@ import scala.scalajs.js
   *
   * @see <a href="http://hl7.org/fhir/datatypes#HumanName">fhir/datatypes.html#HumanName</a>
   */
-class HumanName(
-                 val fathersFamily: String,
-                 val mothersFamily: String,
-                 val given: Seq[String],
-               ) extends js.Object {
+class HumanName(val fathersFamily: String, val mothersFamily: String, val `given`: Seq[String]) extends js.Object {
   val family: String = s"$fathersFamily $mothersFamily"
-  val text: String = s"$fathersFamily $mothersFamily, ${`given`.foldLeft(" ")( _ + _).trim}"
+  val text: String = s"$fathersFamily $mothersFamily, ${`given`.foldLeft(" ")(_ + _).trim}"
 }

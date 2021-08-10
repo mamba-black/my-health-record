@@ -9,7 +9,7 @@ ThisBuild / organization := "miuler"
 //  "com.github.ghik" % "silencer-lib" % "1.7.4" % Provided cross CrossVersion.full
 //)
 ThisBuild / scalacOptions ++= Seq(
-  //  "-P:silencer:pathFilters=.*[/]src_managed[/].*",
+  //"-P:silencer:pathFilters=.*[/]src_managed[/].*"
   "-Wconf:src=src_managed/.*:silent"
 )
 
@@ -43,9 +43,9 @@ lazy val front = (project in file("front"))
     name := "my-health-record.ui",
     scalaVersion := scala2Version,
     Compile / npmDevDependencies ++= Seq(
-      "autoprefixer" -> "10.2.4",
-      "tailwindcss" -> "2.0.2",
-      "postcss" -> "8.2.4",
+      "autoprefixer" -> "10.3.1",
+      "tailwindcss" -> "2.2.7",
+      "postcss" -> "8.3.6",
       "postcss-cli" -> "8.3.1"
       //"webpack-dev-server" -> "3.11.2",
     ),
@@ -59,8 +59,8 @@ lazy val front = (project in file("front"))
     webpackBundlingMode := BundlingMode.LibraryAndApplication(),
     webpackDevServerExtraArgs := Seq("--inline", "--hot", "--history-api-fallback"),
     libraryDependencies ++= Seq(
-      "com.raquo" %%% "laminar" % "0.13.0",
-      "io.frontroute" %%% "frontroute" % "0.13.2",
+      "com.raquo" %%% "laminar" % "0.13.1",
+      "io.frontroute" %%% "frontroute" % "0.14.0",
       "com.outr" %%% "scribe" % "3.5.5",
       "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
       "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.3.0"
@@ -145,3 +145,9 @@ css := {
   )((front / crossTarget).value / "scalajs-bundler" / "main", logger)
   //  logger.info("2=================================<")
 }
+
+val silencerVersion = "1.7.5"
+ThisBuild / libraryDependencies ++= Seq(
+  compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
+  "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
+)
