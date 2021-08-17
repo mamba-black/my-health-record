@@ -1,10 +1,12 @@
 package medical.ui.atom
 
 import com.raquo.laminar.api.L._
+import scribe._
 
 object InputLabel {
   def apply(_name: String, description: String, _value: Signal[Option[String]] = null, readOnlySignal: StrictSignal[Boolean], inputType: Option[String] = None): HtmlElement = {
     val isLoaded: Signal[Boolean] = _value.map(v => v.isDefined)
+    debug(s"readOnlySignal: $readOnlySignal")
     div(
       span(
         cls := ("animate-pulse", "bg-gray-200", "h-5", "w-40", "mb-2", "block", "tracking-wide", "rounded-md"),

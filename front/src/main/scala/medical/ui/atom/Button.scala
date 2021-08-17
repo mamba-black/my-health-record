@@ -37,6 +37,7 @@ private[atom] object ButtonShare {
       onClick --> Observer[MouseEvent](onNext = _ => {
         debug("onClick")
         toggleVar.set(!toggleVar.now())
+        debug(s"toggleVar: ${toggleVar.now()}")
       }),
       inContext(_input => toggleVar --> Observer[Boolean](toggle => {
         if (!toggle && textToggle != null) {
