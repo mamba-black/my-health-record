@@ -1,13 +1,13 @@
 package medical.ui.molecule
 
 import com.raquo.laminar.api.L._
-import medical.ui.atom.{Button, ButtonAlt, CloseSvg}
+import medical.ui.atom.{ Button, ButtonAlt, ButtonShareStatus, CloseSvg, Two, Zero }
 import org.scalajs.dom
 
 object Modal {
   def apply(text: String, onCancel: () => Unit, onAccept: () => Unit): HtmlElement = {
-    val _discard = Var[Boolean](false)
-    val _save = Var[Boolean](false)
+    val _discard = Var[ButtonShareStatus](Zero)
+    val _save = Var[ButtonShareStatus](Zero)
 
     div(
       cls := "flex items-center justify-center fixed left-0 bottom-0 w-full h-full bg-gray-800  bg-opacity-25",
@@ -16,7 +16,7 @@ object Modal {
           thisForm =>
             onSubmit --> Observer[dom.Event](e => {
               e.preventDefault()
-              if (_discard.now()) {
+              if (_discard.now() == Two) {
                 thisForm.ref.parentElement.parentElement.removeChild(thisForm.ref.parentElement)
                 onCancel()
               } else {
@@ -36,7 +36,7 @@ object Modal {
           hr(),
           div(text),
           hr(),
-          div(cls := "ml-auto space-x-2", Button("Guardar", _save), ButtonAlt("Descartar", _discard))
+          div(cls := "ml-auto space-x-2", Button("Guardar", _save.writer), ButtonAlt("Descartar", _discard.writer))
         )
       )
     )

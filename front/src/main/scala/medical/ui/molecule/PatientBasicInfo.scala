@@ -1,11 +1,9 @@
 package medical.ui.molecule
 
 import com.raquo.laminar.api.L._
-import medical.domain.{ContactPoint, HumanName, Patient, SystemContactPoint}
+import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
 import medical.infrastructure.patientRepository
-import medical.ui.atom.{Button, InputLabel}
-import org.scalajs.dom
-import org.scalajs.dom.Event
+import medical.ui.atom.{ Button, ButtonShareStatus, InputLabel, One, Two }
 import org.scalajs.dom.raw.HTMLInputElement
 import scribe._
 
@@ -29,7 +27,7 @@ object PatientBasicInfo {
       h1("Informacion del paciente", cls := ("text-2xl", "py-8")),
       form(
         cls := "grid grid-cols-3 gap-4",
-        inContext(thisForm => onSubmit --> Observer[Event](_onSubmit(thisForm, readOnlyFlag, patientVar))),
+        //inContext(thisForm => onSubmit --> Observer[Event](_onSubmit(thisForm, readOnlyFlag, patientVar))),
         InputLabel(NAME, "Nombre", name, readOnlyFlag.signal),
         InputLabel(FATHERS_FAMILY, "Apellido paterno", fathersFamily, readOnlyFlag.signal),
         InputLabel(MOTHERS_FAMILY, "Apellido materno", mothersFamily, readOnlyFlag.signal),
@@ -37,7 +35,17 @@ object PatientBasicInfo {
         InputLabel(EMAIL, "Correo", email, readOnlyFlag.signal, Some("email")),
         InputLabel(PHONE, "Telefono", phone, readOnlyFlag.signal, Some("tel")),
         InputLabel("allergies", "Alergias", Signal.fromValue(Some("")), readOnlyFlag.signal),
-        div(cls := "col-start-3 flex justify-end", Button("Editar", readOnlyFlag, "Guardar"))
+        inContext(thisForm =>
+          div(
+            cls := "col-start-3 flex justify-end",
+            //Button("Editar", Observer[Boolean](toggle => if(toggle) readOnlyFlag.set(!readOnlyFlag.now())), "Guardar"),
+            Button("Editar", Observer[ButtonShareStatus] {
+              case One => readOnlyFlag.set(false)
+              case Two => _onSubmit(thisForm, readOnlyFlag, patientVar)
+              case _ => info("test")
+            }, "Guardar"),
+          )
+        )
       )
     )
   }
@@ -88,10 +96,7 @@ object PatientBasicInfo {
     (readOnlyFlag, patientVar, name, fathersFamily, mothersFamily, age, email, phone)
   }
 
-  private def _onSubmit(_form: FormElement, readOnlyFlag: Var[Boolean], patientVar: Var[Option[Patient]])(
-      e: dom.Event
-  ): Unit = {
-    e.preventDefault()
+  private def _onSubmit(_form: FormElement, readOnlyFlag: Var[Boolean], patientVar: Var[Option[Patient]]): Unit = {
     val elements = _form.ref.elements
     var name: String = null
     var fathersFamily: String = null
@@ -100,10 +105,12 @@ object PatientBasicInfo {
     var phone: String = null
     for (i <- 0 until elements.length) {
       val input = elements(i).asInstanceOf[HTMLInputElement]
-      input.checkValidity()
-      debug(s"$i input.name: ${input.name}")
-      debug(s"$i input.value: ${input.value}")
-      debug(s"$i input.validity.valid: ${input.validity.valid}")
+      debug(s"$i ${input.name}: ${input.value} (valid: ${input.validity.valid})")
+      if (!input.validity.valid) {
+        debug("input invalid")
+        _form.ref.submit()
+        return
+      }
       input.name match {
         case NAME           => name = input.value
         case FATHERS_FAMILY => fathersFamily = input.value
