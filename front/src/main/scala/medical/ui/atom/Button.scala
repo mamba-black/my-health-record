@@ -6,22 +6,24 @@ import scribe._
 
 object Button {
 
-  def apply(text: String, toggle: Observer[ButtonShareStatus], textToggle: String = null): HtmlElement = {
-    ButtonShare.button(text, toggle, textToggle)
+  def apply(text: Signal[String], toggle: (ButtonShareStatus, MouseEvent) => Boolean): HtmlElement = {
+    ButtonShare._button(text, toggle)
   }
 
 }
 
 object ButtonAlt {
 
-  def apply(text: String, toggle: Observer[ButtonShareStatus], textToggle: String = null): HtmlElement = {
-    ButtonShare.button(text, toggle, textToggle, true)
+  def apply(text: Signal[String], toggle: (ButtonShareStatus, MouseEvent) => Boolean): HtmlElement = {
+    ButtonShare._button(text, toggle, true)
   }
 
 }
 
 private[atom] object ButtonShare {
-  def button(text: String, toggle: Observer[ButtonShareStatus], textToggle: String, alt: Boolean = false) = {
+  //def _button(text: Signal[String], toggle: Observer[ButtonShareStatus], alt: Boolean = false) = {
+  def _button(text: Signal[String], toggle: (ButtonShareStatus, MouseEvent) => Boolean, alt: Boolean = false) = {
+    debug(s"text: $text")
 
     val cssShare = "py-2 px-4 rounded inline-flex items-center w-28"
     val classname = if (alt) {
@@ -31,38 +33,26 @@ private[atom] object ButtonShare {
     }
     val status = Var[ButtonShareStatus](Zero)
 
-    input(
-      `type` := "button",
+    button(
       cls := classname,
-      value := text,
       img(src := "/public/Education_(434).webp", cls := "w-4 mr-2"),
-      onClick --> Observer[MouseEvent](onNext = _ => {
+      child <-- text.map(span(_)),
+      onClick --> Observer[MouseEvent](onNext = e => {
         val _status = status.now()
         debug(s"onClick ${_status}")
         _status match {
           case Zero =>
-            toggle.onNext(One)
-            if (textToggle != null) status.set(One)
+            toggle(One, e)
+            status.set(One)
+            e.preventDefault()
           case One =>
-            toggle.onNext(Two)
-            status.set(Zero)
+            if (toggle(Two, e)) status.set(Zero)
           case _ =>
+            e.preventDefault()
             println("other status")
         }
         debug(s"toggleVar: onClick")
       }),
-      inContext(_input => status.signal --> Observer[ButtonShareStatus](toggle => {
-        if (textToggle != null) {
-          toggle match {
-            case Zero =>
-              _input.ref.value = text
-            case One =>
-              _input.ref.value = textToggle
-            case _ =>
-              println("other status")
-          }
-        }
-      }))
     )
   }
 }

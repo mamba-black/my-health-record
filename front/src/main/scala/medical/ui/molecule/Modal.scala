@@ -3,6 +3,7 @@ package medical.ui.molecule
 import com.raquo.laminar.api.L._
 import medical.ui.atom.{ Button, ButtonAlt, ButtonShareStatus, CloseSvg, Two, Zero }
 import org.scalajs.dom
+import scribe.debug
 
 object Modal {
   def apply(text: String, onCancel: () => Unit, onAccept: () => Unit): HtmlElement = {
@@ -15,7 +16,8 @@ object Modal {
         inContext(
           thisForm =>
             onSubmit --> Observer[dom.Event](e => {
-              e.preventDefault()
+              debug(s"e: $e")
+              //e.preventDefault()
               if (_discard.now() == Two) {
                 thisForm.ref.parentElement.parentElement.removeChild(thisForm.ref.parentElement)
                 onCancel()
@@ -36,7 +38,10 @@ object Modal {
           hr(),
           div(text),
           hr(),
-          div(cls := "ml-auto space-x-2", Button("Guardar", _save.writer), ButtonAlt("Descartar", _discard.writer))
+          div(
+            cls := "ml-auto space-x-2",
+            Button(Signal.fromValue("Guardar"), (status, _) => {_save.writer.onNext(status); true}),
+            ButtonAlt(Signal.fromValue("Descartar"), (status, _) => {_discard.writer.onNext(status); true})),
         )
       )
     )

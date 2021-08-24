@@ -3,7 +3,8 @@ package medical.ui.molecule
 import com.raquo.laminar.api.L._
 import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
 import medical.infrastructure.patientRepository
-import medical.ui.atom.{ Button, ButtonShareStatus, InputLabel, One, Two }
+import medical.ui.atom.{ Button, InputLabel, One, Two }
+import org.scalajs.dom.MouseEvent
 import org.scalajs.dom.raw.HTMLInputElement
 import scribe._
 
@@ -22,6 +23,7 @@ object PatientBasicInfo {
       generateInputs(patientId, patient)
 
     //val bt = button("validate")
+    val editarButton = Var("Editar")
 
     div(
       h1("Informacion del paciente", cls := ("text-2xl", "py-8")),
@@ -39,11 +41,17 @@ object PatientBasicInfo {
           div(
             cls := "col-start-3 flex justify-end",
             //Button("Editar", Observer[Boolean](toggle => if(toggle) readOnlyFlag.set(!readOnlyFlag.now())), "Guardar"),
-            Button("Editar", Observer[ButtonShareStatus] {
-              case One => readOnlyFlag.set(false)
-              case Two => _onSubmit(thisForm, readOnlyFlag, patientVar)
-              case _ => info("test")
-            }, "Guardar"),
+            Button(editarButton.signal, {
+              case (One, _) =>
+                readOnlyFlag.set(false)
+                editarButton.set("Guardar")
+                true
+              case (Two, e) =>
+                _onSubmit(thisForm, readOnlyFlag, patientVar, e)
+              case _ =>
+                info("test")
+                true
+            }),
           )
         )
       )
@@ -96,7 +104,7 @@ object PatientBasicInfo {
     (readOnlyFlag, patientVar, name, fathersFamily, mothersFamily, age, email, phone)
   }
 
-  private def _onSubmit(_form: FormElement, readOnlyFlag: Var[Boolean], patientVar: Var[Option[Patient]]): Unit = {
+  private def _onSubmit(_form: FormElement, readOnlyFlag: Var[Boolean], patientVar: Var[Option[Patient]], e: MouseEvent): Boolean = {
     val elements = _form.ref.elements
     var name: String = null
     var fathersFamily: String = null
@@ -107,9 +115,9 @@ object PatientBasicInfo {
       val input = elements(i).asInstanceOf[HTMLInputElement]
       debug(s"$i ${input.name}: ${input.value} (valid: ${input.validity.valid})")
       if (!input.validity.valid) {
-        debug("input invalid")
-        _form.ref.submit()
-        return
+        error("input invalid")
+        //_form.ref.submit()
+        return false
       }
       input.name match {
         case NAME           => name = input.value
@@ -120,7 +128,9 @@ object PatientBasicInfo {
         case others @ _     => info(others)
       }
     }
-    if (readOnlyFlag.now()) {
+    e.preventDefault()
+    info(s"$readOnlyFlag")
+    //if (readOnlyFlag.now()) {
       val dd = div()
       _form.ref.parentElement.appendChild(dd.ref)
       render(
@@ -142,7 +152,7 @@ object PatientBasicInfo {
           }
         )
       )
-    }
-    ()
+    //}
+    true
   }
 }
