@@ -1,6 +1,6 @@
 package medical.ui.atom
 
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 
 object Loading {
 
@@ -16,10 +16,21 @@ object Loading {
         svg.svg(
           svg.cls := "animate-spin -ml-1 mr-3 h-5 w-5 text-white",
           svg.viewBox := "0 0 24 24",
-          svg.circle(svg.cls := "opacity-25", svg.cx := "12", svg.cy := "12", svg.r := "10", svg.stroke := "currentColor", svg.strokeWidth := "4"),
-          svg.path(svg.cls := "opacity-75", svg.fill("currentColor"), svg.d := "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"),
+          svg.circle(
+            svg.cls := "opacity-25",
+            svg.cx := "12",
+            svg.cy := "12",
+            svg.r := "10",
+            svg.stroke := "currentColor",
+            svg.strokeWidth := "4",
+          ),
+          svg.path(
+            svg.cls := "opacity-75",
+            svg.fill("currentColor"),
+            svg.d := "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z",
+          ),
         ),
-      ),
+      )
     )
   }
 
@@ -38,4 +49,4 @@ object Loading {
     <i class="fas fa-circle-notch fa-spin fa-5x"></i>
   </span>
 </div>
-*/
+ */

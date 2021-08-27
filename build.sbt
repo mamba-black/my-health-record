@@ -9,6 +9,7 @@ ThisBuild / organization := "miuler"
 //  "com.github.ghik" % "silencer-lib" % "1.7.4" % Provided cross CrossVersion.full
 //)
 ThisBuild / scalacOptions ++= Seq(
+  "-Xsource:3",
   //"-P:silencer:pathFilters=.*[/]src_managed[/].*"
   "-Wconf:src=src_managed/.*:silent"
 )

@@ -1,19 +1,19 @@
 package medical.ui.organism
 
 import com.raquo.laminar.CollectionCommand
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import io.grpc.stub.StreamObserver
-import medical.backend.patientapi.{ PatientReply, PatientRequest, PatientServiceGrpcWeb }
-import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
-import medical.ui.command.{ Command, ShowPatient }
+import medical.backend.patientapi.{PatientReply, PatientRequest, PatientServiceGrpcWeb}
+import medical.domain.{ContactPoint, HumanName, Patient, SystemContactPoint}
+import medical.ui.command.{Command, ShowPatient}
 import medical.ui.molecule.TableBasic
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLTableCellElement
 import scalapb.grpc.Channels
 import scalapb.grpcweb
-import scribe._
+import scribe.*
 
 import java.time.LocalDate
 import java.util.UUID
@@ -26,34 +26,38 @@ object SearchSection {
 
     val stub = PatientServiceGrpcWeb.stub(Channels.grpcwebChannel("https://192.168.1.3:8080"))
 
-    section(
-      searchInput(patientReplyEventBus, stub),
-      searchTable(patientReplyEventBus, commandWriteBus),
-    )
+    section(searchInput(patientReplyEventBus, stub), searchTable(patientReplyEventBus, commandWriteBus))
   }
 
-  def searchInput(eventBus: EventBus[PatientReply], patientClient: PatientServiceGrpcWeb.PatientService[grpcweb.Metadata]): ReactiveHtmlElement[html.Div] = {
+  def searchInput(
+      eventBus: EventBus[PatientReply],
+      patientClient: PatientServiceGrpcWeb.PatientService[grpcweb.Metadata],
+  ): ReactiveHtmlElement[html.Div] = {
     def searchName(input: Input): Unit = {
       val text = input.ref.value
       val search = text.trim.nonEmpty
       if (search) {
         debug("Buscar!")
         eventBus.writer.onNext(PatientReply(UUID.randomUUID().toString, text, text, text))
-        patientClient.find(PatientRequest(text), new StreamObserver[PatientReply] {
-          override def onNext(value: PatientReply): Unit = debug(s"patient: $value") // patients.update(_ :+ value)
+        patientClient.find(
+          PatientRequest(text),
+          new StreamObserver[PatientReply] {
+            override def onNext(value: PatientReply): Unit = debug(s"patient: $value") // patients.update(_ :+ value)
 
-          override def onError(throwable: Throwable): Unit = warn("onError")
+            override def onError(throwable: Throwable): Unit = warn("onError")
 
-          override def onCompleted(): Unit = debug("onCompleted")
-        })
+            override def onCompleted(): Unit = debug("onCompleted")
+          },
+        )
       }
       ()
     }
 
-    def obsInput(input: Input) = Observer[dom.KeyboardEvent](onNext = { _ =>
-      searchName(input)
-      ()
-    })
+    def obsInput(input: Input) =
+      Observer[dom.KeyboardEvent](onNext = { _ =>
+        searchName(input)
+        ()
+      })
 
     val _input = input(
       cls := "border-2 border-gray-300 bg-white h-10 px-5 pr-10 rounded-lg text-sm focus:outline-none",
@@ -87,11 +91,11 @@ object SearchSection {
             svg.width := "512px",
             svg.height := "512px",
             svg.path(
-              svg.d := "M55.146,51.887L41.588,37.786c3.486-4.144,5.396-9.358,5.396-14.786c0-12.682-10.318-23-23-23s-23,10.318-23,23  s10.318,23,23,23c4.761,0,9.298-1.436,13.177-4.162l13.661,14.208c0.571,0.593,1.339,0.92,2.162,0.92  c0.779,0,1.518-0.297,2.079-0.837C56.255,54.982,56.293,53.08,55.146,51.887z M23.984,6c9.374,0,17,7.626,17,17s-7.626,17-17,17  s-17-7.626-17-17S14.61,6,23.984,6z",
+              svg.d := "M55.146,51.887L41.588,37.786c3.486-4.144,5.396-9.358,5.396-14.786c0-12.682-10.318-23-23-23s-23,10.318-23,23  s10.318,23,23,23c4.761,0,9.298-1.436,13.177-4.162l13.661,14.208c0.571,0.593,1.339,0.92,2.162,0.92  c0.779,0,1.518-0.297,2.079-0.837C56.255,54.982,56.293,53.08,55.146,51.887z M23.984,6c9.374,0,17,7.626,17,17s-7.626,17-17,17  s-17-7.626-17-17S14.61,6,23.984,6z"
             ),
-          )
-        )
-      )
+          ),
+        ),
+      ),
     )
   }
   /*
@@ -111,9 +115,12 @@ object SearchSection {
               </button>
             </div>
       </div>
-  */
+   */
 
-  def searchButton(eventBus: EventBus[PatientReply], input: ReactiveHtmlElement[html.Input]): ReactiveHtmlElement[html.Button] = {
+  def searchButton(
+      eventBus: EventBus[PatientReply],
+      input: ReactiveHtmlElement[html.Input],
+  ): ReactiveHtmlElement[html.Button] = {
 
     val obsButton = Observer[dom.MouseEvent](onNext = { event =>
       debug(s"mouseEvent: $event")
@@ -124,11 +131,7 @@ object SearchSection {
       }
     })
 
-    button(
-      "buscar",
-      cls := "btn btn-outline-primary",
-      onClick --> obsButton,
-    )
+    button("buscar", cls := "btn btn-outline-primary", onClick --> obsButton)
   }
 
   def searchTable(eventBus: EventBus[PatientReply], commandWriteBus: WriteBus[Command]): HtmlElement = {
@@ -136,16 +139,16 @@ object SearchSection {
     TableBasic(List("Paciente"), Some(tds))
   }
 
-  private def _td(patientReply: PatientReply, commandWriteBus: WriteBus[Command]) : HtmlElement = {
+  private def _td(patientReply: PatientReply, commandWriteBus: WriteBus[Command]): HtmlElement = {
 
     val obsHistory = Observer[dom.MouseEvent](onNext = { event =>
-      debug(s"event: ${event}")
+      debug(s"event: $event")
       debug(s"1: ${event.target.isInstanceOf[HTMLTableCellElement]}")
       val patient = new Patient(
         "Test",
         new HumanName("Malpica", "Gallegos", Seq("Hector", "Miuler")),
         true,
-        LocalDate.of(1979,10, 13),
+        LocalDate.of(1979, 10, 13),
         Seq(new ContactPoint(SystemContactPoint.PHONE, "993990103")),
       )
       commandWriteBus.onNext(ShowPatient(patient))
@@ -160,19 +163,16 @@ object SearchSection {
           cls := "flex items-center",
           div(
             cls := "flex-shrink-0 h-10 w-10",
-            img(cls := "h-10 w-10 rounded-full", src := "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=4&amp;w=256&amp;h=256&amp;q=60")
+            img(
+              cls := "h-10 w-10 rounded-full",
+              src := "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=4&amp;w=256&amp;h=256&amp;q=60",
+            ),
           ),
           div(
             cls := "ml-4",
-            div(
-              cls := "text-2xl font-medium font-semibold text-gray-900",
-              patientReply.name,
-            ),
-            div(
-              cls := "text-sm text-gray-500",
-              "test",
-            ),
-          )
+            div(cls := "text-2xl font-medium font-semibold text-gray-900", patientReply.name),
+            div(cls := "text-sm text-gray-500", "test"),
+          ),
         ),
         onClick --> obsHistory,
       )

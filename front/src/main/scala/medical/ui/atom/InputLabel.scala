@@ -1,10 +1,16 @@
 package medical.ui.atom
 
-import com.raquo.laminar.api.L._
-import scribe._
+import com.raquo.laminar.api.L.*
+import scribe.*
 
 object InputLabel {
-  def apply(_name: String, description: String, _value: Signal[Option[String]] = null, readOnlySignal: StrictSignal[Boolean], inputType: Option[String] = None): HtmlElement = {
+  def apply(
+      _name: String,
+      description: String,
+      _value: Signal[Option[String]] = null,
+      readOnlySignal: StrictSignal[Boolean],
+      inputType: Option[String] = None,
+  ): HtmlElement = {
     val isLoaded: Signal[Boolean] = _value.map(v => v.isDefined)
     debug(s"readOnlySignal: $readOnlySignal")
     div(
@@ -17,7 +23,8 @@ object InputLabel {
         cls.toggle("hidden") <-- isLoaded,
       ),
       label(
-        forId := _name, description,
+        forId := _name,
+        description,
         cls := ("mb-2", "block", "tracking-wide", "uppercase", "font-bold", "text-gray-600", "text-xs"),
         cls.toggle("hidden") <-- isLoaded.map(!_),
       ),

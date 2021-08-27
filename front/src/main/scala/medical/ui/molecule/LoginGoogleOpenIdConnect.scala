@@ -1,21 +1,24 @@
 package medical.ui.molecule
 
 import com.raquo.domtypes.generic.codecs.StringAsIsCodec
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import org.scalajs.dom
-import scribe._
+import scribe.*
 
 import scala.scalajs.js
 import scala.scalajs.js.JSON
 import scala.scalajs.js.annotation.JSExportTopLevel
 
 object LoginGoogleOpenIdConnect {
+  val clientId = "937186309482-uc7dm6bc6o6p3disa546hq25n8dbov42.apps.googleusercontent.com"
+  val loginId = "http://localhost:8080"
+
   def apply(): HtmlElement = {
     div(
       div(
         idAttr := "g_id_onload",
-        customHtmlAttr("data-client_id", StringAsIsCodec) := "937186309482-uc7dm6bc6o6p3disa546hq25n8dbov42.apps.googleusercontent.com",
-        customHtmlAttr("data-login_uri", StringAsIsCodec) := "http://localhost:8080",
+        customHtmlAttr("data-client_id", StringAsIsCodec) := clientId,
+        customHtmlAttr("data-login_uri", StringAsIsCodec) := loginId,
         customHtmlAttr("data-callback", StringAsIsCodec) := "handleCredentialResponse",
         customHtmlAttr("data-auto_prompt", StringAsIsCodec) := "true",
       ),
@@ -38,6 +41,4 @@ object LoginGoogleOpenIdConnect {
   }
 }
 
-class LoginGoogleResponse(val clientId: String,
-                          val credential: String,
-                          val select_by: String) extends js.Object
+class LoginGoogleResponse(val clientId: String, val credential: String, val select_by: String) extends js.Object

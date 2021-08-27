@@ -1,28 +1,32 @@
 package medical.ui.atom
 
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import org.scalajs.dom.MouseEvent
-import scribe._
+import scribe.*
 
 object Button {
 
-  def apply(text: Signal[String], toggle: (ButtonShareStatus, MouseEvent) => Boolean): HtmlElement = {
-    ButtonShare._button(text, toggle)
+  def apply(text: Signal[String], callback: (ButtonShare.ButtonShareStatus, MouseEvent) => Boolean): HtmlElement = {
+    ButtonShare._button(text, callback)
   }
 
 }
 
 object ButtonAlt {
 
-  def apply(text: Signal[String], toggle: (ButtonShareStatus, MouseEvent) => Boolean): HtmlElement = {
-    ButtonShare._button(text, toggle, true)
+  def apply(text: Signal[String], callback: (ButtonShare.ButtonShareStatus, MouseEvent) => Boolean): HtmlElement = {
+    ButtonShare._button(text, callback, true)
   }
 
 }
 
-private[atom] object ButtonShare {
+object ButtonShare {
   //def _button(text: Signal[String], toggle: Observer[ButtonShareStatus], alt: Boolean = false) = {
-  def _button(text: Signal[String], toggle: (ButtonShareStatus, MouseEvent) => Boolean, alt: Boolean = false) = {
+  private[atom] def _button(
+      text: Signal[String],
+      callback: (ButtonShareStatus, MouseEvent) => Boolean,
+      alt: Boolean = false,
+  ) = {
     debug(s"text: $text")
 
     val cssShare = "py-2 px-4 rounded inline-flex items-center w-28"
@@ -42,11 +46,11 @@ private[atom] object ButtonShare {
         debug(s"onClick ${_status}")
         _status match {
           case Zero =>
-            toggle(One, e)
+            callback(One, e)
             status.set(One)
             e.preventDefault()
           case One =>
-            if (toggle(Two, e)) status.set(Zero)
+            if (callback(Two, e)) status.set(Zero)
           case _ =>
             e.preventDefault()
             println("other status")
@@ -55,9 +59,9 @@ private[atom] object ButtonShare {
       }),
     )
   }
-}
 
-sealed trait ButtonShareStatus {}
-object Zero extends ButtonShareStatus
-object One extends ButtonShareStatus
-object Two extends ButtonShareStatus
+  sealed trait ButtonShareStatus {}
+  object Zero extends ButtonShareStatus
+  object One extends ButtonShareStatus
+  object Two extends ButtonShareStatus
+}

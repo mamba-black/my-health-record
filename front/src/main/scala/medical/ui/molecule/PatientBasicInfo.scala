@@ -1,12 +1,13 @@
 package medical.ui.molecule
 
-import com.raquo.laminar.api.L._
-import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
+import com.raquo.laminar.api.L.*
+import medical.domain.{ContactPoint, HumanName, Patient, SystemContactPoint}
 import medical.infrastructure.patientRepository
-import medical.ui.atom.{ Button, InputLabel, One, Two }
+import medical.ui.atom.{Button, InputLabel}
+import medical.ui.atom.ButtonShare.{One, Two}
 import org.scalajs.dom.MouseEvent
 import org.scalajs.dom.raw.HTMLInputElement
-import scribe._
+import scribe.*
 
 import java.time.LocalDate
 
@@ -37,25 +38,92 @@ object PatientBasicInfo {
         InputLabel(EMAIL, "Correo", email, readOnlyFlag.signal, Some("email")),
         InputLabel(PHONE, "Telefono", phone, readOnlyFlag.signal, Some("tel")),
         InputLabel("allergies", "Alergias", Signal.fromValue(Some("")), readOnlyFlag.signal),
-        inContext(thisForm =>
-          div(
-            cls := "col-start-3 flex justify-end",
-            //Button("Editar", Observer[Boolean](toggle => if(toggle) readOnlyFlag.set(!readOnlyFlag.now())), "Guardar"),
-            Button(editarButton.signal, {
-              case (One, _) =>
-                readOnlyFlag.set(false)
-                editarButton.set("Guardar")
-                true
-              case (Two, e) =>
-                _onSubmit(thisForm, readOnlyFlag, patientVar, e)
-              case _ =>
-                info("test")
-                true
-            }),
-          )
-        )
-      )
+        inContext(
+          thisForm =>
+            div(
+              cls := "col-start-3 flex justify-end",
+              Button(
+                editarButton.signal,
+                {
+                  case (One, _) => //Editar
+                    readOnlyFlag.set(false)
+                    editarButton.set("Guardar")
+                    true
+                  case (Two, e) => //Guardar o Descartar
+                    savePatientBasic(thisForm, readOnlyFlag, patientVar, editarButton, e)
+                  case _ =>
+                    info("test")
+                    true
+                },
+              ),
+            )
+        ),
+      ),
     )
+  }
+
+  private def savePatientBasic(
+      _form: FormElement,
+      readOnlyFlag: Var[Boolean],
+      patientVar: Var[Option[Patient]],
+      labelEditButton: Var[String],
+      e: MouseEvent,
+  ): Boolean = {
+    val elements = _form.ref.elements
+    var name: String = null
+    var fathersFamily: String = null
+    var mothersFamily: String = null
+    var email: String = null
+    var phone: String = null
+    for (i <- 0 until elements.length) {
+      val input = elements(i).asInstanceOf[HTMLInputElement]
+      debug(s"$i ${input.name}: ${input.value} (valid: ${input.validity.valid})")
+      if (!input.validity.valid) {
+        error("input invalid")
+        //_form.ref.submit()
+        return false
+      }
+      input.name match {
+        case NAME           => name = input.value
+        case FATHERS_FAMILY => fathersFamily = input.value
+        case MOTHERS_FAMILY => mothersFamily = input.value
+        case EMAIL          => email = input.value
+        case PHONE          => phone = input.value
+        case others @ _     => info(others)
+      }
+    }
+    e.preventDefault()
+
+    info(s"$readOnlyFlag")
+    //if (readOnlyFlag.now()) {
+    val dd = div()
+    _form.ref.parentElement.appendChild(dd.ref)
+    render(
+      dd.ref,
+      Modal(
+        "Esto es una prueba",
+        () => {
+          readOnlyFlag.set(true)
+          _form.ref.reset()
+          labelEditButton.set("Editar")
+        },
+        () => {
+          readOnlyFlag.set(true)
+          // FIXME: crear servicia para guardar
+          val patient = new Patient(
+            "Test",
+            new HumanName(fathersFamily, mothersFamily, name.split(" ").toSeq),
+            true,
+            LocalDate.of(1979, 10, 13),
+            Seq(new ContactPoint(SystemContactPoint.PHONE, "993990103")),
+          )
+          patientRepository.save(patient, patientVar.writer)
+          labelEditButton.set("Editar")
+        },
+      ),
+    )
+    //}
+    true
   }
 
   private def generateInputs(patientId: String, patient: Option[Patient]): (
@@ -66,7 +134,7 @@ object PatientBasicInfo {
       Signal[Option[String]],
       Signal[Option[String]],
       Signal[Option[String]],
-      Signal[Option[String]]
+      Signal[Option[String]],
   ) = {
     val now = java.time.LocalDate.now()
     val readOnlyFlag = Var[Boolean](true)
@@ -104,55 +172,4 @@ object PatientBasicInfo {
     (readOnlyFlag, patientVar, name, fathersFamily, mothersFamily, age, email, phone)
   }
 
-  private def _onSubmit(_form: FormElement, readOnlyFlag: Var[Boolean], patientVar: Var[Option[Patient]], e: MouseEvent): Boolean = {
-    val elements = _form.ref.elements
-    var name: String = null
-    var fathersFamily: String = null
-    var mothersFamily: String = null
-    var email: String = null
-    var phone: String = null
-    for (i <- 0 until elements.length) {
-      val input = elements(i).asInstanceOf[HTMLInputElement]
-      debug(s"$i ${input.name}: ${input.value} (valid: ${input.validity.valid})")
-      if (!input.validity.valid) {
-        error("input invalid")
-        //_form.ref.submit()
-        return false
-      }
-      input.name match {
-        case NAME           => name = input.value
-        case FATHERS_FAMILY => fathersFamily = input.value
-        case MOTHERS_FAMILY => mothersFamily = input.value
-        case EMAIL          => email = input.value
-        case PHONE          => phone = input.value
-        case others @ _     => info(others)
-      }
-    }
-    e.preventDefault()
-    info(s"$readOnlyFlag")
-    //if (readOnlyFlag.now()) {
-      val dd = div()
-      _form.ref.parentElement.appendChild(dd.ref)
-      render(
-        dd.ref,
-        Modal(
-          "Esto es una prueba",
-          () => _form.ref.reset(),
-          () => {
-            //_form.ref.submit()
-            // FIXME: crear servicia para guardar
-            val patient = new Patient(
-              "Test",
-              new HumanName(fathersFamily, mothersFamily, name.split(" ").toSeq),
-              true,
-              LocalDate.of(1979, 10, 13),
-              Seq(new ContactPoint(SystemContactPoint.PHONE, "993990103"))
-            )
-            patientRepository.save(patient, patientVar.writer)
-          }
-        )
-      )
-    //}
-    true
-  }
 }

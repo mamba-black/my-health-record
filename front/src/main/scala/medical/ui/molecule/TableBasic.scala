@@ -1,8 +1,8 @@
 package medical.ui.molecule
 
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveElement.Base
-import scribe._
+import scribe.*
 
 object TableBasic {
 
@@ -29,25 +29,20 @@ object TableBasic {
                 cls := "min-w-full divide-y divide-gray-200",
                 thead(
                   cls := "bg-gray-50",
-                  tr(
-                    ths.map { name =>
-                      th(
-                        cls := "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
-                        name,
-                      )
-                    }
-                  )
+                  tr(ths.map { name =>
+                    th(cls := "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider", name)
+                  }),
                 ),
                 tbody(
                   cls := "bg-white divide-y divide-gray-200",
                   //child <-- eventBus.events.map(e => { _td(e, eventBus, patientBasicWriteBus) })
                   _tds,
                 ),
-              )
-            )
-          )
+              ),
+            ),
+          ),
         ),
-      )
+      ),
     )
   }
 

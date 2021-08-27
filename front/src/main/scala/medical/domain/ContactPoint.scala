@@ -11,11 +11,7 @@ import medical.domain.UseContactPoint.UseContactPoint
   *
   * @see <a href="https://www.hl7.org/fhir/datatypes.html#ContactPoint">fhir/datatypes#ContactPoint</a>
   */
-class ContactPoint(
-                    val system: SystemContactPoint,
-                    val value: String,
-                    val use:  UseContactPoint = UseContactPoint.HOME,
-                  )
+class ContactPoint(val system: SystemContactPoint, val value: String, val use: UseContactPoint = UseContactPoint.HOME)
 
 object SystemContactPoint extends Enumeration {
   type SystemContactPoint = Value

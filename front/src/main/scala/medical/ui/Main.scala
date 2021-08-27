@@ -1,9 +1,9 @@
 package medical.ui
 
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import io.frontroute.LinkHandler
 import org.scalajs.dom
-import scribe._
+import scribe.*
 
 object Main {
 
@@ -20,8 +20,8 @@ object Main {
       val session = dom.window.localStorage.getItem("session")
       debug(s"session: $session")
 //      if (session != null && session.nonEmpty) {
-        LinkHandler.install()
-        render(dom.document.body, MainUI())
+      LinkHandler.install()
+      render(dom.document.body, MainUI())
 //      } else {
 //        warn("No hay session, hay que loggearse")
 //        render(
