@@ -15,9 +15,9 @@ object Dependencies extends Akka with Gatling with Grpc {
 
 trait Akka {
 
-  lazy val akkaVersion = "2.6.15"
+  lazy val akkaVersion = "2.6.16"
   lazy val alpakkaKafkaVersion = "2.1.1"
-  lazy val akkaHttpVersion = "10.2.4"
+  lazy val akkaHttpVersion = "10.2.6"
 
   val akkaHttp = "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
   val akkaActorTyped = "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion
