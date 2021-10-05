@@ -146,6 +146,8 @@ css := {
     (front.base / "styles.css").getAbsolutePath
   )((front / crossTarget).value / "scalajs-bundler" / "main", logger)
   //  logger.info("2=================================<")
+
+  IO.copyFile(java.nio.file.Path.of("front/index.html").toFile, ((front / crossTarget).value / "scalajs-bundler" / "main" / "index.html").getAbsoluteFile)
 }
 
 val silencerVersion = "1.7.5"
