@@ -31,6 +31,7 @@ object InputLabel {
       input(
         idAttr := "name",
         name := _name,
+        //autoComplete := "off",
         `type` := inputType.orNull,
         readOnly <-- readOnlySignal,
         value <-- _value.map(_.orNull),

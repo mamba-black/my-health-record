@@ -1,15 +1,16 @@
 package medical.ui.molecule
 
 import com.raquo.laminar.api.L.*
-import medical.domain.{ContactPoint, HumanName, Patient, SystemContactPoint}
+import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
 import medical.infrastructure.patientRepository
-import medical.ui.atom.{Button, InputLabel}
-import medical.ui.atom.ButtonShare.{One, Two}
+import medical.ui.atom.{ Button, InputLabel }
+import medical.ui.atom.ButtonShare.{ One, Two }
 import org.scalajs.dom.MouseEvent
-import org.scalajs.dom.raw.HTMLInputElement
+import org.scalajs.dom.raw.{ HTMLCollection, HTMLInputElement }
 import scribe.*
 
 import java.time.LocalDate
+import scala.util.{ Failure, Success, Try }
 
 object PatientBasicInfo {
   val NAME = "name"
@@ -70,27 +71,10 @@ object PatientBasicInfo {
       e: MouseEvent,
   ): Boolean = {
     val elements = _form.ref.elements
-    var name: String = null
-    var fathersFamily: String = null
-    var mothersFamily: String = null
-    var email: String = null
-    var phone: String = null
-    for (i <- 0 until elements.length) {
-      val input = elements(i).asInstanceOf[HTMLInputElement]
-      debug(s"$i ${input.name}: ${input.value} (valid: ${input.validity.valid})")
-      if (!input.validity.valid) {
-        error("input invalid")
-        //_form.ref.submit()
-        return false
-      }
-      input.name match {
-        case NAME           => name = input.value
-        case FATHERS_FAMILY => fathersFamily = input.value
-        case MOTHERS_FAMILY => mothersFamily = input.value
-        case EMAIL          => email = input.value
-        case PHONE          => phone = input.value
-        case others @ _     => info(others)
-      }
+
+    val (name, fathersFamily, mothersFamily, _, _) = getBasicElements(elements) match {
+      case Success(value) => value
+      case _ => return false
     }
     e.preventDefault()
 
@@ -109,6 +93,11 @@ object PatientBasicInfo {
         },
         () => {
           readOnlyFlag.set(true)
+          for (i <- 0 until elements.length) {
+            val input = elements(i).asInstanceOf[HTMLInputElement]
+            input.defaultValue = input.value
+          }
+
           // FIXME: crear servicia para guardar
           val patient = new Patient(
             "Test",
@@ -126,8 +115,34 @@ object PatientBasicInfo {
     true
   }
 
+  private def getBasicElements(elements: HTMLCollection): Try[(String, String, String, String, String)] = {
+    var name: String = null
+    var fathersFamily: String = null
+    var mothersFamily: String = null
+    var email: String = null
+    var phone: String = null
+    for (i <- 0 until elements.length) {
+      val input = elements(i).asInstanceOf[HTMLInputElement]
+      debug(s"$i ${input.name}: ${input.value} (valid: ${input.validity.valid})")
+      if (!input.validity.valid) {
+        error("input invalid")
+        //_form.ref.submit()
+        return Failure(new Exception("Invalid input"))
+      }
+      input.name match {
+        case NAME => name = input.value
+        case FATHERS_FAMILY => fathersFamily = input.value
+        case MOTHERS_FAMILY => mothersFamily = input.value
+        case EMAIL => email = input.value
+        case PHONE => phone = input.value
+        case others@_ => info(others)
+      }
+    }
+    Success((name, fathersFamily, mothersFamily, email, phone))
+  }
+
   private def generateInputs(patientId: String, patient: Option[Patient]): (
-      Var[Boolean],
+    Var[Boolean],
       Var[Option[Patient]],
       Signal[Option[String]],
       Signal[Option[String]],
