@@ -1,16 +1,16 @@
 package medical.ui.molecule
 
 import com.raquo.laminar.api.L.*
-import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
+import medical.domain.{ContactPoint, HumanName, Patient, SystemContactPoint}
 import medical.infrastructure.patientRepository
-import medical.ui.atom.{ Button, InputLabel }
-import medical.ui.atom.ButtonShare.{ One, Two }
+import medical.ui.atom.{Button, InputLabel}
+import medical.ui.atom.ButtonShare.{One, Two}
 import org.scalajs.dom.MouseEvent
-import org.scalajs.dom.raw.{ HTMLCollection, HTMLInputElement }
+import org.scalajs.dom.raw.{HTMLCollection, HTMLInputElement}
 import scribe.*
 
 import java.time.LocalDate
-import scala.util.{ Failure, Success, Try }
+import scala.util.{Failure, Success, Try}
 
 object PatientBasicInfo {
   val NAME = "name"
@@ -19,9 +19,11 @@ object PatientBasicInfo {
   val AGE = "age"
   val EMAIL = "email"
   val PHONE = "phone"
+  val ADDRESS = "direction"
+  val ALLERGIES = "alergias"
 
   def apply(patientId: String, patient: Option[Patient]): HtmlElement = {
-    val (readOnlyFlag, patientVar, name, fathersFamily, mothersFamily, age, email, phone) =
+    val (readOnlyFlag, patientVar, name, fathersFamily, mothersFamily, age, email, phone, allergies) =
       generateInputs(patientId, patient)
 
     //val bt = button("validate")
@@ -38,7 +40,8 @@ object PatientBasicInfo {
         InputLabel(AGE, "Edad", age, readOnlyFlag.signal, Some("number")),
         InputLabel(EMAIL, "Correo", email, readOnlyFlag.signal, Some("email")),
         InputLabel(PHONE, "Telefono", phone, readOnlyFlag.signal, Some("tel")),
-        InputLabel("allergies", "Alergias", Signal.fromValue(Some("")), readOnlyFlag.signal),
+        InputLabel(ADDRESS, "Direccion", phone, readOnlyFlag.signal, Some("address")),
+        InputLabel(ALLERGIES, "Alergias", allergies, readOnlyFlag.signal, important = true),
         inContext(
           thisForm =>
             div(
@@ -74,7 +77,7 @@ object PatientBasicInfo {
 
     val (name, fathersFamily, mothersFamily, _, _) = getBasicElements(elements) match {
       case Success(value) => value
-      case _ => return false
+      case _              => return false
     }
     e.preventDefault()
 
@@ -130,20 +133,21 @@ object PatientBasicInfo {
         return Failure(new Exception("Invalid input"))
       }
       input.name match {
-        case NAME => name = input.value
+        case NAME           => name = input.value
         case FATHERS_FAMILY => fathersFamily = input.value
         case MOTHERS_FAMILY => mothersFamily = input.value
-        case EMAIL => email = input.value
-        case PHONE => phone = input.value
-        case others@_ => info(others)
+        case EMAIL          => email = input.value
+        case PHONE          => phone = input.value
+        case others @ _     => info(others)
       }
     }
     Success((name, fathersFamily, mothersFamily, email, phone))
   }
 
   private def generateInputs(patientId: String, patient: Option[Patient]): (
-    Var[Boolean],
+      Var[Boolean],
       Var[Option[Patient]],
+      Signal[Option[String]],
       Signal[Option[String]],
       Signal[Option[String]],
       Signal[Option[String]],
@@ -184,7 +188,7 @@ object PatientBasicInfo {
       )
       if (p.isDefined && _phone.isEmpty) Option("") else _phone
     })
-    (readOnlyFlag, patientVar, name, fathersFamily, mothersFamily, age, email, phone)
+    (readOnlyFlag, patientVar, name, fathersFamily, mothersFamily, age, email, phone, email)
   }
 
 }

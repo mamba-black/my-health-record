@@ -11,11 +11,11 @@ ThisBuild / organization := "miuler"
 ThisBuild / scalacOptions ++= Seq(
   "-Xsource:3",
   //"-P:silencer:pathFilters=.*[/]src_managed[/].*"
-  "-Wconf:src=src_managed/.*:silent"
+  //"-Wconf:src=src_managed/.*:silent"
 )
 
 val scala2Version = "2.13.6"
-val scala3Version = "3.0.0"
+val scala3Version = "3.1.0"
 
 lazy val dtos = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
@@ -148,10 +148,13 @@ css := {
   //  logger.info("2=================================<")
 
   IO.copyFile(java.nio.file.Path.of("front/index.html").toFile, ((front / crossTarget).value / "scalajs-bundler" / "main" / "index.html").getAbsoluteFile)
+  IO.copyDirectory(java.nio.file.Path.of("front/public").toFile, ((front / crossTarget).value / "scalajs-bundler" / "main" / "public").getAbsoluteFile)
 }
 
-val silencerVersion = "1.7.5"
-ThisBuild / libraryDependencies ++= Seq(
-  compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
-  "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
-)
+//(css in css) := ((css in css) dependsOn npmInstallDependencies).value
+
+//val silencerVersion = "1.7.6"
+//ThisBuild / libraryDependencies ++= Seq(
+//  compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
+//  "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
+//)

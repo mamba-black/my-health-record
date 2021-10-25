@@ -29,7 +29,7 @@ object ButtonShare {
   ) = {
     debug(s"text: $text")
 
-    val cssShare = "py-2 px-4 rounded inline-flex items-center w-28"
+    val cssShare = "py-2 px-4 rounded inline-flex items-center w-36"
     val classname = if (alt) {
       s"bg-transparent hover:bg-gray-500 text-blue-700 font-semibold border border-blue-500 hover:text-white hover:border-transparent $cssShare"
     } else {
