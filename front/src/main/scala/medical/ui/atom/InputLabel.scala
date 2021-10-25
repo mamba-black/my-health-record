@@ -8,7 +8,7 @@ object InputLabel {
       _name: String,
       description: String,
       newValue: Signal[Option[String]] = null,
-      readOnlySignal: StrictSignal[Boolean],
+      readOnlySignal: Signal[Boolean],
       inputType: Option[String] = None,
       important: Boolean = false,
   ): HtmlElement = {

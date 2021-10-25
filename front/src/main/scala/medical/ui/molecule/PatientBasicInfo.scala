@@ -23,8 +23,7 @@ object PatientBasicInfo {
   val ALLERGIES = "alergias"
 
   def apply(patientId: String, patient: Option[Patient]): HtmlElement = {
-    val (readOnlyFlag, patientVar, name, fathersFamily, mothersFamily, age, email, phone, allergies) =
-      generateInputs(patientId, patient)
+    val basicInfo = generateInputs(patientId, patient)
 
     //val bt = button("validate")
     val editarButton = Var("Editar")
@@ -34,14 +33,14 @@ object PatientBasicInfo {
       form(
         cls := "grid grid-cols-3 gap-4",
         //inContext(thisForm => onSubmit --> Observer[Event](_onSubmit(thisForm, readOnlyFlag, patientVar))),
-        InputLabel(NAME, "Nombre", name, readOnlyFlag.signal),
-        InputLabel(FATHERS_FAMILY, "Apellido paterno", fathersFamily, readOnlyFlag.signal),
-        InputLabel(MOTHERS_FAMILY, "Apellido materno", mothersFamily, readOnlyFlag.signal),
-        InputLabel(AGE, "Edad", age, readOnlyFlag.signal, Some("number")),
-        InputLabel(EMAIL, "Correo", email, readOnlyFlag.signal, Some("email")),
-        InputLabel(PHONE, "Telefono", phone, readOnlyFlag.signal, Some("tel")),
-        InputLabel(ADDRESS, "Direccion", phone, readOnlyFlag.signal, Some("address")),
-        InputLabel(ALLERGIES, "Alergias", allergies, readOnlyFlag.signal, important = true),
+        InputLabel(NAME, "Nombre", basicInfo.name, basicInfo.readOnlyFlag),
+        InputLabel(FATHERS_FAMILY, "Apellido paterno", basicInfo.fathersFamily, basicInfo.readOnlyFlag),
+        InputLabel(MOTHERS_FAMILY, "Apellido materno", basicInfo.mothersFamily, basicInfo.readOnlyFlag),
+        InputLabel(AGE, "Edad", basicInfo.age, basicInfo.readOnlyFlag, Some("number")),
+        InputLabel(EMAIL, "Correo", basicInfo.email, basicInfo.readOnlyFlag, Some("email")),
+        InputLabel(PHONE, "Telefono", basicInfo.phone, basicInfo.readOnlyFlag, Some("tel")),
+        InputLabel(ADDRESS, "Direccion", basicInfo.phone, basicInfo.readOnlyFlag, Some("address")),
+        InputLabel(ALLERGIES, "Alergias", basicInfo.allergies, basicInfo.readOnlyFlag, important = true),
         inContext(
           thisForm =>
             div(
@@ -50,11 +49,11 @@ object PatientBasicInfo {
                 editarButton.signal,
                 {
                   case (One, _) => //Editar
-                    readOnlyFlag.set(false)
+                    basicInfo.readOnlyFlagVar.set(false)
                     editarButton.set("Guardar")
                     true
                   case (Two, e) => //Guardar o Descartar
-                    savePatientBasic(thisForm, readOnlyFlag, patientVar, editarButton, e)
+                    savePatientBasic(thisForm, basicInfo.readOnlyFlagVar, basicInfo.patientVar, editarButton, e)
                   case _ =>
                     info("test")
                     true
@@ -144,17 +143,7 @@ object PatientBasicInfo {
     Success((name, fathersFamily, mothersFamily, email, phone))
   }
 
-  private def generateInputs(patientId: String, patient: Option[Patient]): (
-      Var[Boolean],
-      Var[Option[Patient]],
-      Signal[Option[String]],
-      Signal[Option[String]],
-      Signal[Option[String]],
-      Signal[Option[String]],
-      Signal[Option[String]],
-      Signal[Option[String]],
-      Signal[Option[String]],
-  ) = {
+  private def generateInputs(patientId: String, patient: Option[Patient]): PatientBasicInfo = {
     val now = java.time.LocalDate.now()
     val readOnlyFlag = Var[Boolean](true)
     val patientVar = Var(patient)
@@ -188,7 +177,33 @@ object PatientBasicInfo {
       )
       if (p.isDefined && _phone.isEmpty) Option("") else _phone
     })
-    (readOnlyFlag, patientVar, name, fathersFamily, mothersFamily, age, email, phone, email)
+    PatientBasicInfo(
+      readOnlyFlag.signal,
+      readOnlyFlag,
+      patientVar.signal,
+      patientVar,
+      name,
+      fathersFamily,
+      mothersFamily,
+      age,
+      email,
+      phone,
+      email,
+    )
   }
 
 }
+
+private[molecule] case class PatientBasicInfo(
+    readOnlyFlag: Signal[Boolean],
+    readOnlyFlagVar: Var[Boolean],
+    patient: Signal[Option[Patient]],
+    patientVar: Var[Option[Patient]],
+    name: Signal[Option[String]],
+    fathersFamily: Signal[Option[String]],
+    mothersFamily: Signal[Option[String]],
+    age: Signal[Option[String]],
+    email: Signal[Option[String]],
+    phone: Signal[Option[String]],
+    allergies: Signal[Option[String]],
+)
