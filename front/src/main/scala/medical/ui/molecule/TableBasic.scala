@@ -33,11 +33,7 @@ object TableBasic {
                     th(cls := "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider", name)
                   }),
                 ),
-                tbody(
-                  cls := "bg-white divide-y divide-gray-200",
-                  //child <-- eventBus.events.map(e => { _td(e, eventBus, patientBasicWriteBus) })
-                  _tds,
-                ),
+                _tds,
               ),
             ),
           ),
