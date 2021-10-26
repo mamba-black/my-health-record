@@ -9,7 +9,7 @@ ThisBuild / organization := "miuler"
 //  "com.github.ghik" % "silencer-lib" % "1.7.4" % Provided cross CrossVersion.full
 //)
 ThisBuild / scalacOptions ++= Seq(
-  "-Xsource:3",
+  "-Xsource:3"
   //"-P:silencer:pathFilters=.*[/]src_managed[/].*"
   //"-Wconf:src=src_managed/.*:silent"
 )
@@ -27,13 +27,13 @@ lazy val dtos = project
     scalaJSUseMainModuleInitializer := true,
     Compile / PB.targets := Seq(
       scalapb.gen(grpc = false) -> (Compile / sourceManaged).value / "scalapb",
-      scalapb.grpcweb.GrpcWebCodeGenerator -> (Compile / sourceManaged).value
+      scalapb.grpcweb.GrpcWebCodeGenerator -> (Compile / sourceManaged).value,
     ),
     libraryDependencies ++= Seq(
       "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion,
       "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
-      "com.thesamet.scalapb.grpcweb" %%% "scalapb-grpcweb" % scalapb.grpcweb.BuildInfo.version
-    )
+      "com.thesamet.scalapb.grpcweb" %%% "scalapb-grpcweb" % scalapb.grpcweb.BuildInfo.version,
+    ),
   )
 
 lazy val front = (project in file("front"))
@@ -47,7 +47,7 @@ lazy val front = (project in file("front"))
       "autoprefixer" -> "10.3.1",
       "tailwindcss" -> "2.2.7",
       "postcss" -> "8.3.6",
-      "postcss-cli" -> "8.3.1"
+      "postcss-cli" -> "8.3.1",
       //"webpack-dev-server" -> "3.11.2",
     ),
     //Compile / scalaJSLinkerConfig ~= {
@@ -58,17 +58,17 @@ lazy val front = (project in file("front"))
     //},
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryAndApplication(),
-    webpackDevServerExtraArgs := Seq("--inline", "--hot", "--history-api-fallback"),
+    webpackDevServerExtraArgs := Seq("--inline", "--host", "0.0.0.0", "--history-api-fallback"),
     libraryDependencies ++= Seq(
       "com.raquo" %%% "laminar" % "0.13.1",
       "io.frontroute" %%% "frontroute" % "0.14.0",
       "com.outr" %%% "scribe" % "3.5.5",
       "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
-      "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.3.0"
+      "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.3.0",
       //"org.wvlet.airframe" %%% "airframe" % "21.6.0",
       //"org.wvlet.airframe" %%% "airframe-log" % "21.4.1",
     ),
-    libraryDependencies ++= Seq("org.scalatest" %%% "scalatest" % scalatestVersion % Test)
+    libraryDependencies ++= Seq("org.scalatest" %%% "scalatest" % scalatestVersion % Test),
   )
 
 lazy val back = (project in file("back"))
@@ -98,8 +98,8 @@ lazy val back = (project in file("back"))
       scalaTest,
       akkaActorTypedTest,
       akkaStreamTest,
-      akkaPersistenceTest
-    )
+      akkaPersistenceTest,
+    ),
   )
 
 lazy val testSuite = (project in file("test-suite"))
@@ -112,9 +112,9 @@ lazy val testSuite = (project in file("test-suite"))
       gatlingGrpcTest,
       scalapbNetty,
       scalapbRuntime,
-      scalapbRuntimeGrpc
+      scalapbRuntimeGrpc,
     ),
-    Test / PB.targets := Seq(scalapb.gen() -> (Test / sourceManaged).value)
+    Test / PB.targets := Seq(scalapb.gen() -> (Test / sourceManaged).value),
   )
 
 logLevel := Level.Debug
@@ -143,12 +143,18 @@ css := {
     "-o",
     //((front / baseDirectory).value / "target" / "compiled.css").getAbsolutePath,
     ((front / crossTarget).value / "scalajs-bundler" / "main" / "compiled.css").getAbsolutePath,
-    (front.base / "styles.css").getAbsolutePath
+    (front.base / "styles.css").getAbsolutePath,
   )((front / crossTarget).value / "scalajs-bundler" / "main", logger)
   //  logger.info("2=================================<")
 
-  IO.copyFile(java.nio.file.Path.of("front/index.html").toFile, ((front / crossTarget).value / "scalajs-bundler" / "main" / "index.html").getAbsoluteFile)
-  IO.copyDirectory(java.nio.file.Path.of("front/public").toFile, ((front / crossTarget).value / "scalajs-bundler" / "main" / "public").getAbsoluteFile)
+  IO.copyFile(
+    java.nio.file.Path.of("front/index.html").toFile,
+    ((front / crossTarget).value / "scalajs-bundler" / "main" / "index.html").getAbsoluteFile,
+  )
+  IO.copyDirectory(
+    java.nio.file.Path.of("front/public").toFile,
+    ((front / crossTarget).value / "scalajs-bundler" / "main" / "public").getAbsoluteFile,
+  )
 }
 
 //(css in css) := ((css in css) dependsOn npmInstallDependencies).value
