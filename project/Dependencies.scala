@@ -9,15 +9,15 @@ object Dependencies extends Akka with Gatling with Grpc {
   //"com.algolia" % "algoliasearch-core" % algolia,
   //"com.algolia" % "algoliasearch-java-net" % algolia,
 
-  lazy val scalatestVersion = "3.2.9"
+  lazy val scalatestVersion = "3.2.10"
   val scalaTest = "org.scalatest" %% "scalatest" % scalatestVersion % Test
 }
 
 trait Akka {
 
-  lazy val akkaVersion = "2.6.16"
+  lazy val akkaVersion = "2.6.17"
   lazy val alpakkaKafkaVersion = "2.1.1"
-  lazy val akkaHttpVersion = "10.2.6"
+  lazy val akkaHttpVersion = "10.2.7"
 
   val akkaHttp = "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
   val akkaActorTyped = "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion
@@ -46,5 +46,5 @@ trait Gatling {
   val gatlingVersion = "3.6.1"
   val gatlingTest = "io.gatling" % "gatling-test-framework" % gatlingVersion % "test"
   val gatlingChartsTest = "io.gatling.highcharts" % "gatling-charts-highcharts" % gatlingVersion % "test"
-  val gatlingGrpcTest = "com.github.phisgr" % "gatling-grpc" % "0.11.1" % "test"
+  val gatlingGrpcTest = "com.github.phisgr" % "gatling-grpc" % "0.12.0" % "test"
 }

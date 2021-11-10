@@ -5,8 +5,7 @@ import medical.domain.{ContactPoint, HumanName, Patient, SystemContactPoint}
 import medical.infrastructure.patientRepository
 import medical.ui.atom.{Button, InputLabel}
 import medical.ui.atom.ButtonShare.{One, Two}
-import org.scalajs.dom.MouseEvent
-import org.scalajs.dom.raw.{HTMLCollection, HTMLInputElement}
+import org.scalajs.dom.{HTMLCollection, HTMLInputElement, MouseEvent}
 import scribe.*
 
 import java.time.LocalDate
@@ -117,7 +116,9 @@ object PatientBasicInfo {
     true
   }
 
-  private def getBasicElements(elements: HTMLCollection): Try[(String, String, String, String, String)] = {
+  private def getBasicElements(
+      elements: HTMLCollection[org.scalajs.dom.Element]
+  ): Try[(String, String, String, String, String)] = {
     var name: String = null
     var fathersFamily: String = null
     var mothersFamily: String = null

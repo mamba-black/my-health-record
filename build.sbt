@@ -14,7 +14,7 @@ ThisBuild / scalacOptions ++= Seq(
   //"-Wconf:src=src_managed/.*:silent"
 )
 
-val scala2Version = "2.13.6"
+val scala2Version = "2.13.7"
 val scala3Version = "3.1.0"
 
 lazy val dtos = project
@@ -60,9 +60,9 @@ lazy val front = (project in file("front"))
     webpackBundlingMode := BundlingMode.LibraryAndApplication(),
     webpackDevServerExtraArgs := Seq("--inline", "--host", "0.0.0.0", "--history-api-fallback"),
     libraryDependencies ++= Seq(
-      "com.raquo" %%% "laminar" % "0.13.1",
-      "io.frontroute" %%% "frontroute" % "0.14.0",
-      "com.outr" %%% "scribe" % "3.5.5",
+      "com.raquo" %%% "laminar" % "0.14.0",
+      "io.frontroute" %%% "frontroute" % "0.15.0",
+      "com.outr" %%% "scribe" % "3.6.3",
       "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
       "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.3.0",
       //"org.wvlet.airframe" %%% "airframe" % "21.6.0",
