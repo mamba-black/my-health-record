@@ -109,17 +109,6 @@ class PatientServer(system: ActorSystem[?]) {
       .newServerAt(interface = "0.0.0.0", port = 9090)
       .bind(requestHandler)
       .map(_.addToCoordinatedShutdown(hardTerminationDeadline = 10.seconds))
-
-    httpBinding.onComplete {
-      case Success(binding) =>
-        val address = binding.localAddress
-        system.log.info("Success")
-        info(s"...gRPC server bound to ${address.getHostString}:${address.getPort}")
-      case Failure(exception) =>
-        system.log.info("Failure")
-        error("Failed to bind gRPC endpoint, terminating system", exception)
-        system.terminate()
-    }
     // ============================================================================================================
 
     // ============================================================================================================
@@ -139,27 +128,29 @@ class PatientServer(system: ActorSystem[?]) {
 
     val sslContext = SSLContext.getInstance("TLS")
     sslContext.init(keyManagerFactory.getKeyManagers, trustManagerFactory.getTrustManagers, new SecureRandom)
-
     val httpsConnectionContext = ConnectionContext.httpsServer(sslContext)
+
     val httpsBinding = Http()
       .newServerAt(interface = "0.0.0.0", port = 9443)
       .enableHttps(httpsConnectionContext)
       .bind(requestHandler)
       .map(_.addToCoordinatedShutdown(hardTerminationDeadline = 10.seconds))
-
-    httpsBinding.onComplete {
-      case Success(binding) =>
-        val address = binding.localAddress
-        system.log.info("Success")
-        info(s"...gRPC server bound to ${address.getHostString}:${address.getPort}")
-      case Failure(exception) =>
-        system.log.info("Failure")
-        error("Failed to bind gRPC endpoint, terminating system", exception)
-        system.terminate()
-    }
     // ============================================================================================================
 
-    List(httpBinding, httpsBinding)
+    val httpBindings = List(httpBinding, httpsBinding)
+    httpBindings.foreach(httpBindingFuture => {
+      httpBindingFuture.onComplete {
+        case Success(binding) =>
+          val address = binding.localAddress
+          system.log.info("Success")
+          info(s"...gRPC server bound to ${address.getHostString}:${address.getPort}")
+        case Failure(exception) =>
+          system.log.info("Failure")
+          error("Failed to bind gRPC endpoint, terminating system", exception)
+          system.terminate()
+      }
+    })
+    httpBindings
   }
 
   //  private def serverHttpContext: HttpsConnectionContext = {
