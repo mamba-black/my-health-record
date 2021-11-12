@@ -158,6 +158,9 @@ keytool -genkeypair -v \
   -ext BasicConstraints:critical="ca:true" \
   -validity 9999
 
+ls
+#client.jks -> clientca
+
 # Create another key pair that will act as the client.
 keytool -genkeypair -v \
   -alias client \
@@ -168,6 +171,10 @@ keytool -genkeypair -v \
   -keyalg RSA \
   -keysize 2048
 
+ls
+#client.jks -> clientca
+#           -> client
+
 # Create a certificate signing request from the client certificate.
 keytool -certreq -v \
   -alias client \
@@ -175,6 +182,11 @@ keytool -certreq -v \
   -storepass:env PW \
   -keystore client.jks \
   -file client.csr
+
+ls
+#client.jks -> clientca
+#           -> client
+#client.csr
 
 # Make clientCA create a certificate chain saying that client is signed by clientCA.
 keytool -gencert -v \
@@ -187,6 +199,12 @@ keytool -gencert -v \
   -ext EKU="clientAuth" \
   -rfc
 
+ls
+#client.jks -> clientca
+#           -> client
+#client.csr
+#client.crt
+
 # Export the client-ca certificate from the keystore.  This goes to nginx under "ssl_client_certificate"
 # and is presented in the CertificateRequest.
 keytool -export -v \
@@ -195,6 +213,13 @@ keytool -export -v \
   -storepass:env PW \
   -keystore client.jks \
   -rfc
+
+ls
+#client.jks -> clientca
+#           -> client
+#client.csr
+#client.crt
+#clientca.crt
 
 # Import the signed certificate back into client.jks.  This is important, as JSSE won't send a client
 # certificate if it can't find one signed by the client-ca presented in the CertificateRequest.
@@ -213,6 +238,14 @@ keytool -importkeystore -v \
   -destkeystore clientca.p12 \
   -deststorepass:env PW \
   -deststoretype PKCS12
+
+ls
+#client.jks -> clientca
+#           -> client
+#client.csr
+#client.crt
+#clientca.crt
+#clientca.p12
 
 # Import the client CA's public certificate into a JKS store for Play Server to read.  We don't use
 # the PKCS12 because it's got the CA private key and we don't want that.
