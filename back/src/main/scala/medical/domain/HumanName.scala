@@ -1,20 +1,16 @@
 package medical.domain
 
 /**
-  *
-  * @param text    Text representation of the full name
-  * @param family  Family name (often called 'Surname')
-  * @param fathersFamily
-  * @param mothersFamily
-  * @param given Given names (not always 'first'). Includes middle names
-  *
-  * @see <a href="http://hl7.org/fhir/datatypes#HumanName">fhir/datatypes.html#HumanName</a>
+  * @param fathersFamily <a href="http://hl7.org/fhir/StructureDefinition/humanname-fathers-family">fathers family</a>
+  * @param mothersFamily <a href="http://hl7.org/fhir/StructureDefinition/humanname-mothers-family">mothers family</a>
+  * @param given         Given names (not always 'first'). Includes middle names
+  * @see <a href="http://hl7.org/fhir/datatypes.html#humanname">fhir/datatypes.html#HumanName</a>
   */
-class HumanName(
-                 val fathersFamily: String,
-                 val mothersFamily: String,
-                 val given: Seq[String],
-               ) {
+class HumanName(val fathersFamily: String, val mothersFamily: String, val given: Seq[String]) {
+
+  /** Family name (often called 'Surname') */
   val family: String = s"$fathersFamily $mothersFamily"
-  val text: String = s"$fathersFamily $mothersFamily, ${`given`.foldLeft(" ")( _ + _).trim}"
+
+  /** Text representation of the full name */
+  val text: String = s"$fathersFamily $mothersFamily, ${`given`.foldLeft(" ")(_ + _).trim}"
 }

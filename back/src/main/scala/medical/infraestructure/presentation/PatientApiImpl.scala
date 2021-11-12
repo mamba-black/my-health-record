@@ -1,28 +1,27 @@
-package medical.presentation
+package medical.infraestructure.presentation
 
 import akka.NotUsed
 import akka.actor.typed.ActorSystem
 import akka.stream.scaladsl.Source
-import medical.api.{ PatientApi, PatientIdRequest, PatientReply, PatientRequest }
+import medical.api.{PatientApi, PatientIdRequest, PatientReply, PatientRequest}
 import medical.application.PatientService
-import medical.domain.PatientBasic
-import scribe._
+import scribe.*
 
 import java.util.UUID
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContextExecutor, Future}
 
-class PatientApiImpl(system: ActorSystem[_],
-                     patientService: PatientService) extends PatientApi {
-//  private implicit val sys: ActorSystem[_] = system
+class PatientApiImpl(system: ActorSystem[?], patientService: PatientService) extends PatientApi {
+  //  private implicit val sys: ActorSystem[_] = system
+  private implicit val ec: ExecutionContextExecutor = system.executionContext
 
   /**
-   * Sends a greeting
-   */
+    * Sends a greeting
+    */
   override def find(patientRequest: PatientRequest): Source[PatientReply, NotUsed] = {
     info(s"[${Thread.currentThread().getName}/${system.name}] 1.name: ${patientRequest.name}")
-    val patientBasic: PatientBasic = patientService.find(patientRequest.name)
     system.log.info(s"2.name: ${patientRequest.name}")
-    Source.single(PatientReply(patientBasic.id, patientBasic.name))
+    val patientBasic = patientService.find(patientRequest.name)
+    patientBasic.map(pb => PatientReply(pb.idenditier, pb.text))
   }
 
   override def get(in: PatientIdRequest): Future[PatientReply] = {

@@ -83,6 +83,7 @@ lazy val back = (project in file("back"))
     jibRegistry := "957838095201.dkr.ecr.us-east-1.amazonaws.com",
     //dockerBaseImage := "ghcr.io/graalvm/graalvm-ce:latest", // Tenemos problemas para detectar el maximo de memoria
     libraryDependencies ++= Seq(
+      algoliaScala,
       akkaHttp,
       akkaActorTyped,
       akkaStream,

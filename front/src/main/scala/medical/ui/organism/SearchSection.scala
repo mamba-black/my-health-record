@@ -4,7 +4,7 @@ import com.raquo.laminar.CollectionCommand
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import io.grpc.stub.StreamObserver
-import medical.backend.patientapi.{PatientReply, PatientRequest, PatientServiceGrpcWeb}
+import medical.api.patientapi.{PatientApiGrpcWeb, PatientReply, PatientRequest}
 import medical.domain.{ContactPoint, HumanName, Patient, SystemContactPoint}
 import medical.ui.command.{Command, ShowPatient}
 import medical.ui.molecule.TableBasic
@@ -16,7 +16,6 @@ import scalapb.grpcweb
 import scribe.*
 
 import java.time.LocalDate
-import java.util.UUID
 
 object SearchSection {
 
@@ -24,25 +23,29 @@ object SearchSection {
     debug("Begin")
     val patientReplyEventBus = new EventBus[PatientReply]
 
-    val stub = PatientServiceGrpcWeb.stub(Channels.grpcwebChannel("https://192.168.1.3:8080"))
+    val grpcUrl = "https://0.0.0.0:9443" // "http://0.0.0.0:9090"
+    val patientApi = PatientApiGrpcWeb.stub(Channels.grpcwebChannel(grpcUrl))
 
-    section(searchInput(patientReplyEventBus, stub), searchTable(patientReplyEventBus, commandWriteBus))
+    section(searchInput(patientReplyEventBus, patientApi), searchTable(patientReplyEventBus, commandWriteBus))
   }
 
   def searchInput(
       eventBus: EventBus[PatientReply],
-      patientClient: PatientServiceGrpcWeb.PatientService[grpcweb.Metadata],
+      patientApi: PatientApiGrpcWeb.PatientApi[grpcweb.Metadata],
   ): ReactiveHtmlElement[html.Div] = {
     def searchName(input: Input): Unit = {
       val text = input.ref.value
       val search = text.trim.nonEmpty
       if (search) {
         debug("Buscar!")
-        eventBus.writer.onNext(PatientReply(UUID.randomUUID().toString, text, text, text))
-        patientClient.find(
+        //eventBus.writer.onNext(PatientReply(UUID.randomUUID().toString, text, text, text))
+        patientApi.find(
           PatientRequest(text),
           new StreamObserver[PatientReply] {
-            override def onNext(value: PatientReply): Unit = debug(s"patient: $value") // patients.update(_ :+ value)
+            override def onNext(patientReply: PatientReply): Unit = {
+              debug(s"patient: $patientReply")
+              eventBus.emit(patientReply)
+            } // patients.update(_ :+ value)
 
             override def onError(throwable: Throwable): Unit = warn("onError")
 
@@ -127,7 +130,7 @@ object SearchSection {
       val text = input.ref.value
       if (text.trim.nonEmpty) {
         debug(s"Buscar! $text")
-        eventBus.writer.onNext(PatientReply("-3", text))
+        //eventBus.emit(PatientReply("-3", text))
       }
     })
 

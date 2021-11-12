@@ -5,9 +5,11 @@ object Dependencies extends Akka with Gatling with Grpc {
   val logbackClassic = "ch.qos.logback" % "logback-classic" % "1.2.5"
   val scribe = "com.outr" %% "scribe" % "3.5.5"
 
-  //lazy val algolia = "3.14.1"
-  //"com.algolia" % "algoliasearch-core" % algolia,
-  //"com.algolia" % "algoliasearch-java-net" % algolia,
+  lazy val algolia = "3.16.1"
+  val algoliaCore = "com.algolia" % "algoliasearch-core" % algolia
+  val algoliaApache = "com.algolia" % "algoliasearch-apache" % algolia
+  val algoliaScala = "com.algolia" %% "algoliasearch-scala" % "1.44.0"
+  val algoliaNet = "com.algolia" % "algoliasearch-java-net" % algolia
 
   lazy val scalatestVersion = "3.2.10"
   val scalaTest = "org.scalatest" %% "scalatest" % scalatestVersion % Test
