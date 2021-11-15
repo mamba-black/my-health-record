@@ -112,23 +112,32 @@ class PatientServer(system: ActorSystem[?]) {
     // ============================================================================================================
 
     // ============================================================================================================
-    val password = "Miuler123"
-    val keyStoreInputStream = getClass.getClassLoader.getResourceAsStream("certs/miuler.com.jks")
-    info(s"keyStoreIputStream: ${keyStoreInputStream}")
+    val (keyManagerFactory: KeyManagerFactory, trustManagerFactory: TrustManagerFactory) = {
+      val password = "Miuler123"
+      val keyStoreInputStream = getClass.getClassLoader.getResourceAsStream("certs/miuler.com.jks")
 
-    val keyStore = KeyStore.getInstance("PKCS12")
-    keyStore.load(keyStoreInputStream, password.toCharArray)
-    info(s"keyStore.size(): ${keyStore.size()}")
+      val keyStore = KeyStore.getInstance("PKCS12")
+      keyStore.load(keyStoreInputStream, password.toCharArray)
+      info(s"keyStore.size(): ${keyStore.size()}")
 
-    val keyManagerFactory = KeyManagerFactory.getInstance("SunX509")
-    keyManagerFactory.init(keyStore, password.toCharArray)
+      (
+        {
+          val keyManagerFactory = KeyManagerFactory.getInstance("SunX509")
+          keyManagerFactory.init(keyStore, password.toCharArray)
+          keyManagerFactory
+        }, {
+          val trustManagerFactory = TrustManagerFactory.getInstance("SunX509")
+          trustManagerFactory.init(keyStore)
+          trustManagerFactory
+        },
+      )
+    }
 
-    val trustManagerFactory = TrustManagerFactory.getInstance("SunX509")
-    trustManagerFactory.init(keyStore)
-
-    val sslContext = SSLContext.getInstance("TLS")
-    sslContext.init(keyManagerFactory.getKeyManagers, trustManagerFactory.getTrustManagers, new SecureRandom)
-    val httpsConnectionContext = ConnectionContext.httpsServer(sslContext)
+    val httpsConnectionContext = {
+      val sslContext = SSLContext.getInstance("TLS")
+      sslContext.init(keyManagerFactory.getKeyManagers, trustManagerFactory.getTrustManagers, new SecureRandom)
+      ConnectionContext.httpsServer(sslContext)
+    }
 
     val httpsBinding = Http()
       .newServerAt(interface = "0.0.0.0", port = 9443)

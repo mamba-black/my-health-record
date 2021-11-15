@@ -1,14 +1,14 @@
-import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorSystem, Behavior}
-import akka.kafka._
-import akka.kafka.scaladsl._
-import akka.stream.scaladsl.{Keep, Sink, Source}
+import akka.actor.typed.scaladsl.Behaviors
+import akka.kafka.*
+import akka.kafka.scaladsl.*
 import akka.stream.{FlowMonitor, FlowMonitorState}
+import akka.stream.scaladsl.{Keep, Sink, Source}
 import com.typesafe.config.ConfigFactory
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
-import scribe._
-import com.github.ghik.silencer.silent
+import scribe.*
+//import com.github.ghik.silencer.silent
 
 import java.time.ZonedDateTime
 import scala.concurrent.duration.DurationInt
@@ -50,7 +50,7 @@ object KafkaTest {
     ()
   }
 
-  @silent
+  //@silent
   private def consumer(implicit system: ActorSystem[KafjaTestCommand]) = {
 
     val consumerConfig = system.settings.config.getConfig("akka.kafka.consumer")
@@ -72,7 +72,7 @@ object KafkaTest {
 
   }
 
-  @silent
+  //@silent
   private def producer(implicit system: ActorSystem[KafjaTestCommand]) = {
     val producerConfig = system.settings.config.getConfig("akka.kafka.producer")
     val producerSettings = ProducerSettings(producerConfig, new StringSerializer, new StringSerializer)
