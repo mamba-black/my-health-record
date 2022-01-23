@@ -60,9 +60,9 @@ lazy val front = (project in file("front"))
     webpackBundlingMode := BundlingMode.LibraryAndApplication(),
     webpackDevServerExtraArgs := Seq("--inline", "--host", "0.0.0.0", "--history-api-fallback"),
     libraryDependencies ++= Seq(
-      "com.raquo" %%% "laminar" % "0.14.0",
-      "io.frontroute" %%% "frontroute" % "0.15.0",
-      "com.outr" %%% "scribe" % "3.6.3",
+      "com.raquo" %%% "laminar" % "0.14.2",
+      "io.frontroute" %%% "frontroute" % "0.15.2",
+      "com.outr" %%% "scribe" % "3.6.4",
       "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
       "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.3.0",
       //"org.wvlet.airframe" %%% "airframe" % "21.6.0",
@@ -100,6 +100,7 @@ lazy val back = (project in file("back"))
       akkaActorTypedTest,
       akkaStreamTest,
       akkaPersistenceTest,
+      "org.bouncycastle" % "bcprov-jdk16" % "1.46" % Test,
     ),
   )
 
