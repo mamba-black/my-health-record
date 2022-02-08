@@ -1,15 +1,15 @@
 package medical.ui.molecule
 
 import com.raquo.laminar.api.L.*
-import medical.domain.{ContactPoint, HumanName, Patient, SystemContactPoint}
+import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
 import medical.infrastructure.patientRepository
-import medical.ui.atom.{Button, InputLabel}
-import medical.ui.atom.ButtonShare.{One, Two}
-import org.scalajs.dom.{HTMLCollection, HTMLInputElement, MouseEvent}
+import medical.ui.atom.{ Button, InputLabel }
+import medical.ui.atom.ButtonShare.{ One, Two }
+import org.scalajs.dom.{ HTMLCollection, HTMLInputElement, MouseEvent }
 import scribe.*
 
 import java.time.LocalDate
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 object PatientBasicInfo {
   val NAME = "name"
@@ -24,14 +24,14 @@ object PatientBasicInfo {
   def apply(patientId: String, patient: Option[Patient]): HtmlElement = {
     val basicInfo = generateInputs(patientId, patient)
 
-    //val bt = button("validate")
+    // val bt = button("validate")
     val editarButton = Var("Editar")
 
     div(
       h1("Informacion del paciente", cls := ("text-2xl", "py-8")),
       form(
         cls := "grid grid-cols-3 gap-4",
-        //inContext(thisForm => onSubmit --> Observer[Event](_onSubmit(thisForm, readOnlyFlag, patientVar))),
+        // inContext(thisForm => onSubmit --> Observer[Event](_onSubmit(thisForm, readOnlyFlag, patientVar))),
         InputLabel(NAME, "Nombre", basicInfo.name, basicInfo.readOnlyFlag),
         InputLabel(FATHERS_FAMILY, "Apellido paterno", basicInfo.fathersFamily, basicInfo.readOnlyFlag),
         InputLabel(MOTHERS_FAMILY, "Apellido materno", basicInfo.mothersFamily, basicInfo.readOnlyFlag),
@@ -40,25 +40,24 @@ object PatientBasicInfo {
         InputLabel(PHONE, "Telefono", basicInfo.phone, basicInfo.readOnlyFlag, Some("tel")),
         InputLabel(ADDRESS, "Direccion", basicInfo.phone, basicInfo.readOnlyFlag, Some("address")),
         InputLabel(ALLERGIES, "Alergias", basicInfo.allergies, basicInfo.readOnlyFlag, important = true),
-        inContext(
-          thisForm =>
-            div(
-              cls := "col-start-3 flex justify-end",
-              Button(
-                editarButton.signal,
-                {
-                  case (One, _) => //Editar
-                    basicInfo.readOnlyFlagVar.set(false)
-                    editarButton.set("Guardar")
-                    true
-                  case (Two, e) => //Guardar o Descartar
-                    savePatientBasic(thisForm, basicInfo.readOnlyFlagVar, basicInfo.patientVar, editarButton, e)
-                  case _ =>
-                    info("test")
-                    true
-                },
-              ),
-            )
+        inContext(thisForm =>
+          div(
+            cls := "col-start-3 flex justify-end",
+            Button(
+              editarButton.signal,
+              {
+                case (One, _) => // Editar
+                  basicInfo.readOnlyFlagVar.set(false)
+                  editarButton.set("Guardar")
+                  true
+                case (Two, e) => // Guardar o Descartar
+                  savePatientBasic(thisForm, basicInfo.readOnlyFlagVar, basicInfo.patientVar, editarButton, e)
+                case _ =>
+                  info("test")
+                  true
+              },
+            ),
+          )
         ),
       ),
     )
@@ -80,7 +79,7 @@ object PatientBasicInfo {
     e.preventDefault()
 
     info(s"$readOnlyFlag")
-    //if (readOnlyFlag.now()) {
+    // if (readOnlyFlag.now()) {
     val dd = div()
     _form.ref.parentElement.appendChild(dd.ref)
     render(
@@ -112,7 +111,7 @@ object PatientBasicInfo {
         },
       ),
     )
-    //}
+    // }
     true
   }
 
@@ -129,7 +128,7 @@ object PatientBasicInfo {
       debug(s"$i ${input.name}: ${input.value} (valid: ${input.validity.valid})")
       if (!input.validity.valid) {
         error("input invalid")
-        //_form.ref.submit()
+        // _form.ref.submit()
         return Failure(new Exception("Invalid input"))
       }
       input.name match {
@@ -151,7 +150,7 @@ object PatientBasicInfo {
     val patientSignal: Signal[Option[Patient]] = patientVar.signal
 
     if (patient.isEmpty) {
-      patientRepository.findById(patientId, patientVar.writer)
+      patientRepository.getById(patientId, patientVar.writer)
     }
 
     val name = patientSignal.map(p => p.map(_.name.`given`.foldLeft(" ")(_ + _)))

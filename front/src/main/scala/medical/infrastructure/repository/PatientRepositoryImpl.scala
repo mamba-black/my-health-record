@@ -1,15 +1,42 @@
 package medical.infrastructure.repository
 
-import com.raquo.airstream.core.Observer
+import com.raquo.airstream.core.{ EventStream, Observer }
+import com.raquo.airstream.eventbus.EventBus
+import io.grpc.stub.StreamObserver
+import medical.api.patientapi.{ PatientApiGrpcWeb, PatientIdRequest, PatientReply, PatientRequest }
+import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
 import medical.domain.repository.PatientRepository
-import medical.domain.{ContactPoint, HumanName, Patient, SystemContactPoint}
-import scribe.debug
+import scalapb.grpc.Channels
+import scribe.{ debug, warn }
 
 import java.time.LocalDate
 import scala.scalajs.js.timers.setTimeout
 
 private[infrastructure] class PatientRepositoryImpl extends PatientRepository {
-  override def findById(patientId: String, patientWriter: Observer[Option[Patient]]): Unit = {
+  val grpcUrl = "https://0.0.0.0:9443" // "http://0.0.0.0:9090"
+  val patientApi = PatientApiGrpcWeb.stub(Channels.grpcwebChannel(grpcUrl))
+
+  override def findByName(name: String): EventStream[PatientReply] = {
+    val eventBus = new EventBus[PatientReply]
+
+    patientApi.find(
+      PatientRequest(name),
+      new StreamObserver[PatientReply] {
+        override def onNext(patientReply: PatientReply): Unit = {
+          debug(s"patient: $patientReply")
+          eventBus.emit(patientReply)
+        } // patients.update(_ :+ value)
+
+        override def onError(throwable: Throwable): Unit = warn("onError")
+
+        override def onCompleted(): Unit = debug("onCompleted")
+      },
+    )
+    eventBus.events
+  }
+
+  override def getById(patientId: String, patientWriter: Observer[Option[Patient]]): Unit = {
+    patientApi.getFullPatient(PatientIdRequest.of(patientId)).map()
 
     setTimeout(2000) {
       val patient = new Patient(

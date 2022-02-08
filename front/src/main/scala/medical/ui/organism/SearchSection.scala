@@ -4,9 +4,9 @@ import com.raquo.laminar.CollectionCommand
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import io.grpc.stub.StreamObserver
-import medical.api.patientapi.{PatientApiGrpcWeb, PatientReply, PatientRequest}
-import medical.domain.{ContactPoint, HumanName, Patient, SystemContactPoint}
-import medical.ui.command.{Command, ShowPatient}
+import medical.api.patientapi.{ PatientApiGrpcWeb, PatientReply, PatientRequest }
+import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
+import medical.ui.command.{ Command, ShowPatient }
 import medical.ui.molecule.TableBasic
 import org.scalajs.dom
 import org.scalajs.dom.html
@@ -38,7 +38,7 @@ object SearchSection {
       val search = text.trim.nonEmpty
       if (search) {
         debug("Buscar!")
-        //eventBus.writer.onNext(PatientReply(UUID.randomUUID().toString, text, text, text))
+        // eventBus.writer.onNext(PatientReply(UUID.randomUUID().toString, text, text, text))
         patientApi.find(
           PatientRequest(text),
           new StreamObserver[PatientReply] {
@@ -80,7 +80,9 @@ object SearchSection {
         button(
           //          typ := "submit",
           cls := "absolute right-0 top-0 mt-5 mr-4",
-          onClick --> Observer[dom.MouseEvent](onNext = { _ => searchName(_input); () }),
+          onClick --> Observer[dom.MouseEvent](onNext = { _ =>
+            searchName(_input); ()
+          }),
           svg.svg(
             svg.cls := "text-gray-600 h-4 w-4 fill-current",
             //            svg.xmlns := "http://www.w3.org/2000/svg",
@@ -130,7 +132,7 @@ object SearchSection {
       val text = input.ref.value
       if (text.trim.nonEmpty) {
         debug(s"Buscar! $text")
-        //eventBus.emit(PatientReply("-3", text))
+        // eventBus.emit(PatientReply("-3", text))
       }
     })
 

@@ -18,7 +18,7 @@ object Dependencies extends Akka with Gatling with Grpc {
 trait Akka {
 
   lazy val akkaVersion = "2.6.18"
-  lazy val alpakkaKafkaVersion = "2.1.1"
+  lazy val alpakkaKafkaVersion = "3.0.0"
   lazy val akkaHttpVersion = "10.2.7"
 
   val akkaHttp = "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
@@ -30,7 +30,7 @@ trait Akka {
   val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
   //"com.typesafe.akka" %% "akka-pki" % akkaVersion,
   val akkaHttpCors = "ch.megard" %% "akka-http-cors" % "1.1.2" // Para poder usar akka grpc con grpc-web
-  val akkaGrpcRuntime = "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.1.2"
+  val akkaGrpcRuntime = "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.1.3"
 
   val akkaActorTypedTest = "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test
   val akkaStreamTest = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test
