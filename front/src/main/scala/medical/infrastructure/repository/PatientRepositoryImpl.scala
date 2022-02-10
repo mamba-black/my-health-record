@@ -7,7 +7,9 @@ import medical.api.patientapi.{ PatientApiGrpcWeb, PatientIdRequest, PatientRepl
 import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
 import medical.domain.repository.PatientRepository
 import scalapb.grpc.Channels
-import scribe.{ debug, warn }
+import scribe.*
+import concurrent.ExecutionContext.Implicits.global
+//import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
 
 import java.time.LocalDate
 import scala.scalajs.js.timers.setTimeout
@@ -36,7 +38,23 @@ private[infrastructure] class PatientRepositoryImpl extends PatientRepository {
   }
 
   override def getById(patientId: String, patientWriter: Observer[Option[Patient]]): Unit = {
-    patientApi.getFullPatient(PatientIdRequest.of(patientId)).map()
+    debug("1")
+    patientApi
+      .getFullPatient(PatientIdRequest.of(patientId))
+      .map(s => {
+        debug("2")
+        info(s"s: $s")
+        val patient = new Patient(
+          patientId,
+          new HumanName("Malpica2", "Gallegos2", Seq("Hector2", "Miuler2")),
+          true,
+          LocalDate.of(1979, 10, 13),
+          Seq(new ContactPoint(SystemContactPoint.PHONE, "+51993990103")),
+        )
+        patientWriter.onNext(Some(patient))
+        debug("TIMEOUT")
+      })
+    debug("3")
 
     setTimeout(2000) {
       val patient = new Patient(
