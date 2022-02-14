@@ -151,9 +151,9 @@ object SearchSection {
       debug(s"1: ${event.target.isInstanceOf[HTMLTableCellElement]}")
       val patient = new Patient(
         "Test",
-        new HumanName("Malpica", "Gallegos", Seq("Hector", "Miuler")),
+        new HumanName(patientReply.paternalSurname, patientReply.maternalSurname, patientReply.name.split(" ")),
         true,
-        LocalDate.of(1979, 10, 13),
+        LocalDate.of(1979, 10, 13), // FIXME
         Seq(new ContactPoint(SystemContactPoint.PHONE, "993990103")),
       )
       commandWriteBus.onNext(ShowPatient(patient))
