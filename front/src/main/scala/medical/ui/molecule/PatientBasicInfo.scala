@@ -31,15 +31,15 @@ object PatientBasicInfo {
       h1("Informacion del paciente", cls := ("text-2xl", "py-8")),
       form(
         cls := "grid grid-cols-3 gap-4",
-        // inContext(thisForm => onSubmit --> Observer[Event](_onSubmit(thisForm, readOnlyFlag, patientVar))),
-        InputLabel(NAME, "Nombre", basicInfo.name, basicInfo.readOnlyFlag),
-        InputLabel(FATHERS_FAMILY, "Apellido paterno", basicInfo.fathersFamily, basicInfo.readOnlyFlag),
-        InputLabel(MOTHERS_FAMILY, "Apellido materno", basicInfo.mothersFamily, basicInfo.readOnlyFlag),
-        InputLabel(AGE, "Edad", basicInfo.age, basicInfo.readOnlyFlag, Some("number")),
-        InputLabel(EMAIL, "Correo", basicInfo.email, basicInfo.readOnlyFlag, Some("email")),
-        InputLabel(PHONE, "Telefono", basicInfo.phone, basicInfo.readOnlyFlag, Some("tel")),
-        InputLabel(ADDRESS, "Direccion", basicInfo.phone, basicInfo.readOnlyFlag, Some("address")),
-        InputLabel(ALLERGIES, "Alergias", basicInfo.allergies, basicInfo.readOnlyFlag, important = true),
+        // inContext(thisForm => onSubmit --> Observer[Event](_onSubmit(thisForm, readOnlyFlagVar.signal, patientVar))),
+        InputLabel(NAME, "Nombre", basicInfo.name, basicInfo.readOnlyFlag.signal),
+        InputLabel(FATHERS_FAMILY, "Apellido paterno", basicInfo.fathersFamily, basicInfo.readOnlyFlag.signal),
+        InputLabel(MOTHERS_FAMILY, "Apellido materno", basicInfo.mothersFamily, basicInfo.readOnlyFlag.signal),
+        InputLabel(AGE, "Edad", basicInfo.age, basicInfo.readOnlyFlag.signal, Some("number")),
+        InputLabel(EMAIL, "Correo", basicInfo.email, basicInfo.readOnlyFlag.signal, Some("email")),
+        InputLabel(PHONE, "Telefono", basicInfo.phone, basicInfo.readOnlyFlag.signal, Some("tel")),
+        InputLabel(ADDRESS, "Direccion", basicInfo.phone, basicInfo.readOnlyFlag.signal, Some("address")),
+        InputLabel(ALLERGIES, "Alergias", basicInfo.allergies, basicInfo.readOnlyFlag.signal, important = true),
         inContext(thisForm =>
           div(
             cls := "col-start-3 flex justify-end",
@@ -47,11 +47,11 @@ object PatientBasicInfo {
               editarButton.signal,
               {
                 case (One, _) => // Editar
-                  basicInfo.readOnlyFlagVar.set(false)
+                  basicInfo.readOnlyFlag.set(false)
                   editarButton.set("Guardar")
                   true
                 case (Two, e) => // Guardar o Descartar
-                  savePatientBasic(thisForm, basicInfo.readOnlyFlagVar, basicInfo.patientVar, editarButton, e)
+                  savePatientBasic(thisForm, basicInfo.readOnlyFlag, basicInfo.patientVar, editarButton, e)
                 case _ =>
                   info("test")
                   true
@@ -178,7 +178,6 @@ object PatientBasicInfo {
       if (p.isDefined && _phone.isEmpty) Option("") else _phone
     })
     PatientBasicInfo(
-      readOnlyFlag.signal,
       readOnlyFlag,
       patientVar.signal,
       patientVar,
@@ -195,8 +194,7 @@ object PatientBasicInfo {
 }
 
 private[molecule] case class PatientBasicInfo(
-    readOnlyFlag: Signal[Boolean],
-    readOnlyFlagVar: Var[Boolean],
+    readOnlyFlag: Var[Boolean],
     patient: Signal[Option[Patient]],
     patientVar: Var[Option[Patient]],
     name: Signal[Option[String]],

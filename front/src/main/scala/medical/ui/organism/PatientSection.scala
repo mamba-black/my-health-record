@@ -2,7 +2,7 @@ package medical.ui.organism
 
 import com.raquo.laminar.api.L.*
 import medical.domain.Patient
-import medical.ui.molecule.{PatientBasicInfo, TableBasic}
+import medical.ui.molecule.{ PatientBasicInfo, TableBasic }
 import scribe.*
 
 import java.time.ZonedDateTime
@@ -10,55 +10,11 @@ import java.time.format.DateTimeFormatter
 
 object PatientSection {
   private val fmt = DateTimeFormatter.ISO_LOCAL_DATE
-  //private val fmt = DateTimeFormatter.ofPattern("MMMM MM d EE EEEE yyyy G", new Locale("es", "ES"))
+  // private val fmt = DateTimeFormatter.ofPattern("MMMM MM d EE EEEE yyyy G", new Locale("es", "ES"))
 
   def apply(patientId: String, patient: Option[Patient]): HtmlElement = {
     debug(s"Begin patientId: $patientId")
     val css = "@apply "
-
-    val test =
-      List(
-        tbody(
-          tr(
-            cls := "border-none ",
-            td(cls := "px-6 pt-4", ZonedDateTime.now().format(fmt)),
-            td(cls := "px-6 pt-4", "Dolor de cabeza"),
-            td(cls := "px-6 pt-4", "Gripe comun"),
-            td(cls := "px-6 pt-4", "Tomar paracetamol"),
-          ),
-          tr(cls := "border-none ", td(cls := "px-6 pb-4", span("uno"), span("dos"), colSpan(4))),
-        ),
-        tbody(
-          tr(
-            cls := "border-none",
-            td(cls := "px-6 pt-4", ZonedDateTime.now().format(fmt)),
-            td(cls := "px-6 pt-4", "Dolor de cabeza"),
-            td(cls := "px-6 pt-4", "Gripe comun"),
-            td(cls := "px-6 pt-4", "Tomar paracetamol"),
-          ),
-          tr(cls := "border-none", td(cls := "px-6 pb-4", span("dos"), span("tres"))),
-        ),
-        tbody(
-          tr(
-            cls := "border-none",
-            td(cls := "px-6 pt-4", ZonedDateTime.now().format(fmt)),
-            td(cls := "px-6 pt-4", "Dolor de cabeza"),
-            td(cls := "px-6 pt-4", "Gripe comun"),
-            td(cls := "px-6 pt-4", "Tomar paracetamol"),
-          ),
-          tr(cls := "border-none", td(cls := "px-6 pb-4", span("tres"), span("cuatro"), colSpan(4))),
-        ),
-        tbody(
-          tr(
-            cls := "border-none",
-            td(cls := "px-6 pt-4", ZonedDateTime.now().format(fmt)),
-            td(cls := "px-6 pt-4", "Dolor de cabeza"),
-            td(cls := "px-6 pt-4", "Gripe comun"),
-            td(cls := "px-6 pt-4", "Tomar paracetamol"),
-          ),
-          tr(cls := "border-none", td(cls := "px-6 pb-4", span("cuatro"), span("cinco"))),
-        ),
-      )
 
     section(
       className := "container m-4 p-10 border-2 rounded-lg",
@@ -67,8 +23,51 @@ object PatientSection {
     )
   }
 
-  def nameInput(_name: String): HtmlElement = {
+  private def nameInput(_name: String): HtmlElement = {
     div(label(forId := "name", "Nombre"), input(idAttr := "name", name := "name", readOnly := true, value := _name))
   }
 
+  private val test =
+    List(
+      tbody(
+        tr(
+          cls := "border-none ",
+          td(cls := "px-6 pt-4", ZonedDateTime.now().format(fmt)),
+          td(cls := "px-6 pt-4", "Dolor de cabeza"),
+          td(cls := "px-6 pt-4", "Gripe comun"),
+          td(cls := "px-6 pt-4", "Tomar paracetamol"),
+        ),
+        tr(cls := "border-none ", td(cls := "px-6 pb-4", span("uno"), span("dos"), colSpan(4))),
+      ),
+      tbody(
+        tr(
+          cls := "border-none",
+          td(cls := "px-6 pt-4", ZonedDateTime.now().format(fmt)),
+          td(cls := "px-6 pt-4", "Dolor de cabeza"),
+          td(cls := "px-6 pt-4", "Gripe comun"),
+          td(cls := "px-6 pt-4", "Tomar paracetamol"),
+        ),
+        tr(cls := "border-none", td(cls := "px-6 pb-4", span("dos"), span("tres"))),
+      ),
+      tbody(
+        tr(
+          cls := "border-none",
+          td(cls := "px-6 pt-4", ZonedDateTime.now().format(fmt)),
+          td(cls := "px-6 pt-4", "Dolor de cabeza"),
+          td(cls := "px-6 pt-4", "Gripe comun"),
+          td(cls := "px-6 pt-4", "Tomar paracetamol"),
+        ),
+        tr(cls := "border-none", td(cls := "px-6 pb-4", span("tres"), span("cuatro"), colSpan(4))),
+      ),
+      tbody(
+        tr(
+          cls := "border-none",
+          td(cls := "px-6 pt-4", ZonedDateTime.now().format(fmt)),
+          td(cls := "px-6 pt-4", "Dolor de cabeza"),
+          td(cls := "px-6 pt-4", "Gripe comun"),
+          td(cls := "px-6 pt-4", "Tomar paracetamol"),
+        ),
+        tr(cls := "border-none", td(cls := "px-6 pb-4", span("cuatro"), span("cinco"))),
+      ),
+    )
 }
