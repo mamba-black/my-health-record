@@ -56,7 +56,7 @@ object SearchSection {
       ()
     }
 
-    def obsInput(input: Input) =
+    def onKeyPressObserver(input: Input) =
       Observer[dom.KeyboardEvent](onNext = { _ =>
         searchName(input)
         ()
@@ -69,7 +69,7 @@ object SearchSection {
       placeholder := "Nombre del paciente",
       "searchInput",
       autoFocus(true),
-      inContext(thisNode => onKeyPress.filter(e => e.keyCode == dom.ext.KeyCode.Enter) --> obsInput(thisNode)),
+      inContext(thisNode => onKeyPress.filter(e => e.keyCode == dom.ext.KeyCode.Enter) --> onKeyPressObserver(thisNode)),
     )
 
     div(
@@ -127,7 +127,7 @@ object SearchSection {
       input: ReactiveHtmlElement[html.Input],
   ): ReactiveHtmlElement[html.Button] = {
 
-    val obsButton = Observer[dom.MouseEvent](onNext = { event =>
+    val onClickObserver = Observer[dom.MouseEvent](onNext = { event =>
       debug(s"mouseEvent: $event")
       val text = input.ref.value
       if (text.trim.nonEmpty) {
@@ -136,7 +136,7 @@ object SearchSection {
       }
     })
 
-    button("buscar", cls := "btn btn-outline-primary", onClick --> obsButton)
+    button("buscar", cls := "btn btn-outline-primary", onClick --> onClickObserver)
   }
 
   def searchTable(eventBus: EventBus[PatientReply], commandWriteBus: WriteBus[Command]): HtmlElement = {
@@ -146,7 +146,7 @@ object SearchSection {
 
   private def _td(patientReply: PatientReply, commandWriteBus: WriteBus[Command]): HtmlElement = {
 
-    val obsHistory = Observer[dom.MouseEvent](onNext = { event =>
+    val showHistoryOnClickObserver = Observer[dom.MouseEvent](onNext = { event =>
       debug(s"event: $event")
       debug(s"1: ${event.target.isInstanceOf[HTMLTableCellElement]}")
       val patient = new Patient(
@@ -179,7 +179,7 @@ object SearchSection {
             div(cls := "text-sm text-gray-500", "test"),
           ),
         ),
-        onClick --> obsHistory,
+        onClick --> showHistoryOnClickObserver,
       )
     )
   }
