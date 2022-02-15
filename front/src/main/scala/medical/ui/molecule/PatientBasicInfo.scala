@@ -6,6 +6,7 @@ import medical.infrastructure.patientRepository
 import medical.ui.atom.{ Button, InputLabel }
 import medical.ui.atom.ButtonShare.{ One, Two }
 import org.scalajs.dom.{ HTMLCollection, HTMLInputElement, MouseEvent }
+import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.*
 import scribe.*
 
 import java.time.LocalDate
@@ -150,7 +151,24 @@ object PatientBasicInfo {
     val patientSignal: Signal[Option[Patient]] = patientVar.signal
 
     if (patient.isEmpty) {
-      patientRepository.getById(patientId, patientVar.writer)
+      debug("patient is empty, call the repository")
+      patientRepository
+        .getById(patientId)
+        .map(fullPatientReply => {
+          debug("Prueba de mapeo")
+          fullPatientReply.copy(name = s"--${fullPatientReply.name}--")
+        })
+        .onComplete(fullPatientReply => {
+          debug(s"reply: $fullPatientReply")
+          val patient = new Patient(
+            patientId,
+            new HumanName("Malpica2", "Gallegos2", Seq("Hector2", "Miuler2")),
+            true,
+            LocalDate.of(1979, 10, 13),
+            Seq(new ContactPoint(SystemContactPoint.PHONE, "+51993990103")),
+          )
+          patientVar.writer.onNext(Some(patient))
+        })
     }
 
     val name = patientSignal.map(p => p.map(_.name.`given`.foldLeft(" ")(_ + _)))
