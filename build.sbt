@@ -68,6 +68,7 @@ lazy val front = (project in file("front"))
       "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.3.0",
       // "org.wvlet.airframe" %%% "airframe" % "21.6.0",
       // "org.wvlet.airframe" %%% "airframe-log" % "21.4.1",
+      "org.scala-js" %%% "scala-js-macrotask-executor" % "1.0.0",
     ),
     libraryDependencies ++= Seq("org.scalatest" %%% "scalatest" % scalatestVersion % Test),
   )
@@ -106,21 +107,21 @@ lazy val back = (project in file("back"))
     ),
   )
 
-lazy val testSuite = (project in file("test-suite"))
-  .enablePlugins(GatlingPlugin)
-  .settings(
-    scalaVersion := scala2Version,
-    ThisBuild / scalacOptions ++= Seq("-Xsource:3"),
-    libraryDependencies ++= Seq(
-      gatlingTest,
-      gatlingChartsTest,
-      gatlingGrpcTest,
-      scalapbNetty,
-      scalapbRuntime,
-      scalapbRuntimeGrpc,
-    ),
-    Test / PB.targets := Seq(scalapb.gen() -> (Test / sourceManaged).value),
-  )
+//lazy val testSuite = (project in file("test-suite"))
+//  .enablePlugins(GatlingPlugin)
+//  .settings(
+//    scalaVersion := scala2Version,
+//    ThisBuild / scalacOptions ++= Seq("-Xsource:3"),
+//    libraryDependencies ++= Seq(
+//      gatlingTest,
+//      gatlingChartsTest,
+//      gatlingGrpcTest,
+//      scalapbNetty,
+//      scalapbRuntime,
+//      scalapbRuntimeGrpc,
+//    ),
+//    Test / PB.targets := Seq(scalapb.gen() -> (Test / sourceManaged).value),
+//  )
 
 logLevel := Level.Debug
 
