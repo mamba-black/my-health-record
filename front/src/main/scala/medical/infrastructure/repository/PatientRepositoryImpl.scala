@@ -1,7 +1,6 @@
 package medical.infrastructure.repository
 
-import com.raquo.airstream.core.{ EventStream, Observer }
-import com.raquo.airstream.eventbus.EventBus
+import com.raquo.airstream.core.Observer
 import io.grpc.stub.StreamObserver
 import medical.api.patientapi.*
 import medical.domain.Patient
@@ -18,15 +17,14 @@ private[infrastructure] class PatientRepositoryImpl extends PatientRepository {
   val grpcUrl = "https://0.0.0.0:9443" // "http://0.0.0.0:9090"
   val patientApi = PatientApiGrpcWeb.stub(Channels.grpcwebChannel(grpcUrl))
 
-  override def findByName(name: String): EventStream[PatientReply] = {
-    val eventBus = new EventBus[PatientReply]
+  override def findByName(name: String, callBack: PatientReply => Unit): Unit = {
 
     patientApi.find(
       PatientRequest(name),
       new StreamObserver[PatientReply] {
         override def onNext(patientReply: PatientReply): Unit = {
-          debug(s"patient: $patientReply")
-          eventBus.emit(patientReply)
+          debug(s"[-patient]: $patientReply")
+          callBack(patientReply)
         } // patients.update(_ :+ value)
 
         override def onError(throwable: Throwable): Unit = warn("onError")
@@ -34,7 +32,7 @@ private[infrastructure] class PatientRepositoryImpl extends PatientRepository {
         override def onCompleted(): Unit = debug("onCompleted")
       },
     )
-    eventBus.events
+    ()
   }
 
   override def getById(patientId: String): Future[FullPatientReply] = {

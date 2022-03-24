@@ -14,7 +14,7 @@ ThisBuild / scalacOptions ++= Seq(
   // "-Wconf:src=src_managed/.*:silent"
 )
 
-val scala2Version = "2.13.7"
+val scala2Version = "2.13.8"
 val scala3Version = "3.1.0"
 
 lazy val dtos = project
@@ -63,7 +63,7 @@ lazy val front = (project in file("front"))
     libraryDependencies ++= Seq(
       "com.raquo" %%% "laminar" % "0.14.2",
       "io.frontroute" %%% "frontroute" % "0.15.2",
-      "com.outr" %%% "scribe" % "3.6.4",
+      "com.outr" %%% "scribe" % scribeVersion,
       "io.github.cquiroz" %%% "scala-java-time" % "2.3.0",
       "io.github.cquiroz" %%% "scala-java-time-tzdb" % "2.3.0",
       // "org.wvlet.airframe" %%% "airframe" % "21.6.0",
@@ -94,8 +94,8 @@ lazy val back = (project in file("back"))
       akkaPersistenceTyped,
       akkaStreamKafka,
       akkaSlf4j,
-      logbackClassic,
       scribe,
+      scribeSlf4j,
       akkaGrpcRuntime,
       akkaHttpCors,
       // "com.thesamet.scalapb" %%% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
