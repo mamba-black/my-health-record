@@ -3,23 +3,26 @@ import sbt._
 object Dependencies extends Akka with Gatling with Grpc {
 
   val logbackClassic = "ch.qos.logback" % "logback-classic" % "1.2.9"
-  val scribe = "com.outr" %% "scribe" % "3.6.4"
+
+  val scribeVersion = "3.8.2"
+  val scribe = "com.outr" %% "scribe" % scribeVersion
+  val scribeSlf4j = "com.outr" %% "scribe-slf4j" % scribeVersion
 
   lazy val algolia = "3.16.1"
   val algoliaCore = "com.algolia" % "algoliasearch-core" % algolia
   val algoliaApache = "com.algolia" % "algoliasearch-apache" % algolia
-  val algoliaScala = "com.algolia" %% "algoliasearch-scala" % "1.44.0"
+  val algoliaScala = "com.algolia" %% "algoliasearch-scala" % "1.44.1"
   val algoliaNet = "com.algolia" % "algoliasearch-java-net" % algolia
 
-  lazy val scalatestVersion = "3.2.10"
+  lazy val scalatestVersion = "3.2.11"
   val scalaTest = "org.scalatest" %% "scalatest" % scalatestVersion % Test
 }
 
 trait Akka {
 
-  lazy val akkaVersion = "2.6.18"
+  lazy val akkaVersion = "2.6.19"
   lazy val alpakkaKafkaVersion = "3.0.0"
-  lazy val akkaHttpVersion = "10.2.7"
+  lazy val akkaHttpVersion = "10.2.9"
 
   val akkaHttp = "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
   val akkaActorTyped = "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion
@@ -28,9 +31,9 @@ trait Akka {
   val akkaPersistenceTyped = "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion
   val akkaStreamKafka = "com.typesafe.akka" %% "akka-stream-kafka" % alpakkaKafkaVersion
   val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
-  //"com.typesafe.akka" %% "akka-pki" % akkaVersion,
-  val akkaHttpCors = "ch.megard" %% "akka-http-cors" % "1.1.2" // Para poder usar akka grpc con grpc-web
-  val akkaGrpcRuntime = "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.1.3"
+  // "com.typesafe.akka" %% "akka-pki" % akkaVersion,
+  val akkaHttpCors = "ch.megard" %% "akka-http-cors" % "1.1.3" // Para poder usar akka grpc con grpc-web
+  val akkaGrpcRuntime = "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.1.4"
 
   val akkaActorTypedTest = "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test
   val akkaStreamTest = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test

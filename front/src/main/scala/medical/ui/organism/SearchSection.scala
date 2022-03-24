@@ -3,16 +3,15 @@ package medical.ui.organism
 import com.raquo.laminar.CollectionCommand
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
-import io.grpc.stub.StreamObserver
-import medical.api.patientapi.{ PatientApiGrpcWeb, PatientReply, PatientRequest }
+import medical.api.patientapi.{ PatientApiGrpcWeb, PatientReply }
 import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
+import medical.infrastructure.patientRepository
 import medical.ui.command.{ Command, ShowPatient }
 import medical.ui.molecule.TableBasic
 import org.scalajs.dom
 import org.scalajs.dom.html
 import org.scalajs.dom.raw.HTMLTableCellElement
 import scalapb.grpc.Channels
-import scalapb.grpcweb
 import scribe.*
 
 import java.time.LocalDate
@@ -26,32 +25,17 @@ object SearchSection {
     val grpcUrl = "https://0.0.0.0:9443" // "http://0.0.0.0:9090"
     val patientApi = PatientApiGrpcWeb.stub(Channels.grpcwebChannel(grpcUrl))
 
-    section(searchInput(patientReplyEventBus, patientApi), searchTable(patientReplyEventBus, commandWriteBus))
+    section(searchInput(patientReplyEventBus), searchTable(patientReplyEventBus, commandWriteBus))
   }
 
-  def searchInput(
-      eventBus: EventBus[PatientReply],
-      patientApi: PatientApiGrpcWeb.PatientApi[grpcweb.Metadata],
-  ): ReactiveHtmlElement[html.Div] = {
+  def searchInput(eventBus: EventBus[PatientReply]): ReactiveHtmlElement[html.Div] = {
     def searchName(input: Input): Unit = {
       val text = input.ref.value
       val search = text.trim.nonEmpty
       if (search) {
         debug("Buscar!")
         // eventBus.writer.onNext(PatientReply(UUID.randomUUID().toString, text, text, text))
-        patientApi.find(
-          PatientRequest(text),
-          new StreamObserver[PatientReply] {
-            override def onNext(patientReply: PatientReply): Unit = {
-              debug(s"patient: $patientReply")
-              eventBus.emit(patientReply)
-            } // patients.update(_ :+ value)
-
-            override def onError(throwable: Throwable): Unit = warn("onError")
-
-            override def onCompleted(): Unit = debug("onCompleted")
-          },
-        )
+        patientRepository.findByName(text, p => eventBus.emit(p))
       }
       ()
     }
