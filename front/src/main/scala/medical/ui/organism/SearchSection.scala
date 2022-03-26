@@ -9,7 +9,7 @@ import medical.infrastructure.patientRepository
 import medical.ui.command.{ Command, ShowPatient }
 import medical.ui.molecule.TableBasic
 import org.scalajs.dom
-import org.scalajs.dom.html
+import org.scalajs.dom.{ document, html }
 import org.scalajs.dom.raw.HTMLTableCellElement
 import scalapb.grpc.Channels
 import scribe.*
@@ -17,6 +17,7 @@ import scribe.*
 import java.time.LocalDate
 
 object SearchSection {
+  private val SEARCH_TABLE_ID = "searchTable"
 
   def apply(commandWriteBus: WriteBus[Command]): HtmlElement = {
     debug("Begin")
@@ -30,6 +31,15 @@ object SearchSection {
 
   private def searchInput(eventBus: EventBus[PatientReply]): ReactiveHtmlElement[html.Div] = {
     def searchName(input: Input): Unit = {
+      def cleanTable(): Unit = {
+        val table = document.getElementById(SEARCH_TABLE_ID)
+        val trs = table.querySelectorAll("tr")
+        for (i <- 0 until trs.length) {
+          table.removeChild(trs.item(i))
+        }
+      }
+
+      cleanTable()
       val text = input.ref.value
       val search = text.trim.asInstanceOf[String].nonEmpty
       if (search) {
@@ -124,7 +134,10 @@ object SearchSection {
   }
 
   private def searchTable(eventBus: EventBus[PatientReply], commandWriteBus: WriteBus[Command]): HtmlElement = {
-    val tds = tbody(children.command <-- eventBus.events.map(p => CollectionCommand.Append(_td(p, commandWriteBus))))
+    val tds = tbody(
+      idAttr := SEARCH_TABLE_ID,
+      children.command <-- eventBus.events.map(p => CollectionCommand.Append(_td(p, commandWriteBus))),
+    )
     TableBasic(List("Paciente"), Some(tds))
   }
 
