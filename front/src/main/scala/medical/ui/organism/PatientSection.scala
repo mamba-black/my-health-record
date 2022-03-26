@@ -27,12 +27,14 @@ object PatientSection {
     div(label(forId := "name", "Nombre"), input(idAttr := "name", name := "name", readOnly := true, value := _name))
   }
 
-  private val test =
+  private val test = {
+    val now: String = ZonedDateTime.now().asInstanceOf[ZonedDateTime].format(fmt).asInstanceOf[String]
+
     List(
       tbody(
         tr(
           cls := "border-none ",
-          td(cls := "px-6 pt-4", ZonedDateTime.now().format(fmt)),
+          td(cls := "px-6 pt-4", now),
           td(cls := "px-6 pt-4", "Dolor de cabeza"),
           td(cls := "px-6 pt-4", "Gripe comun"),
           td(cls := "px-6 pt-4", "Tomar paracetamol"),
@@ -42,7 +44,7 @@ object PatientSection {
       tbody(
         tr(
           cls := "border-none",
-          td(cls := "px-6 pt-4", ZonedDateTime.now().format(fmt)),
+          td(cls := "px-6 pt-4", now),
           td(cls := "px-6 pt-4", "Dolor de cabeza"),
           td(cls := "px-6 pt-4", "Gripe comun"),
           td(cls := "px-6 pt-4", "Tomar paracetamol"),
@@ -52,7 +54,7 @@ object PatientSection {
       tbody(
         tr(
           cls := "border-none",
-          td(cls := "px-6 pt-4", ZonedDateTime.now().format(fmt)),
+          td(cls := "px-6 pt-4", now),
           td(cls := "px-6 pt-4", "Dolor de cabeza"),
           td(cls := "px-6 pt-4", "Gripe comun"),
           td(cls := "px-6 pt-4", "Tomar paracetamol"),
@@ -62,7 +64,7 @@ object PatientSection {
       tbody(
         tr(
           cls := "border-none",
-          td(cls := "px-6 pt-4", ZonedDateTime.now().format(fmt)),
+          td(cls := "px-6 pt-4", now),
           td(cls := "px-6 pt-4", "Dolor de cabeza"),
           td(cls := "px-6 pt-4", "Gripe comun"),
           td(cls := "px-6 pt-4", "Tomar paracetamol"),
@@ -70,4 +72,5 @@ object PatientSection {
         tr(cls := "border-none", td(cls := "px-6 pb-4", span("cuatro"), span("cinco"))),
       ),
     )
+  }
 }

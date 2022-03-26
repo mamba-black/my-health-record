@@ -102,9 +102,9 @@ object PatientBasicInfo {
           // FIXME: crear servicia para guardar
           val patient = new Patient(
             "Test",
-            new HumanName(fathersFamily, mothersFamily, name.split(" ").toSeq),
+            new HumanName(fathersFamily, mothersFamily, name.split(" ").asInstanceOf[Array[String]].toSeq),
             true,
-            LocalDate.of(1979, 10, 13),
+            LocalDate.of(1979, 10, 13).asInstanceOf[LocalDate],
             Seq(new ContactPoint(SystemContactPoint.PHONE, "993990103")),
           )
           patientRepository.save(patient, patientVar.writer)
@@ -119,11 +119,11 @@ object PatientBasicInfo {
   private def getBasicElements(
       elements: HTMLCollection[org.scalajs.dom.Element]
   ): Try[(String, String, String, String, String)] = {
-    var name: String = null
-    var fathersFamily: String = null
-    var mothersFamily: String = null
-    var email: String = null
-    var phone: String = null
+    var name: String = ""
+    var fathersFamily: String = ""
+    var mothersFamily: String = ""
+    var email: String = ""
+    var phone: String = ""
     for (i <- 0 until elements.length) {
       val input = elements(i).asInstanceOf[HTMLInputElement]
       debug(s"$i ${input.name}: ${input.value} (valid: ${input.validity.valid})")
@@ -145,7 +145,7 @@ object PatientBasicInfo {
   }
 
   private def generateInputs(patientId: String, patient: Option[Patient]): PatientBasicInfo = {
-    val now = java.time.LocalDate.now()
+    val now: LocalDate = java.time.LocalDate.now().asInstanceOf[LocalDate]
     val readOnlyFlag = Var[Boolean](true)
     val patientVar = Var(patient)
     val patientSignal: Signal[Option[Patient]] = patientVar.signal
@@ -164,7 +164,7 @@ object PatientBasicInfo {
             patientId,
             new HumanName("Malpica2", "Gallegos2", Seq("Hector2", "Miuler2")),
             true,
-            LocalDate.of(1979, 10, 13),
+            LocalDate.of(1979, 10, 13).asInstanceOf[LocalDate],
             Seq(new ContactPoint(SystemContactPoint.PHONE, "+51993990103")),
           )
           patientVar.writer.onNext(Some(patient))
@@ -174,7 +174,8 @@ object PatientBasicInfo {
     val name = patientSignal.map(p => p.map(_.name.`given`.foldLeft(" ")(_ + _)))
     val fathersFamily = patientSignal.map(p => p.map(_.name.fathersFamily))
     val mothersFamily = patientSignal.map(p => p.map(_.name.mothersFamily))
-    val age = patientSignal.map(p => p.map(now.getYear - _.birthDate.getYear).map(_.toString))
+    val age =
+      patientSignal.map(p => p.map(now.getYear - _.birthDate.getYear).map(_.toString))
     val email = patientSignal.map(p => {
       val _email = p.flatMap(
         _.telecom
