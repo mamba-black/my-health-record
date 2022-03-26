@@ -20,7 +20,7 @@ object Main {
     documentEvents.onDomContentLoaded.foreach { _ =>
       val session = dom.window.localStorage.getItem("session")
       debug(s"session: $session")
-      if (session != null && session.nonEmpty) {
+      if (session.nonEmpty) {
         LinkHandler.install()
         render(dom.document.body, MainUI())
       } else {

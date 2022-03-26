@@ -6,7 +6,7 @@ import scribe.*
 
 object TableBasic {
 
-  def apply(ths: List[String], tds: Option[Inserter[Base]]): HtmlElement = {
+  def apply(columnNames: List[String], tds: Option[Inserter[Base]]): HtmlElement = {
     debug("Table Basic")
 
     val _tds = tds.getOrElse(children.command <-- EventStream.empty)
@@ -29,7 +29,7 @@ object TableBasic {
                 cls := "min-w-full divide-y divide-gray-200",
                 thead(
                   cls := "bg-gray-50",
-                  tr(ths.map { name =>
+                  tr(columnNames.map { name =>
                     th(cls := "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider", name)
                   }),
                 ),

@@ -28,10 +28,10 @@ object SearchSection {
     section(searchInput(patientReplyEventBus), searchTable(patientReplyEventBus, commandWriteBus))
   }
 
-  def searchInput(eventBus: EventBus[PatientReply]): ReactiveHtmlElement[html.Div] = {
+  private def searchInput(eventBus: EventBus[PatientReply]): ReactiveHtmlElement[html.Div] = {
     def searchName(input: Input): Unit = {
       val text = input.ref.value
-      val search = text.trim.nonEmpty
+      val search = text.trim.asInstanceOf[String].nonEmpty
       if (search) {
         debug("Buscar!")
         // eventBus.writer.onNext(PatientReply(UUID.randomUUID().toString, text, text, text))
@@ -106,7 +106,7 @@ object SearchSection {
       </div>
    */
 
-  def searchButton(
+  private def searchButton(
       eventBus: EventBus[PatientReply],
       input: ReactiveHtmlElement[html.Input],
   ): ReactiveHtmlElement[html.Button] = {
@@ -114,16 +114,16 @@ object SearchSection {
     val onClickObserver = Observer[dom.MouseEvent](onNext = { event =>
       debug(s"mouseEvent: $event")
       val text = input.ref.value
-      if (text.trim.nonEmpty) {
-        debug(s"Buscar! $text")
-        // eventBus.emit(PatientReply("-3", text))
-      }
+      // if (text.trim.nonEmpty) {
+      debug(s"Buscar! $text")
+      // eventBus.emit(PatientReply("-3", text))
+      // }
     })
 
     button("buscar", cls := "btn btn-outline-primary", onClick --> onClickObserver)
   }
 
-  def searchTable(eventBus: EventBus[PatientReply], commandWriteBus: WriteBus[Command]): HtmlElement = {
+  private def searchTable(eventBus: EventBus[PatientReply], commandWriteBus: WriteBus[Command]): HtmlElement = {
     val tds = tbody(children.command <-- eventBus.events.map(p => CollectionCommand.Append(_td(p, commandWriteBus))))
     TableBasic(List("Paciente"), Some(tds))
   }
@@ -133,11 +133,12 @@ object SearchSection {
     val showHistoryOnClickObserver = Observer[dom.MouseEvent](onNext = { event =>
       debug(s"event: $event")
       debug(s"1: ${event.target.isInstanceOf[HTMLTableCellElement]}")
+      val names = patientReply.name.split(" ").asInstanceOf[Array[String]]
       val patient = new Patient(
         "Test",
-        new HumanName(patientReply.paternalSurname, patientReply.maternalSurname, patientReply.name.split(" ")),
+        new HumanName(patientReply.paternalSurname, patientReply.maternalSurname, names),
         true,
-        LocalDate.of(1979, 10, 13), // FIXME
+        LocalDate.of(1979, 10, 13).asInstanceOf[LocalDate], // FIXME
         Seq(new ContactPoint(SystemContactPoint.PHONE, "993990103")),
       )
       commandWriteBus.onNext(ShowPatient(patient))

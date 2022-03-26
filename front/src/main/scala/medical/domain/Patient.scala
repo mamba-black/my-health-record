@@ -2,9 +2,8 @@ package medical.domain
 
 import scala.scalajs.js
 
-/**
-  * @see <a href="https://www.hl7.org/fhir/patient.html">fhir/patient</a>
-  *
+/** @see
+  *   <a href="https://www.hl7.org/fhir/patient.html">fhir/patient</a>
   * @param id
   * @param name
   * @param active

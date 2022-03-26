@@ -9,21 +9,22 @@ ThisBuild / organization := "miuler"
 //  "com.github.ghik" % "silencer-lib" % "1.7.4" % Provided cross CrossVersion.full
 //)
 ThisBuild / scalacOptions ++= Seq(
-  "-Xsource:3"
   // "-P:silencer:pathFilters=.*[/]src_managed[/].*"
   // "-Wconf:src=src_managed/.*:silent"
 )
 
 val scala2Version = "2.13.8"
-val scala3Version = "3.1.0"
+val scala3Version = "3.1.1"
+
+val commonSettingsS2 = Def.settings(scalaVersion := scala2Version, Compile / scalacOptions ++= Seq("-Xsource:3"))
 
 lazy val dtos = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
   .in(file("dtos"))
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .settings(commonSettingsS2)
   .settings(
     name := "my-health-record.dtos",
-    scalaVersion := scala2Version,
     scalaJSUseMainModuleInitializer := true,
     Compile / PB.targets := Seq(
       scalapb.gen(grpc = false) -> (Compile / sourceManaged).value / "scalapb",
@@ -43,20 +44,20 @@ lazy val front = (project in file("front"))
   .settings(commonTasks)
   .settings(
     name := "my-health-record.ui",
-    scalaVersion := scala2Version,
+    scalaVersion := scala3Version,
+    Compile / scalacOptions ++= Seq("-Ytasty-reader", "-Yexplicit-nulls"),
     Compile / npmDevDependencies ++= Seq(
-      "autoprefixer" -> "10.3.1",
-      "tailwindcss" -> "2.2.7",
-      "postcss" -> "8.3.6",
-      "postcss-cli" -> "8.3.1",
-      // "webpack-dev-server" -> "3.11.2",
+      "autoprefixer" -> "10.4.4",
+      "tailwindcss" -> "3.0.23",
+      "postcss" -> "8.4.12",
+      "postcss-cli" -> "9.1.0",
     ),
-    // Compile / scalaJSLinkerConfig ~= {
-    //  _.withSourceMap(false)
-    // },
-    // fullOptJS / scalaJSLinkerConfig ~= {
-    //  _.withSourceMap(false)
-    // },
+    Compile / scalaJSLinkerConfig ~= {
+      _.withSourceMap(false)
+    },
+    fullOptJS / scalaJSLinkerConfig ~= {
+      _.withSourceMap(false)
+    },
     scalaJSUseMainModuleInitializer := true,
     webpackBundlingMode := BundlingMode.LibraryAndApplication(),
     webpackDevServerExtraArgs := Seq("--inline", "--host", "0.0.0.0", "--history-api-fallback"),
@@ -75,11 +76,10 @@ lazy val front = (project in file("front"))
 
 lazy val back = (project in file("back"))
   .enablePlugins(AkkaGrpcPlugin, JibPlugin)
+  .settings(commonSettingsS2)
   .settings(
     name := "my-health-record.back",
-    scalaVersion := scala2Version,
     ThisBuild / dynverSeparator := "-",
-    ThisBuild / scalacOptions ++= Seq("-Xsource:3"),
     jibBaseImage := "adoptopenjdk/openjdk11:alpine-jre",
     jibName := "pocs",
     jibOrganization := "miclaro",
@@ -138,29 +138,33 @@ lazy val commonTasks = Def.settings(css := {
   logger.info(s"$WebpackConfig")
   logger.info(s"$webpackConfigFile")
   logger.info("1=================================<")
-  //  logger.info("2=================================>")
-  //  Npm.run("exec", "tailwindcss", "build", "-o tailwind.css")(front.base / "target" / "scala-2.13" / "scalajs-bundler" / "main", logger)
-  Npm.run(
-    "exec",
-    "--",
-    "postcss",
-    "--config",
-    ((thisProject / baseDirectory).value / "postcss.config.js").getAbsolutePath,
-    "-o",
-    // ((front / baseDirectory).value / "target" / "compiled.css").getAbsolutePath,
-    ((thisProject / crossTarget).value / "scalajs-bundler" / "main" / "compiled.css").getAbsolutePath,
-    ((thisProject / baseDirectory).value / "styles.css").getAbsolutePath,
-  )((thisProject / crossTarget).value / "scalajs-bundler" / "main", logger)
-  //  logger.info("2=================================<")
 
-  IO.copyFile(
-    java.nio.file.Path.of("front/index.html").toFile,
-    ((thisProject / crossTarget).value / "scalajs-bundler" / "main" / "index.html").getAbsoluteFile,
-  )
+  List("main.css", "postcss.config.js", "tailwind.config.js", "index.html").foreach { f =>
+    IO.copyFile(
+      java.nio.file.Path.of(s"front/$f").toFile,
+      ((thisProject / crossTarget).value / "scalajs-bundler" / "main" / f).getAbsoluteFile,
+      // ((thisProject / crossTarget).value / "scalajs-bundler" / "main" / "main.css").getAbsoluteFile,
+    )
+  }
   IO.copyDirectory(
     java.nio.file.Path.of("front/public").toFile,
     ((thisProject / crossTarget).value / "scalajs-bundler" / "main" / "public").getAbsoluteFile,
   )
+
+  //  logger.info("2=================================>")
+  //  Npm.run("exec", "tailwindcss", "build", "-o tailwind.css")(front.base / "target" / "scala-2.13" / "scalajs-bundler" / "main", logger)
+  // Npm.run("run", "pwd")((thisProject / crossTarget).value / "scalajs-bundler" / "main", logger)
+  Npm.run(
+    "exec",
+    "--",
+    "postcss",
+    "-o",
+    // ((front / baseDirectory).value / "target" / "compiled.css").getAbsolutePath,
+    // ((thisProject / baseDirectory).value / "main.css").getAbsolutePath,
+    ((thisProject / crossTarget).value / "scalajs-bundler" / "main" / "compiled.css").getAbsolutePath,
+    "main.css",
+  )((thisProject / crossTarget).value / "scalajs-bundler" / "main", logger)
+  //  logger.info("2=================================<")
 })
 
 //(css in css) := ((css in css) dependsOn npmInstallDependencies).value
