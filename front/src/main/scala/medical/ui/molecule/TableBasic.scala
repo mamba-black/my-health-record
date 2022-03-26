@@ -6,17 +6,17 @@ import scribe.*
 
 object TableBasic {
 
-  def apply(columnNames: List[String], tds: Option[Inserter[Base]]): HtmlElement = {
+  def apply(ths: List[String], tds: Option[Inserter[Base]]): HtmlElement = {
     debug("Table Basic")
 
     val _tds = tds.getOrElse(children.command <-- EventStream.empty)
 
     div(
       cls := "max-w-7xl mx-auto sm:px-6 lg:px-8", // FIXME saque el hidden
-//      cls.toggle("hidden") <-- eventBus.events.map(_ => {
-//        info("hidden:")
-//        false
-//      }),
+      //      cls.toggle("hidden") <-- eventBus.events.map(_ => {
+      //        info("hidden:")
+      //        false
+      //      }),
       div(
         cls := "flex flex-col",
         div(
@@ -29,7 +29,7 @@ object TableBasic {
                 cls := "min-w-full divide-y divide-gray-200",
                 thead(
                   cls := "bg-gray-50",
-                  tr(columnNames.map { name =>
+                  tr(ths.map { name =>
                     th(cls := "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider", name)
                   }),
                 ),
