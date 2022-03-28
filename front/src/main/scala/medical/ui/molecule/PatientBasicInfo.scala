@@ -4,7 +4,7 @@ import com.raquo.laminar.api.L.*
 import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
 import medical.infrastructure.patientRepository
 import medical.ui.atom.{ Button, InputLabel }
-import medical.ui.atom.ButtonShare.{ One, Two }
+import medical.ui.molecule.EditStatus.{ ReadOnly, Edit }
 import org.scalajs.dom.{ HTMLCollection, HTMLInputElement, MouseEvent }
 import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.*
 import scribe.*
@@ -27,7 +27,7 @@ object PatientBasicInfo {
 
     // val bt = button("validate")
     val editarButton = Var("Editar")
-
+    val status = Var[EditStatus](ReadOnly)
     div(
       h1("Informacion del paciente", cls := ("text-2xl", "py-8")),
       form(
@@ -48,17 +48,24 @@ object PatientBasicInfo {
               cls := "col-start-3 flex justify-end w-24 h-12 absolute bottom-0 right-0",
               Button(
                 editarButton.signal,
-                (status, event) => {
-                  info(s"status in Guardar button: $status")
-                  (status, event) match {
-                    case (One, _) => // Editar
+                event => {
+                  debug(s"status in Guardar button: $event")
+                  status.now() match {
+                    case ReadOnly => // Editar
                       basicInfo.readOnlyFlag.set(false)
                       editarButton.set("Guardar")
+                      status.set(Edit)
                       true
-                    case (Two, e) => // Guardar o Descartar
-                      savePatientBasic(thisForm, basicInfo.readOnlyFlag, basicInfo.patientVar, editarButton, e)
-                    case _ =>
-                      info("test")
+                    case Edit => // Guardar o Descartar
+                      savePatientBasic(
+                        thisForm,
+                        basicInfo.readOnlyFlag,
+                        basicInfo.patientVar,
+                        editarButton,
+                        status,
+                        event,
+                      )
+                      status.set(ReadOnly)
                       true
                   }
                 },
@@ -75,6 +82,7 @@ object PatientBasicInfo {
       readOnlyFlag: Var[Boolean],
       patientVar: Var[Option[Patient]],
       labelEditButton: Var[String],
+      status: Var[EditStatus],
       e: MouseEvent,
   ): Boolean = {
     val elements = _form.ref.elements
@@ -115,6 +123,9 @@ object PatientBasicInfo {
           )
           patientRepository.save(patient, patientVar.writer)
           labelEditButton.set("Editar")
+        },
+        () => {
+          status.set(Edit)
         },
       ),
     )
@@ -230,3 +241,7 @@ private[molecule] case class PatientBasicInfo(
     phone: Signal[Option[String]],
     allergies: Signal[Option[String]],
 )
+
+private enum EditStatus {
+  case ReadOnly, Edit
+}

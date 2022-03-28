@@ -14,7 +14,6 @@ object PatientSection {
 
   def apply(patientId: String, patient: Option[Patient]): HtmlElement = {
     debug(s"Begin patientId: $patientId")
-    val css = "@apply "
 
     section(
       className := "container m-4 p-10 border-2 rounded-lg",

@@ -1,32 +1,29 @@
 package medical.ui.atom
 
 import com.raquo.laminar.api.L.*
-import org.scalajs.dom.MouseEvent
+import org.scalajs.dom
+import org.scalajs.dom.{ CustomEventInit, MouseEvent }
 import scribe.*
 
 object Button {
 
-  def apply(text: Signal[String], callback: (ButtonShare.ButtonShareStatus, MouseEvent) => Boolean): HtmlElement = {
-    ButtonShare._button(text, callback)
+  def apply(text: Signal[String], callback: MouseEvent => Boolean): HtmlElement = {
+    ButtonShare(text, callback)
   }
 
 }
 
 object ButtonAlt {
 
-  def apply(text: Signal[String], callback: (ButtonShare.ButtonShareStatus, MouseEvent) => Boolean): HtmlElement = {
-    ButtonShare._button(text, callback, true)
+  def apply(text: Signal[String], callback: MouseEvent => Boolean): HtmlElement = {
+    ButtonShare(text, callback, true)
   }
 
 }
 
 object ButtonShare {
   // def _button(text: Signal[String], toggle: Observer[ButtonShareStatus], alt: Boolean = false) = {
-  private[atom] def _button(
-      text: Signal[String],
-      callback: (ButtonShareStatus, MouseEvent) => Boolean,
-      alt: Boolean = false,
-  ) = {
+  private[atom] def apply(text: Signal[String], callback: MouseEvent => Boolean, alt: Boolean = false) = {
     debug(s"text: $text")
 
     val cssShare = "py-2 px-4 rounded inline-flex items-center w-36"
@@ -37,27 +34,15 @@ object ButtonShare {
       s"bg-blue-500 hover:bg-blue-700 text-white font-bold $cssShare"
       s"w-full mt-2 p-2.5 flex-1 text-white bg-blue-500 hover:bg-blue-700 rounded-md outline-none ring-offset-2 ring-blue-600 focus:ring-2"
     }
-    val status = Var[ButtonShareStatus](Zero)
 
     button(
       cls := classname,
       // img(src := "/public/Education_(434).webp", cls := "w-4 mr-2"),
       child <-- text.map(span(_)),
       onClick --> Observer[MouseEvent](onNext = e => {
-        val _status = status.now()
-        debug(s"onClick ${_status}")
-        _status match {
-          case Zero =>
-            callback(One, e)
-            status.set(One)
-            e.preventDefault()
-          case One =>
-            if (callback(Two, e)) status.set(Zero)
-          case _ =>
-            e.preventDefault()
-            println("other status")
-        }
+        e.preventDefault()
         debug(s"toggleVar: onClick")
+        callback(e)
       }),
     )
   }
