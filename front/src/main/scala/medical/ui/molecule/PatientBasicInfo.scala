@@ -43,20 +43,26 @@ object PatientBasicInfo {
         InputLabel(ALLERGIES, "Alergias", basicInfo.allergies, basicInfo.readOnlyFlag.signal, important = true),
         inContext(thisForm =>
           div(
-            cls := "col-start-3 flex justify-end",
-            Button(
-              editarButton.signal,
-              {
-                case (One, _) => // Editar
-                  basicInfo.readOnlyFlag.set(false)
-                  editarButton.set("Guardar")
-                  true
-                case (Two, e) => // Guardar o Descartar
-                  savePatientBasic(thisForm, basicInfo.readOnlyFlag, basicInfo.patientVar, editarButton, e)
-                case _ =>
-                  info("test")
-                  true
-              },
+            cls := "relative",
+            div(
+              cls := "col-start-3 flex justify-end w-24 h-12 absolute bottom-0 right-0",
+              Button(
+                editarButton.signal,
+                (status, event) => {
+                  info(s"status in Guardar button: $status")
+                  (status, event) match {
+                    case (One, _) => // Editar
+                      basicInfo.readOnlyFlag.set(false)
+                      editarButton.set("Guardar")
+                      true
+                    case (Two, e) => // Guardar o Descartar
+                      savePatientBasic(thisForm, basicInfo.readOnlyFlag, basicInfo.patientVar, editarButton, e)
+                    case _ =>
+                      info("test")
+                      true
+                  }
+                },
+              ),
             ),
           )
         ),
