@@ -45,7 +45,7 @@ lazy val front = (project in file("front"))
   .settings(
     name := "my-health-record.ui",
     scalaVersion := scala3Version,
-    Compile / scalacOptions ++= Seq("-Ytasty-reader", "-Yexplicit-nulls"),
+    Compile / scalacOptions ++= Seq("-Yexplicit-nulls"), // "-Ytasty-reader",
     Compile / npmDevDependencies ++= Seq(
       "autoprefixer" -> "10.4.4",
       "tailwindcss" -> "3.0.23",
