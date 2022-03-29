@@ -5,6 +5,7 @@ import io.grpc.stub.StreamObserver
 import medical.api.patientapi.*
 import medical.domain.Patient
 import medical.domain.repository.PatientRepository
+import org.scalajs.dom
 import scalapb.grpc.Channels
 import scribe.*
 
@@ -14,7 +15,7 @@ import scala.concurrent.Future
 import scala.scalajs.js.timers.setTimeout
 
 private[infrastructure] class PatientRepositoryImpl extends PatientRepository {
-  val grpcUrl = "https://0.0.0.0:9443" // "http://0.0.0.0:9090"
+  val grpcUrl = s"https://${dom.window.location.hostname}:9443" // "http://0.0.0.0:9090"
   val patientApi = PatientApiGrpcWeb.stub(Channels.grpcwebChannel(grpcUrl))
 
   override def findByName(name: String, callBack: PatientReply => Unit): Unit = {
