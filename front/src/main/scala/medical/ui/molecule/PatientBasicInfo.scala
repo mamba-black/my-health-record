@@ -4,7 +4,7 @@ import com.raquo.laminar.api.L.*
 import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
 import medical.infrastructure.patientRepository
 import medical.ui.atom.{ Button, InputLabel }
-import medical.ui.molecule.EditStatus.{ ReadOnly, Edit }
+import medical.ui.molecule.EditStatus.{ Edit, ReadOnly }
 import org.scalajs.dom.{ HTMLCollection, HTMLInputElement, MouseEvent }
 import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.*
 import scribe.*
@@ -85,13 +85,14 @@ object PatientBasicInfo {
       status: Var[EditStatus],
       e: MouseEvent,
   ): Boolean = {
+    debug(s"❗ readOnlyFlag: $readOnlyFlag")
+    e.preventDefault()
     val elements = _form.ref.elements
 
     val (name, fathersFamily, mothersFamily, _, _) = getBasicElements(elements) match {
       case Success(value) => value
       case _              => return false
     }
-    e.preventDefault()
 
     info(s"$readOnlyFlag")
     // if (readOnlyFlag.now()) {

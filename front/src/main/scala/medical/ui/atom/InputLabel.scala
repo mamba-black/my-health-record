@@ -29,11 +29,9 @@ object InputLabel {
            else List("placeholder-gray-300", "focus:ring-indigo-100", "focus:border-indigo-300"))
 
     val labelCss =
-      List("mb-2", "block", "tracking-wide", "uppercase", "font-bold", "text-gray-600", "text-xs") ::: (if (important)
-                                                                                                          List(
-                                                                                                            "text-red-900"
-                                                                                                          )
-                                                                                                        else Nil)
+      List("mb-2", "block", "tracking-wide", "uppercase", "font-bold", "text-xs") ::: (if (important)
+                                                                                         List("text-red-900")
+                                                                                       else List("text-gray-600"))
 
     div(
       span(
