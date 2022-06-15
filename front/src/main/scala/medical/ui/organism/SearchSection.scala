@@ -3,8 +3,7 @@ package medical.ui.organism
 import com.raquo.laminar.CollectionCommand
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
-import medical.api.patientapi.{ PatientApiGrpcWeb, PatientReply }
-import medical.domain.{ ContactPoint, HumanName, Patient, SystemContactPoint }
+import medical.domain.*
 import medical.infrastructure.patientRepository
 import medical.ui.command.{ Command, ShowPatient }
 import medical.ui.molecule.TableBasic
@@ -15,21 +14,19 @@ import scalapb.grpc.Channels
 import scribe.*
 
 import java.time.LocalDate
+import scala.collection.mutable.ListBuffer
 
 object SearchSection {
   private val SEARCH_TABLE_ID = "searchTable"
 
   def apply(commandWriteBus: WriteBus[Command]): HtmlElement = {
     debug("Begin")
-    val patientReplyEventBus = new EventBus[PatientReply]
-
-    val grpcUrl = "https://0.0.0.0:9443" // "http://0.0.0.0:9090"
-    val patientApi = PatientApiGrpcWeb.stub(Channels.grpcwebChannel(grpcUrl))
+    val patientReplyEventBus = new EventBus[PatientBasic]
 
     section(searchInput(patientReplyEventBus), searchTable(patientReplyEventBus, commandWriteBus))
   }
 
-  private def searchInput(eventBus: EventBus[PatientReply]): ReactiveHtmlElement[html.Div] = {
+  private def searchInput(eventBus: EventBus[PatientBasic]): ReactiveHtmlElement[html.Div] = {
     def searchName(input: Input): Unit = {
       def cleanTable(): Unit = {
         val table = document.getElementById(SEARCH_TABLE_ID)
@@ -117,9 +114,9 @@ object SearchSection {
    */
 
   private def searchButton(
-      eventBus: EventBus[PatientReply],
-      input: ReactiveHtmlElement[html.Input],
-  ): ReactiveHtmlElement[html.Button] = {
+                            eventBus: EventBus[PatientBasic],
+                            input: ReactiveHtmlElement[html.Input],
+                          ): ReactiveHtmlElement[html.Button] = {
 
     val onClickObserver = Observer[dom.MouseEvent](onNext = { event =>
       debug(s"mouseEvent: $event")
@@ -133,23 +130,50 @@ object SearchSection {
     button("buscar", cls := "btn btn-outline-primary", onClick --> onClickObserver)
   }
 
-  private def searchTable(eventBus: EventBus[PatientReply], commandWriteBus: WriteBus[Command]): HtmlElement = {
+  private def searchTable(eventBus: EventBus[PatientBasic], commandWriteBus: WriteBus[Command]): HtmlElement = {
+    val patients = ListBuffer[PatientBasic]()
+    /** FIXME: Esto es porque esta llegando 2 vacios, no se porque */
+    val emptyFix = ListBuffer[Option[Unit]]()
     val tds = tbody(
       idAttr := SEARCH_TABLE_ID,
-      children.command <-- eventBus.events.map(p => CollectionCommand.Append(_td(p, commandWriteBus))),
+      children.command <-- eventBus.events.map { patientBasic =>
+        debug(s"patients.size: ${patients.size}")
+        if (patientBasic.isDefined) {
+          debug(s"patientBasic: $patientBasic")
+          patients.addOne(patientBasic)
+          val (_, humanName) = patientBasic.get
+          CollectionCommand.Append(_td(humanName, commandWriteBus))
+        } else if (patients.isEmpty) {
+          debug("patients.isEmpty")
+          if (emptyFix.size == 0) {
+            emptyFix.addOne(None)
+            CollectionCommand.Append(notFoundTd())
+          } else {
+            emptyFix.clear()
+            CollectionCommand.Append(div())
+          }
+        } else {
+          emptyFix.addOne(None)
+          debug(s"emptyFix.size: ${emptyFix.size}")
+          if (emptyFix.size == 2) {
+            emptyFix.clear()
+            patients.clear()
+          }
+          CollectionCommand.Append(div())
+        }
+      },
     )
     TableBasic(List("Paciente"), Some(tds))
   }
 
-  private def _td(patientReply: PatientReply, commandWriteBus: WriteBus[Command]): HtmlElement = {
+  private def _td(humanName: HumanName, commandWriteBus: WriteBus[Command]): HtmlElement = {
 
     val showHistoryOnClickObserver = Observer[dom.MouseEvent](onNext = { event =>
       debug(s"event: $event")
       debug(s"1: ${event.target.isInstanceOf[HTMLTableCellElement]}")
-      val names = patientReply.name.split(" ").asInstanceOf[Array[String]]
       val patient = new Patient(
         "Test",
-        new HumanName(patientReply.paternalSurname, patientReply.maternalSurname, names),
+        new HumanName(humanName.fathersFamily, humanName.mothersFamily, humanName.`given`),
         true,
         LocalDate.of(1979, 10, 13).asInstanceOf[LocalDate], // FIXME
         Seq(new ContactPoint(SystemContactPoint.PHONE, "993990103")),
@@ -173,7 +197,7 @@ object SearchSection {
           ),
           div(
             cls := "ml-4",
-            div(cls := "text-2xl font-medium font-semibold text-gray-900", patientReply.name),
+            div(cls := "text-2xl font-medium font-semibold text-gray-900", humanName.`given`),
             div(cls := "text-sm text-gray-500", "test"),
           ),
         ),
@@ -181,4 +205,26 @@ object SearchSection {
       )
     )
   }
+
+  def notFoundTd(): HtmlElement =
+    tr(
+      td(
+        cls := "px-6 py-4 whitespace-nowrap",
+        div(
+          cls := "flex items-center",
+          div(
+            cls := "flex-shrink-0 h-10 w-10",
+            img(
+              cls := "h-10 w-10 rounded-full",
+              src := "/public/not_found.webp",
+            ),
+          ),
+          div(
+            cls := "ml-4",
+            div(cls := "text-2xl font-medium font-semibold text-gray-900", "No se encontro"),
+            div(cls := "text-sm text-gray-500", "test"),
+          ),
+        ),
+      )
+    )
 }

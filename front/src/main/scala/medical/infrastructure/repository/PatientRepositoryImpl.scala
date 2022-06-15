@@ -3,7 +3,7 @@ package medical.infrastructure.repository
 import com.raquo.airstream.core.Observer
 import io.grpc.stub.StreamObserver
 import medical.api.patientapi.*
-import medical.domain.Patient
+import medical.domain.{ HumanName, Patient, PatientBasic }
 import medical.domain.repository.PatientRepository
 import org.scalajs.dom
 import scalapb.grpc.Channels
@@ -18,19 +18,26 @@ private[infrastructure] class PatientRepositoryImpl extends PatientRepository {
   val grpcUrl = s"https://${dom.window.location.hostname}:9443" // "http://0.0.0.0:9090"
   val patientApi = PatientApiGrpcWeb.stub(Channels.grpcwebChannel(grpcUrl))
 
-  override def findByName(name: String, callBack: PatientReply => Unit): Unit = {
+  override def findByName(name: String, callBack: PatientBasic => Unit): Unit = {
 
     patientApi.find(
       PatientRequest(name),
       new StreamObserver[PatientReply] {
         override def onNext(patientReply: PatientReply): Unit = {
           debug(s"[-patient]: $patientReply")
-          callBack(patientReply)
+          val humanName = new HumanName(
+            patientReply.paternalSurname,
+            patientReply.maternalSurname,
+            Seq(patientReply.name))
+          callBack(Some((patientReply.id, humanName)))
         } // patients.update(_ :+ value)
 
         override def onError(throwable: Throwable): Unit = warn("onError")
 
-        override def onCompleted(): Unit = debug("onCompleted")
+        override def onCompleted(): Unit = {
+          debug("onCompleted")
+          callBack(None)
+        }
       },
     )
     ()

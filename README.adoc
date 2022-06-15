@@ -4,13 +4,23 @@ Proyecto base donde integra backend y frontend
 
 == front
 
-front/npmInstallDependencies css front/fastOptJS::webpack front/fastOptJS::startWebpackDevServer # http://localhost:8080/
+[source,bash]
+----
+front/npmInstallDependencies
+css
+front/fastOptJS::webpack
+front/fastOptJS::startWebpackDevServer # http://localhost:8080/
 
 front/fastOptJS::stopWebpackDevServer
+----
 
 == Back
 
+[source,bash]
+----
 back/compile
+back/run
+----
 
 = Certificados
 
