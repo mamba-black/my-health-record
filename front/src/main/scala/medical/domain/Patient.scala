@@ -11,9 +11,22 @@ import scala.scalajs.js
   * @param telecom
   */
 class Patient(
-    val id: String,
-    val name: HumanName,
-    val active: Boolean,
-    val birthDate: java.time.LocalDate,
-    val telecom: Seq[ContactPoint] = Seq(),
-) extends js.Object
+               val id: String,
+               val name: HumanName,
+               val active: Boolean,
+               val birthDate: java.time.LocalDate,
+               val telecom: Seq[ContactPoint] = Seq(),
+             ) extends js.Object {
+  override def toString(): String = {
+    s"""{
+       |  "id": "$id",
+       |  "name": "${name.text}",
+       |  "active": $active,
+       |  "birthDate": "$birthDate",
+       |  "telecom": "$telecom"
+       |}""".stripMargin
+  }
+
+  def ao = {
+  }
+}
