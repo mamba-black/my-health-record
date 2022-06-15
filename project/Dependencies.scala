@@ -2,19 +2,19 @@ import sbt._
 
 object Dependencies extends Akka with Gatling with Grpc {
 
-  val logbackClassic = "ch.qos.logback" % "logback-classic" % "1.2.9"
+  val logbackClassic = "ch.qos.logback" % "logback-classic" % "1.2.11"
 
-  val scribeVersion = "3.8.2"
+  val scribeVersion = "3.8.3"
   val scribe = "com.outr" %% "scribe" % scribeVersion
   val scribeSlf4j = "com.outr" %% "scribe-slf4j" % scribeVersion
 
-  lazy val algolia = "3.16.1"
+  lazy val algolia = "3.16.5"
   val algoliaCore = "com.algolia" % "algoliasearch-core" % algolia
   val algoliaApache = "com.algolia" % "algoliasearch-apache" % algolia
-  val algoliaScala = "com.algolia" %% "algoliasearch-scala" % "1.44.1"
+  val algoliaScala = "com.algolia" %% "algoliasearch-scala" % "1.45.0"
   val algoliaNet = "com.algolia" % "algoliasearch-java-net" % algolia
 
-  lazy val scalatestVersion = "3.2.11"
+  lazy val scalatestVersion = "3.2.12"
   val scalaTest = "org.scalatest" %% "scalatest" % scalatestVersion % Test
 }
 
@@ -48,8 +48,8 @@ trait Grpc {
 }
 
 trait Gatling {
-  val gatlingVersion = "3.6.1"
+  val gatlingVersion = "3.7.6"
   val gatlingTest = "io.gatling" % "gatling-test-framework" % gatlingVersion % "test"
   val gatlingChartsTest = "io.gatling.highcharts" % "gatling-charts-highcharts" % gatlingVersion % "test"
-  val gatlingGrpcTest = "com.github.phisgr" % "gatling-grpc" % "0.12.0" % "test"
+  val gatlingGrpcTest = "com.github.phisgr" % "gatling-grpc" % "0.13.0" % "test"
 }
