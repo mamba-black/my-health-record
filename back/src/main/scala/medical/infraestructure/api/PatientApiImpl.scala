@@ -1,4 +1,4 @@
-package medical.infraestructure.presentation
+package medical.infraestructure.api
 
 import akka.NotUsed
 import akka.actor.typed.ActorSystem
@@ -33,4 +33,6 @@ class PatientApiImpl(system: ActorSystem[?], patientService: PatientService) ext
 
     Future.successful(FullPatientReply(UUID.randomUUID().toString, "Hector Miuler", "Malpica", "Gallegos"))
   }
+
+  override def savePatient(in: FullPatientReply): Future[FullPatientReply] = ???
 }

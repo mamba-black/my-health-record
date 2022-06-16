@@ -29,12 +29,16 @@ trait Akka {
   val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
   val akkaDiscovery = "com.typesafe.akka" %% "akka-discovery" % akkaVersion
   val akkaPersistenceTyped = "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion
+  val akkaPersistenceDatastore = "de.innfactory" %% "akka-persistence-gcp-datastore" % "1.0.1"
   val akkaStreamKafka = "com.typesafe.akka" %% "akka-stream-kafka" % alpakkaKafkaVersion
   val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
   // "com.typesafe.akka" %% "akka-pki" % akkaVersion,
   val akkaHttpCors = "ch.megard" %% "akka-http-cors" % "1.1.3" // Para poder usar akka grpc con grpc-web
   val akkaGrpcRuntime = "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.1.4"
+  val macwire = "com.softwaremill.macwire" %% "macros" % "2.5.7" % Provided
 
+  //val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test
+  val akkaPersistenceTck = "com.typesafe.akka" %% "akka-persistence-tck" % akkaVersion
   val akkaActorTypedTest = "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test
   val akkaStreamTest = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test
   val akkaPersistenceTest = "com.typesafe.akka" %% "akka-persistence-testkit" % akkaVersion % Test

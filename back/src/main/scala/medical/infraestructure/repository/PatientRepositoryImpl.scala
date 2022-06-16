@@ -11,9 +11,8 @@ import scribe.info
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class PatientRepositoryImpl extends PatientRepository {
+class PatientRepositoryImpl(client: AlgoliaClient) extends PatientRepository {
 
-  private val client = new AlgoliaClient("9DTTCP8MNP", "35185c2fd14f34ffade3b9dc9c363049")
 
   override def find(name: String): Source[PatientBasic, NotUsed] = {
     info(s"name: $name")
