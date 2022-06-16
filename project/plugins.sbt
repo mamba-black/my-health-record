@@ -5,3 +5,4 @@ addSbtPlugin("org.jetbrains.scala" % "sbt-ide-settings" % "1.1.1")
 addSbtPlugin("de.gccc.sbt" % "sbt-jib" % "0.10.0")
 addSbtPlugin("io.gatling" % "gatling-sbt" % "4.0.0")
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.2")
+addDependencyTreePlugin

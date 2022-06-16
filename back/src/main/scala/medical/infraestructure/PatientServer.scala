@@ -1,67 +1,56 @@
 package medical.infraestructure
 
 import akka.actor.typed.ActorSystem
-import akka.actor.typed.scaladsl.Behaviors
-import akka.grpc.scaladsl.{ServerReflection, WebHandler}
-import akka.http.scaladsl.{ConnectionContext, Http}
+import akka.grpc.scaladsl.{ ServerReflection, WebHandler }
+import akka.http.scaladsl.{ ConnectionContext, Http }
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.model.HttpMethods.*
-import akka.http.scaladsl.model.headers.{
-  `Access-Control-Allow-Headers`,
-  `Access-Control-Allow-Methods`,
-  `Access-Control-Allow-Origin`,
-}
-import com.typesafe.config.ConfigFactory
-import grpc.health.v1.HealthHandler
-import medical.api.{PatientApi, PatientApiHandler}
-import medical.application.PatientServiceImpl
-import medical.infraestructure.presentation.{HealthImpl, PatientApiImpl}
-import medical.infraestructure.repository.PatientRepositoryImpl
+import akka.http.scaladsl.model.headers.{ `Access-Control-Allow-Headers`, `Access-Control-Allow-Methods`, `Access-Control-Allow-Origin` }
+import grpc.health.v1.{ Health, HealthHandler }
+import medical.api.{ PatientApi, PatientApiHandler }
+import medical.infraestructure.di.PatientModule
 
-import java.security.{KeyStore, SecureRandom}
-import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
-import scala.concurrent.ExecutionContextExecutor
+import java.security.{ KeyStore, SecureRandom }
+import javax.net.ssl.{ KeyManagerFactory, SSLContext, TrustManagerFactory }
 import scala.io.StdIn
 //import wvlet.log.LogFormatter.PlainSourceCodeLogFormatter
 import scribe.*
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 
 object PatientServer {
   //  wvlet.log.Logger.setDefaultFormatter(PlainSourceCodeLogFormatter)
   def main(args: Array[String]): Unit = {
     info("Starting gRPC...")
 
-    val conf = ConfigFactory
-      .parseString("akka.http.server.preview.enable-http2 = on")
-      .withFallback(ConfigFactory.defaultApplication())
-    val system = ActorSystem[Nothing](Behaviors.empty, "PatientServer", conf)
-    implicit val executionContext: ExecutionContextExecutor = system.executionContext
+    val module = new PatientModule {}
+    import module.system.executionContext
 
-    val bindingFuture = Future.sequence(new PatientServer(system).run())
+
+    val bindingFuture = Future.sequence(module.patientServer.run())
 
     StdIn.readLine()
     bindingFuture
       .flatMap(binding => Future.sequence(binding.map(_.unbind())))
       .onComplete(_ => {
-        system.terminate()
+        module.system.terminate()
       })
     ()
   }
 }
 
-class PatientServer(system: ActorSystem[?]) {
+class PatientServer(system: ActorSystem[?], health: Health, patientApi: PatientApi) {
   def run(): List[Future[Http.ServerBinding]] = {
     implicit val sys: ActorSystem[?] = system
-    implicit val ec: ExecutionContextExecutor = sys.executionContext
+    import sys.executionContext
 
     val serverReflection = ServerReflection.partial(List(PatientApi))
-    val health = HealthHandler.partial(new HealthImpl())
-    val patientApi =
-      PatientApiHandler.partial(new PatientApiImpl(system, new PatientServiceImpl(new PatientRepositoryImpl)))
-    val apis = WebHandler.grpcWebHandler(health, serverReflection, patientApi)
+    val healthHandler = HealthHandler.partial(health)
+    val patientApiHandler =
+      PatientApiHandler.partial(patientApi)
+    val apis = WebHandler.grpcWebHandler(healthHandler, serverReflection, patientApiHandler)
 
     val requestHandler: HttpRequest => Future[HttpResponse] = { request =>
       info("-----------------------------------------------------------------------------------------------")

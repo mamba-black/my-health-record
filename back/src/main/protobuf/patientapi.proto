@@ -10,6 +10,7 @@ service PatientApi {
   rpc Find (PatientRequest) returns (stream PatientReply) {}
   rpc Get (PatientIdRequest) returns (PatientReply) {}
   rpc GetFullPatient (PatientIdRequest) returns (FullPatientReply) {}
+  rpc SavePatient (FullPatientReply) returns (FullPatientReply) {}
 }
 
 message PatientRequest {
