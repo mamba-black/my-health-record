@@ -30,4 +30,4 @@ class PatientRepositoryImpl(client: AlgoliaClient) extends PatientRepository {
   }
 }
 
-case class PatientAlgolia(identifier: String, text: String)
+private case class PatientAlgolia(identifier: String, text: String)

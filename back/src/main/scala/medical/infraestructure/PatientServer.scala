@@ -5,7 +5,11 @@ import akka.grpc.scaladsl.{ ServerReflection, WebHandler }
 import akka.http.scaladsl.{ ConnectionContext, Http }
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.model.HttpMethods.*
-import akka.http.scaladsl.model.headers.{ `Access-Control-Allow-Headers`, `Access-Control-Allow-Methods`, `Access-Control-Allow-Origin` }
+import akka.http.scaladsl.model.headers.{
+  `Access-Control-Allow-Headers`,
+  `Access-Control-Allow-Methods`,
+  `Access-Control-Allow-Origin`
+}
 import grpc.health.v1.{ Health, HealthHandler }
 import medical.api.{ PatientApi, PatientApiHandler }
 import medical.infraestructure.di.PatientModule
@@ -28,7 +32,6 @@ object PatientServer {
     val module = new PatientModule {}
     import module.system.executionContext
 
-
     val bindingFuture = Future.sequence(module.patientServer.run())
 
     StdIn.readLine()
@@ -41,10 +44,9 @@ object PatientServer {
   }
 }
 
-class PatientServer(system: ActorSystem[?], health: Health, patientApi: PatientApi) {
+class PatientServer(implicit system: ActorSystem[?], health: Health, patientApi: PatientApi) {
   def run(): List[Future[Http.ServerBinding]] = {
-    implicit val sys: ActorSystem[?] = system
-    import sys.executionContext
+    import system.executionContext
 
     val serverReflection = ServerReflection.partial(List(PatientApi))
     val healthHandler = HealthHandler.partial(health)
@@ -83,7 +85,7 @@ class PatientServer(system: ActorSystem[?], health: Health, patientApi: PatientA
                   "x-grpc-web",
                   "grpc-timeout",
                 ),
-                `Access-Control-Allow-Methods`(POST), //, GET, PUT, DELETE, OPTIONS
+                `Access-Control-Allow-Methods`(POST), // , GET, PUT, DELETE, OPTIONS
               )
             )
           )
