@@ -2,20 +2,20 @@ import sbt._
 
 object Dependencies extends Akka with Gatling with Grpc {
 
-  val logbackClassic = "ch.qos.logback" % "logback-classic" % "1.2.11"
+  lazy val logbackClassic = "ch.qos.logback" % "logback-classic" % "1.2.11"
 
-  val scribeVersion = "3.8.3"
-  val scribe = "com.outr" %% "scribe" % scribeVersion
-  val scribeSlf4j = "com.outr" %% "scribe-slf4j" % scribeVersion
+  lazy val scribeVersion = "3.8.3"
+  lazy val scribe = "com.outr" %% "scribe" % scribeVersion
+  lazy val scribeSlf4j = "com.outr" %% "scribe-slf4j" % scribeVersion
 
   lazy val algolia = "3.16.5"
-  val algoliaCore = "com.algolia" % "algoliasearch-core" % algolia
-  val algoliaApache = "com.algolia" % "algoliasearch-apache" % algolia
-  val algoliaScala = "com.algolia" %% "algoliasearch-scala" % "1.45.0"
-  val algoliaNet = "com.algolia" % "algoliasearch-java-net" % algolia
+  lazy val algoliaCore = "com.algolia" % "algoliasearch-core" % algolia
+  lazy val algoliaApache = "com.algolia" % "algoliasearch-apache" % algolia
+  lazy val algoliaScala = "com.algolia" %% "algoliasearch-scala" % "1.45.0"
+  lazy val algoliaNet = "com.algolia" % "algoliasearch-java-net" % algolia
 
   lazy val scalatestVersion = "3.2.12"
-  val scalaTest = "org.scalatest" %% "scalatest" % scalatestVersion % Test
+  lazy val scalaTest = "org.scalatest" %% "scalatest" % scalatestVersion % Test
 }
 
 trait Akka {
@@ -24,24 +24,25 @@ trait Akka {
   lazy val alpakkaKafkaVersion = "3.0.0"
   lazy val akkaHttpVersion = "10.2.9"
 
-  val akkaHttp = "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
-  val akkaActorTyped = "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion
-  val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
-  val akkaDiscovery = "com.typesafe.akka" %% "akka-discovery" % akkaVersion
-  val akkaPersistenceTyped = "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion
-  val akkaPersistenceDatastore = "de.innfactory" %% "akka-persistence-gcp-datastore" % "1.0.1"
-  val akkaStreamKafka = "com.typesafe.akka" %% "akka-stream-kafka" % alpakkaKafkaVersion
-  val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
+  lazy val akkaHttp = "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
+  lazy val akkaActorTyped = "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion
+  lazy val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
+  lazy val akkaDiscovery = "com.typesafe.akka" %% "akka-discovery" % akkaVersion
+  lazy val akkaPersistenceTyped = "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion
+  lazy val akkaPersistenceDatastore = "de.innfactory" %% "akka-persistence-gcp-datastore" % "1.0.1"
+  // lazy val akkaSerializationJackson = "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion
+  lazy val akkaStreamKafka = "com.typesafe.akka" %% "akka-stream-kafka" % alpakkaKafkaVersion
+  lazy val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
   // "com.typesafe.akka" %% "akka-pki" % akkaVersion,
-  val akkaHttpCors = "ch.megard" %% "akka-http-cors" % "1.1.3" // Para poder usar akka grpc con grpc-web
-  val akkaGrpcRuntime = "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.1.4"
-  val macwire = "com.softwaremill.macwire" %% "macros" % "2.5.7" % Provided
+  lazy val akkaHttpCors = "ch.megard" %% "akka-http-cors" % "1.1.3" // Para poder usar akka grpc con grpc-web
+  lazy val akkaGrpcRuntime = "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.1.4"
+  lazy val macwire = "com.softwaremill.macwire" %% "macros" % "2.5.7" % Provided
 
-  //val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test
-  val akkaPersistenceTck = "com.typesafe.akka" %% "akka-persistence-tck" % akkaVersion
-  val akkaActorTypedTest = "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test
-  val akkaStreamTest = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test
-  val akkaPersistenceTest = "com.typesafe.akka" %% "akka-persistence-testkit" % akkaVersion % Test
+  // val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test
+  lazy val akkaPersistenceTck = "com.typesafe.akka" %% "akka-persistence-tck" % akkaVersion
+  lazy val akkaActorTypedTest = "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test
+  lazy val akkaStreamTest = "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test
+  lazy val akkaPersistenceTest = "com.typesafe.akka" %% "akka-persistence-testkit" % akkaVersion % Test
 }
 
 trait Grpc {

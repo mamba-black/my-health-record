@@ -6,3 +6,4 @@ addSbtPlugin("de.gccc.sbt" % "sbt-jib" % "0.10.0")
 addSbtPlugin("io.gatling" % "gatling-sbt" % "4.0.0")
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.2")
 addDependencyTreePlugin
+addSbtPlugin("nl.gn0s1s" % "sbt-dotenv" % "3.0.0")
