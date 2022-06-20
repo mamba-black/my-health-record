@@ -44,7 +44,7 @@ object PatientServer {
   }
 }
 
-class PatientServer(implicit system: ActorSystem[?], health: Health, patientApi: PatientApi) {
+class PatientServer(health: Health, patientApi: PatientApi, implicit val system: ActorSystem[?]) {
   def run(): List[Future[Http.ServerBinding]] = {
     import system.executionContext
 

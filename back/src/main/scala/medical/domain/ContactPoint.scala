@@ -11,7 +11,7 @@ import medical.domain.UseContactPoint.UseContactPoint
   *
   * @see <a href="https://www.hl7.org/fhir/datatypes.html#ContactPoint">fhir/datatypes#ContactPoint</a>
   */
-class ContactPoint(
+case class ContactPoint(
                     val system: SystemContactPoint,
                     val value: String,
                     val use:  UseContactPoint = UseContactPoint.HOME,

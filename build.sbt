@@ -93,6 +93,7 @@ lazy val back = (project in file("back"))
       akkaDiscovery,
       akkaPersistenceTyped,
       akkaPersistenceDatastore,
+      akkaSerializationJackson,
       akkaStreamKafka,
       akkaSlf4j,
       scribe,
