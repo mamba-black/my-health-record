@@ -30,7 +30,7 @@ trait Akka {
   lazy val akkaDiscovery = "com.typesafe.akka" %% "akka-discovery" % akkaVersion
   lazy val akkaPersistenceTyped = "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion
   lazy val akkaPersistenceDatastore = "de.innfactory" %% "akka-persistence-gcp-datastore" % "1.0.1"
-  // lazy val akkaSerializationJackson = "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion
+  lazy val akkaSerializationJackson = "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion
   lazy val akkaStreamKafka = "com.typesafe.akka" %% "akka-stream-kafka" % alpakkaKafkaVersion
   lazy val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
   // "com.typesafe.akka" %% "akka-pki" % akkaVersion,

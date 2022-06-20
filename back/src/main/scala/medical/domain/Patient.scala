@@ -1,13 +1,13 @@
 package medical.domain
 
-/**
-  * @see <a href="https://www.hl7.org/fhir/patient.html">fhir/patient</a>
+/** @see
+  *   <a href="https://www.hl7.org/fhir/patient.html">fhir/patient</a>
   * @param identifier
   * @param name
   * @param active
   * @param telecom
   */
-class Patient(
+case class Patient(
     val identifier: String,
     val name: HumanName,
     val active: Boolean,

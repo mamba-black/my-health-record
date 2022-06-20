@@ -6,7 +6,7 @@ package medical.domain
   * @param given         Given names (not always 'first'). Includes middle names
   * @see <a href="http://hl7.org/fhir/datatypes.html#humanname">fhir/datatypes.html#HumanName</a>
   */
-class HumanName(val fathersFamily: String, val mothersFamily: String, val given: Seq[String]) {
+case class HumanName(val fathersFamily: String, val mothersFamily: String, val given: Seq[String]) {
 
   /** Family name (often called 'Surname') */
   val family: String = s"$fathersFamily $mothersFamily"
