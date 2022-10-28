@@ -2,7 +2,6 @@ package medical.infraestructure
 
 import akka.actor.typed.ActorSystem
 import akka.grpc.scaladsl.{ ServerReflection, WebHandler }
-import akka.http.scaladsl.{ ConnectionContext, Http }
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.model.HttpMethods.*
 import akka.http.scaladsl.model.headers.{
@@ -10,13 +9,12 @@ import akka.http.scaladsl.model.headers.{
   `Access-Control-Allow-Methods`,
   `Access-Control-Allow-Origin`
 }
+import akka.http.scaladsl.{ ConnectionContext, Http }
 import grpc.health.v1.{ Health, HealthHandler }
 import medical.api.{ PatientApi, PatientApiHandler }
-import medical.infraestructure.di.PatientModule
 
 import java.security.{ KeyStore, SecureRandom }
 import javax.net.ssl.{ KeyManagerFactory, SSLContext, TrustManagerFactory }
-import scala.io.StdIn
 //import wvlet.log.LogFormatter.PlainSourceCodeLogFormatter
 import scribe.*
 
@@ -24,34 +22,13 @@ import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.{ Failure, Success }
 
-object PatientServer {
-  //  wvlet.log.Logger.setDefaultFormatter(PlainSourceCodeLogFormatter)
-  def main(args: Array[String]): Unit = {
-    info("Starting gRPC...")
-
-    val module = new PatientModule {}
-    import module.system.executionContext
-
-    val bindingFuture = Future.sequence(module.patientServer.run())
-
-    StdIn.readLine()
-    bindingFuture
-      .flatMap(binding => Future.sequence(binding.map(_.unbind())))
-      .onComplete(_ => {
-        module.system.terminate()
-      })
-    ()
-  }
-}
-
 class PatientServer(health: Health, patientApi: PatientApi, implicit val system: ActorSystem[?]) {
   def run(): List[Future[Http.ServerBinding]] = {
     import system.executionContext
 
     val serverReflection = ServerReflection.partial(List(PatientApi))
     val healthHandler = HealthHandler.partial(health)
-    val patientApiHandler =
-      PatientApiHandler.partial(patientApi)
+    val patientApiHandler = PatientApiHandler.partial(patientApi)
     val apis = WebHandler.grpcWebHandler(healthHandler, serverReflection, patientApiHandler)
 
     val requestHandler: HttpRequest => Future[HttpResponse] = { request =>
