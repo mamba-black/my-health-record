@@ -2,21 +2,23 @@ package medical.infraestructure.actor
 
 import medical.domain.Patient
 import akka.actor.typed.{ ActorRef, Behavior }
+import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
 import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior }
 import medical.infraestructure.actor.PatientBehavior.Identifier
 
-sealed trait Event
-final case class SavePatient(patient: Patient, replyTo: ActorRef[Patient]) extends Command
-final case class GetPatient(identifier: Identifier, replyTo: ActorRef[Patient]) extends Command
-
-sealed trait Command
-final case class PatientSaved(patient: Patient) extends Event {}
-
-sealed case class State(patient: Option[Patient])
-
 object PatientBehavior {
   type Identifier = String
+  val PatientTypeKey = EntityTypeKey[PatientBehavior.Command]("Patient")
+
+  sealed trait Event
+  final case class SavePatient(patient: Patient, replyTo: ActorRef[Patient]) extends Command
+  final case class GetPatient(identifier: Identifier, replyTo: ActorRef[Patient]) extends Command
+
+  sealed trait Command
+  final case class PatientSaved(patient: Patient) extends Event {}
+
+  sealed case class State(patient: Option[Patient])
 
   def apply(identifier: Identifier): Behavior[Command] = {
     EventSourcedBehavior[Command, Event, State](

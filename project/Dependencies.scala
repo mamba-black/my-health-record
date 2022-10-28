@@ -29,13 +29,14 @@ trait Akka {
   lazy val akkaStream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
   lazy val akkaDiscovery = "com.typesafe.akka" %% "akka-discovery" % akkaVersion
   lazy val akkaPersistenceTyped = "com.typesafe.akka" %% "akka-persistence-typed" % akkaVersion
-  lazy val akkaPersistenceDatastore = "de.innfactory" %% "akka-persistence-gcp-datastore" % "1.0.1"
+  lazy val akkaPersistenceDatastore = "de.innfactory" %% "akka-persistence-gcp-datastore" % "1.0.2"
+  lazy val akkaSharding = "com.typesafe.akka" %% "akka-cluster-sharding-typed" % akkaVersion
   lazy val akkaSerializationJackson = "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion
   lazy val akkaStreamKafka = "com.typesafe.akka" %% "akka-stream-kafka" % alpakkaKafkaVersion
   lazy val akkaSlf4j = "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
   // "com.typesafe.akka" %% "akka-pki" % akkaVersion,
   lazy val akkaHttpCors = "ch.megard" %% "akka-http-cors" % "1.1.3" // Para poder usar akka grpc con grpc-web
-  lazy val akkaGrpcRuntime = "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.1.4"
+  lazy val akkaGrpcRuntime = "com.lightbend.akka.grpc" %% "akka-grpc-runtime" % "2.1.5"
   lazy val macwire = "com.softwaremill.macwire" %% "macros" % "2.5.7" % Provided
 
   // val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test
