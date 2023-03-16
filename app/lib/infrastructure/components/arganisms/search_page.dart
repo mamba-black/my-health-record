@@ -1,11 +1,10 @@
 import 'dart:collection';
-import 'dart:io';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:medical_app/infrastructure/components/arganisms/patient_information.dart';
-import '../../api/medical.pbgrpc.dart';
-import 'dart:developer';
 
+import '../../api/medical.pbgrpc.dart';
 import 'home.dart';
 
 class SearchPage extends StatefulWidget {
@@ -63,6 +62,8 @@ class _SearchPageState extends State<SearchPage> {
 
 class CustomSearchDelegate extends SearchDelegate<String?> {
   static const int LIMIT_CACHE = 10;
+  static const messageErrorValidate = Center(child: Text('El nombre debe contener al menos 4 caracteres'));
+  static const patientNotFound = Center(child: Text('No se encontro el paciente'));
 
   List<String> _results;
   Queue<String> _namePatients = Queue<String>();
@@ -131,48 +132,43 @@ class CustomSearchDelegate extends SearchDelegate<String?> {
   @override
   Widget buildResults(BuildContext context) {
     log('buildResults $context');
-    Widget widget;
 
-    if (query.trim().isNotEmpty) {
-      widget = StreamBuilder<String>(
-          stream: searchPatient(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Center(
-                child: Text('No se encontro el paciente'),
-              );
-            }
-
-            if (snapshot.data != null) {
-              _results.add(snapshot.data as String);
-            }
-            return ListView.builder(
-              itemCount: _results.length,
-              itemBuilder: (context, index) {
-                var result = _results[index];
-                var avatar =
-                    Image.network('https://en.gravatar.com/userimage/23111536/064cda8270d684ed4f0824fc8cba267b.jpeg');
-                var listTile = ListTile(
-                  title: Text('Result $index: $result'),
-                  subtitle: Text('Result $index: $result'),
-                  // leading: Image.network('https://en.gravatar.com/userimage/23111536/064cda8270d684ed4f0824fc8cba267b.jpeg'),
-                  leading: ClipOval(
-                    child: avatar,
-                  ),
-                  onTap: () {
-                    log('onTap $index, regresar al home');
-                    close(context, "Se encontro al paciente");
-                  },
-                );
-                return listTile;
-              },
-            );
-          });
-    } else {
-      widget = const Center(child: Text('El nombre debe contener al menos 4 caracteres'));
-    }
+    Widget widget = query.trim().isEmpty
+            ? messageErrorValidate
+            : StreamBuilder(stream: searchPatient(), builder: _buildResult);
 
     return widget;
+  }
+
+  Widget _buildResult(BuildContext context, AsyncSnapshot<String> snapshot) {
+    if (!snapshot.hasData) {
+      return patientNotFound;
+    }
+
+    if (snapshot.data != null) {
+      _results.add(snapshot.data as String);
+    }
+
+    return ListView.builder(
+      itemCount: _results.length,
+      itemBuilder: (context, index) {
+        var result = _results[index];
+        var avatar = Image.network('https://en.gravatar.com/userimage/23111536/064cda8270d684ed4f0824fc8cba267b.jpeg');
+        var listTile = ListTile(
+          title: Text('Result $index: $result'),
+          subtitle: Text('Result $index: $result'),
+          // leading: Image.network('https://en.gravatar.com/userimage/23111536/064cda8270d684ed4f0824fc8cba267b.jpeg'),
+          leading: ClipOval(
+            child: avatar,
+          ),
+          onTap: () {
+            log('onTap $index, regresar al home');
+            close(context, "Se encontro al paciente");
+          },
+        );
+        return listTile;
+      },
+    );
   }
 
   // SERVICIOS QUE DEBEN ESTAR EN UN SERVICE ==========================================================================>
@@ -192,6 +188,5 @@ class CustomSearchDelegate extends SearchDelegate<String?> {
 
     return stream;
   }
-// SERVICIOS QUE DEBEN ESTAR EN UN SERVICE ==========================================================================<
-
+  // SERVICIOS QUE DEBEN ESTAR EN UN SERVICE ==========================================================================<
 }
