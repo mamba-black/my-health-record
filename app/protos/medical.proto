@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package infrastructure.api;
+
 service History {
   rpc Find(PatientRequest) returns (PatientResponse);
 }
