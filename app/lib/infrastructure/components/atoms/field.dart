@@ -6,12 +6,18 @@ class Field extends SizedBox {
   // double? _width;
   // double? min;
 
+
   Field(String labelText, TextEditingController? controller, [double? max, double? _width, double? min])
       : super(
           width: (_width != null && min != null && _width < min) ? max : _width,
           child: TextFormField(
             decoration: InputDecoration(border: const OutlineInputBorder(), labelText: labelText),
             controller: controller,
+            validator: (val) {
+              if (val?.isEmpty ?? true) {
+                return "El $labelText es requerido";
+              }
+            },
           ),
         );
 
