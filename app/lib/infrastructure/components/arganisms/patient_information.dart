@@ -13,7 +13,7 @@ class PatientInformation extends StatelessWidget {
 
   PatientInformation({this.patient, super.key});
 
-  @override
+
   Widget build(BuildContext context) {
     var mediaQueryData = MediaQuery.of(context);
     var width = mediaQueryData.size.width;
