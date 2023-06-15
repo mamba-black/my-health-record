@@ -18,7 +18,6 @@ pub fn MedicalHeader() -> Html {
         MENU_HIDDEN_CSS
     };
 
-
     let toggle_menu = Callback::from(move |_: MouseEvent| {
         info!("prueba de toggle_menu");
         // let a: EventTarget = e.target().unwrap();

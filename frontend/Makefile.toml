@@ -1,0 +1,15 @@
+[tasks.trunk]
+command = "trunk"
+args = ["serve"]
+
+[tasks.tailwind]
+command = "tailwindcss"
+args = ["-i", "./tailwind.css", "-o", "./tailwind-output.css", "--watch"]
+
+[tasks.build]
+command = "trunk"
+args = ["build", "--release"]
+
+[tasks.deploy]
+command = "firebase"
+args = ["deploy"]
