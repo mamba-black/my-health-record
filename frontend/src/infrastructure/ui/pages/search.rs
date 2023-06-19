@@ -3,9 +3,9 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::domain::patient::Patient;
-use crate::infraestructure::ui::app_state_context::AppStateContext;
-use crate::infraestructure::ui::organisms::header::MedicalHeader;
-use crate::infraestructure::ui::route::Route;
+use crate::infrastructure::ui::app_state_context::AppStateContext;
+use crate::infrastructure::ui::organisms::header::MedicalHeader;
+use crate::infrastructure::ui::route::Route;
 
 #[derive(Debug, Properties, PartialEq)]
 struct GridProperties {

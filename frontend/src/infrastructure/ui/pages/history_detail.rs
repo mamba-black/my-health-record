@@ -1,8 +1,8 @@
 use yew::prelude::*;
 
 use crate::domain::patient::Patient;
-use crate::infraestructure::ui::app_state_context::AppStateContext;
-use crate::infraestructure::ui::organisms::header::MedicalHeader;
+use crate::infrastructure::ui::app_state_context::AppStateContext;
+use crate::infrastructure::ui::organisms::header::MedicalHeader;
 
 #[derive(Properties, Clone, PartialEq)]
 pub struct HistoryDetailProperties {

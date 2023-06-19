@@ -30,7 +30,7 @@ mod test {
 
     #[test]
     fn test_patient_new() {
-        let patient = Patient::new("123", "Miuler".to_string(), "email".to_string(), "other".to_string(), true, "avatar".to_string());
+        let patient = Patient::new("123".to_string(), "Miuler".to_string(), "email".to_string(), "other".to_string(), true, "avatar".to_string());
 
         println!("patient: {}", patient);
     }

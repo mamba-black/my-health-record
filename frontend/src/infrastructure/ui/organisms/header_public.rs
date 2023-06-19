@@ -1,7 +1,7 @@
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::infraestructure::ui::route::Route;
+use crate::infrastructure::ui::route::Route;
 
 pub fn header() -> Html {
     html! {

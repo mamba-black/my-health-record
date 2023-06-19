@@ -1,6 +1,6 @@
 use yew::prelude::*;
 
-use crate::infraestructure::ui::organisms::header_public::header;
+use crate::infrastructure::ui::organisms::header_public::header;
 
 #[function_component]
 pub fn Home() -> Html {
