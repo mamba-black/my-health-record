@@ -1,3 +1,0 @@
-name: poc-akka-grpc
-runtime: nodejs
-description: A minimal Google Cloud TypeScript Pulumi program
