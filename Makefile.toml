@@ -1,0 +1,41 @@
+#extend = "frontend/Makefile.toml"
+#[env]
+#CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = false
+
+[tasks.gitinspector]
+workspace = false
+script = "gitinspector -HTlrm -F html > gitinspector.html"
+
+[tasks.tailwind]
+workspace = false
+command = "tailwindcss"
+description = "Tailwind CSS, correrlo desde la misma carpeta frontend para que funcione bien"
+args = ["--watch", "-i", "./tailwind.css", "-o", "./tailwind-output.css"]
+cwd = "frontend"
+
+[tasks.webrun]
+workspace = false
+command = "trunk"
+args = ["serve"]
+cwd = "frontend"
+
+[tasks.webbuild]
+workspace = false
+command = "trunk"
+args = ["build", "--release"]
+cwd = "frontend"
+
+[tasks.webdeploy]
+workspace = false
+command = "firebase"
+args = ["deploy"]
+cwd = "frontend"
+
+[tasks.backrun]
+workspace = false
+command = "cargo"
+args = ["run", "--bin", "medical_back"]
+
+[tasks.build]
+command = "cargo"
+args = ["build"]

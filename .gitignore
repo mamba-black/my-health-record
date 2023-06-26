@@ -186,7 +186,9 @@ project/plugins/project/
 
 # End of https://www.toptal.com/developers/gitignore/api/sbt,scala,intellij,intellij+all
 
-node_modules/
-package-lock.json
-tailwind-output.css
 .env
+tailwind-output.css
+.firebase
+*.lock
+*.backup
+gitinspector.html

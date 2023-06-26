@@ -1,14 +1,11 @@
-fn main() {
-    let protobuf_dir = "protobuf";
+use std::{env, io};
+use std::path::PathBuf;
 
+fn main() -> io::Result<()> {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     tonic_build::configure()
         .build_server(true)
-        .include_file("backend_api.rs")
-        .compile(
-            &[
-                format!("{}/{}", protobuf_dir, "health.proto"),
-            ],
-            &[""],
-        )
-        .unwrap_or_else(|e| panic!("Protobuf compile error: {:?}", e));
+        .build_client(false)
+        .file_descriptor_set_path(out_dir.join("api_descriptor.bin"))
+        .compile(&["api.proto"], &["../proto"])
 }

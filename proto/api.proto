@@ -1,0 +1,17 @@
+syntax = "proto3";
+package api;
+
+message PatientRequest {
+    optional string name = 1;
+}
+
+message PatientResponse {
+    optional string firstName = 1;
+    optional string lastName = 2;
+    optional string secondLastName = 3;
+    optional string email = 4;
+}
+
+service PatientService {
+    rpc SearchPatient (PatientRequest) returns (PatientResponse) {}
+}

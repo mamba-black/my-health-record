@@ -1,0 +1,14 @@
+[workspace]
+members = [
+  "frontend",
+  "backend",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Hector Miuler Malpica Gallegos"]
+description = "A short description of my package"
+documentation = "https://example.com/bar"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yewstack/yew-trunk-minimal-template"

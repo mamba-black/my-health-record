@@ -1,11 +1,13 @@
 [package]
-name = "health_record"
-version = "0.1.0"
-edition = "2021"
-description = "Template for starting a Yew project using Trunk"
+name = "medical_front"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description.workspace = true
+documentation.workspace = true
+license.workspace = true
+repository.workspace = true
 readme = "README.md"
-repository = "https://github.com/yewstack/yew-trunk-minimal-template"
-license = "MIT OR Apache-2.0"
 keywords = ["yew", "trunk"]
 categories = ["gui", "wasm", "web-programming"]
 
@@ -14,10 +16,16 @@ categories = ["gui", "wasm", "web-programming"]
 display_json = "0.2.1"
 log = "0.4.17"
 parse-display = "0.8.0"
+prost = "0.11.9"
 serde = "1.0.164"
 serde_json = "1.0.96"
+tonic = { version = "0.9.2", features = ["prost", "codegen"], default-features = false }
+tonic-web-wasm-client = "0.4.0"
 wasm-bindgen = "0.2.86"
 wasm-logger = "0.2.0"
 web-sys = { version = "0.3.63", features = ["css", "CssStyleDeclaration"] }
 yew = { version="0.20", features=["csr"] }
 yew-router = "0.17.0"
+
+[build-dependencies]
+tonic-build = { version = "0.9.2", features = ["prost"], default-features = false }
