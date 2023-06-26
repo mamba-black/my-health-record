@@ -1,17 +1,29 @@
 syntax = "proto3";
 package api;
 
-message PatientRequest {
+message SearchPatientRequest {
     optional string name = 1;
 }
 
 message PatientResponse {
+    string id = 1;
+    string firstName = 2;
+    string lastName = 3;
+    optional string secondLastName = 4;
+    optional string email = 5;
+    optional string phoneNumber = 6;
+    optional string icon = 7;
+    optional string note = 8;
+}
+
+message SearchPatientResponse {
     optional string firstName = 1;
     optional string lastName = 2;
     optional string secondLastName = 3;
     optional string email = 4;
+    repeated PatientResponse patients = 5;
 }
 
 service PatientService {
-    rpc SearchPatient (PatientRequest) returns (PatientResponse) {}
+    rpc SearchPatient (SearchPatientRequest) returns (SearchPatientResponse) {}
 }

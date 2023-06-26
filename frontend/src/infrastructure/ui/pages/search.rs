@@ -67,23 +67,21 @@ fn SearchInput(properties: &SearchInputProperties) -> Html {
         spawn_local(async move {
             event.prevent_default();
             let mut client = build_client();
-            let patient_response = client.search_patient(PatientRequest { name: Some("Miuler".to_string()) });
+            let patient_response = client.search_patient(SearchPatientRequest { name: Some("Miuler".to_string()) });
             match patient_response.await {
                 Ok(response) => {
-                    let patients = response.into_inner().first_name;
-                    // patient_response.get_ref();
-                    // patient_handler.emit(patients);
+                    let patients = response.into_inner().patients;
 
-                    let patients_vec: Vec<Patient> = vec![
-                        Patient::new("123".to_string(), "Leslie Alexander".to_string(), "leslie.alexander@example.com".to_string(), "Co-Founder / CEO".to_string(), false, "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
-                        Patient::new("123".to_string(), "Michael Foster".to_string(), "michael.foster@example.com".to_string(), "Co-Founder / CEO".to_string(), false, "https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
-                        Patient::new("123".to_string(), "Dries Vincent".to_string(), "dries.vincent@example.com".to_string(), "Business Relations".to_string(), false, "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
-                        Patient::new("123".to_string(), "Lindsay Walton".to_string(), "lindsay.walton@example.com".to_string(), "Front-end Developer".to_string(), false, "https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
-                        Patient::new("123".to_string(), "Courtney Henry".to_string(), "courtney.henry@example.com".to_string(), "Designer".to_string(), true, "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
-                        Patient::new("123".to_string(), "Tom Cook".to_string(), "email".to_string(), "empresa".to_string(), true, "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
-                        Patient::new("123".to_string(), "Tom Cook".to_string(), "email".to_string(), "empresa".to_string(), true, "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
-                        Patient::new("123".to_string(), "Tom Cook".to_string(), "email".to_string(), "empresa".to_string(), true, "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
-                    ];
+                    let patients_vec: Vec<Patient> = patients.into_iter().map(|response| {
+                        Patient::new(
+                            response.id,
+                            response.first_name,
+                            response.email.unwrap_or("".to_string()),
+                            response.note.unwrap_or("".to_string()),
+                            false,
+                            response.icon.unwrap_or("".to_string())
+                        )
+                    }).collect::<Vec<_>>();
                     patient_handler.emit(patients_vec);
                 },
                 Err(_) => {
