@@ -2,7 +2,7 @@ use log::info;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
-use crate::infrastructure::ui::route::Route;
+use crate::infrastructure::ui::route::{PrivateRoute, PublicRoute};
 
 const MENU_HIDDEN_CSS: &str = "transition ease-in duration-75 transform opacity-0 scale-95       absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none";
 const MENU_SHOW_CSS: &str = "transition ease-out duration-100 transform opacity-100 scale-100    absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none";
@@ -131,10 +131,10 @@ pub fn header_desktop() -> Html {
       <div class="ml-10 flex items-baseline space-x-4">
         // <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
         // aria-current="page"
-        <Link<Route> to={Route::Home}      classes="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium" >{"Inicio"}</Link<Route>>
-        <Link<Route> to={Route::Histories} classes="bg-gray-900   text-white                         rounded-md px-3 py-2 text-sm font-medium">{"Busqueda"}</Link<Route>>
-        <Link<Route> to={Route::Home}      classes="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">{"Calendario"}</Link<Route>>
-        <Link<Route> to={Route::About}     classes="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">{"Acerca de nosotros"}</Link<Route>>
+        <Link<PublicRoute>  to={PublicRoute::Home}       classes="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium" >{"Inicio"}</Link<PublicRoute>>
+        <Link<PrivateRoute> to={PrivateRoute::Histories} classes="bg-gray-900   text-white                         rounded-md px-3 py-2 text-sm font-medium">{"Busqueda"}</Link<PrivateRoute>>
+        <Link<PublicRoute>  to={PublicRoute::Home}       classes="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">{"Calendario"}</Link<PublicRoute>>
+        <Link<PublicRoute>  to={PublicRoute::About}      classes="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">{"Acerca de nosotros"}</Link<PublicRoute>>
       </div>
     </div>
     }
@@ -145,10 +145,10 @@ pub fn header_mobile() -> Html {
     <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
       // <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
       // aria-current="page"
-      <Link<Route> to={Route::Home}       classes="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium" >{"Inicio"}</Link<Route>>
-      <Link<Route> to={Route::Histories}  classes="bg-gray-900 text-white                           block rounded-md px-3 py-2 text-base font-medium">{"Busqueda"}</Link<Route>>
-      <Link<Route> to={Route::Home}       classes="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">{"Calendario"}</Link<Route>>
-      <Link<Route> to={Route::About}      classes="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">{"Acerca de nosotros"}</Link<Route>>
+      <Link<PublicRoute>  to={PublicRoute::Home}       classes="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium" >{"Inicio"}</Link<PublicRoute>>
+      <Link<PrivateRoute> to={PrivateRoute::Histories} classes="bg-gray-900 text-white                           block rounded-md px-3 py-2 text-base font-medium">{"Busqueda"}</Link<PrivateRoute>>
+      <Link<PublicRoute>  to={PublicRoute::Home}       classes="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">{"Calendario"}</Link<PublicRoute>>
+      <Link<PublicRoute>  to={PublicRoute::About}      classes="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">{"Acerca de nosotros"}</Link<PublicRoute>>
     </div>
     }
 }

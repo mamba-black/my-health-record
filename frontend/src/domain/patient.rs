@@ -1,7 +1,8 @@
+use derive_builder::Builder;
 use display_json::DisplayAsJson;
 use serde::Serialize;
 
-#[derive(Serialize, DisplayAsJson, Debug, PartialEq, Clone)]
+#[derive(Serialize, DisplayAsJson, Builder, Debug, PartialEq, Clone)]
 pub struct Patient {
     pub id: String,
     pub name: String,

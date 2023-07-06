@@ -7,7 +7,7 @@ use yew_router::prelude::*;
 use crate::domain::patient::Patient;
 use crate::infrastructure::ui::app_state_context::AppStateContext;
 use crate::infrastructure::ui::organisms::header::MedicalHeader;
-use crate::infrastructure::ui::route::Route;
+use crate::infrastructure::ui::route::{PrivateRoute};
 use crate::infrastructure::ui::atoms::button::FirstButton;
 use crate::infrastructure::api::*;
 use crate::infrastructure::api::patient_service_client::*;
@@ -79,13 +79,12 @@ fn SearchInput(properties: &SearchInputProperties) -> Html {
                             response.email.unwrap_or("".to_string()),
                             response.note.unwrap_or("".to_string()),
                             false,
-                            response.icon.unwrap_or("".to_string())
+                            response.icon.unwrap_or("".to_string()),
                         )
                     }).collect::<Vec<_>>();
                     patient_handler.emit(patients_vec);
-                },
-                Err(_) => {
                 }
+                Err(_) => {}
             };
         });
     });
@@ -124,7 +123,7 @@ fn Grid(properties: &GridProperties) -> Html {
         let app_state_context = app_state_context.clone();
         html!{
           <li onclick={move |_| {onclick(&patient_onclick, &app_state_context)}}>
-            <Link<Route> classes="flex justify-between gap-x-6 py-5" to={Route::HistoryDetail{id: patient_grid.id}}>
+            <Link<PrivateRoute> classes="flex justify-between gap-x-6 py-5" to={PrivateRoute::HistoryDetail{id: patient_grid.id}}>
              <div class="flex gap-x-4">
                <img class="h-12 w-12 flex-none rounded-full bg-gray-50" src={patient_grid.avatar} alt="" />
                <div class="min-w-0 flex-auto">
@@ -156,7 +155,7 @@ fn Grid(properties: &GridProperties) -> Html {
                  }
                }
              </div>
-            </Link<Route>>
+            </Link<PrivateRoute>>
           </li>
         }
     }).collect::<Html>()}
