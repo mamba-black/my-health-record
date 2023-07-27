@@ -8,7 +8,7 @@ use crate::domain::patient::Patient;
 
 #[derive(Serialize, DisplayAsJson, Clone, PartialEq, Default)]
 pub struct AppState {
-    pub patient: Option<Patient>
+    pub patient: Option<Patient>,
 }
 
 impl Reducible for AppState {

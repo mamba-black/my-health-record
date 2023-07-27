@@ -5,12 +5,12 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::domain::patient::Patient;
-use crate::infrastructure::ui::app_state_context::AppStateContext;
-use crate::infrastructure::ui::organisms::header::MedicalHeader;
-use crate::infrastructure::ui::route::{PrivateRoute};
-use crate::infrastructure::ui::atoms::button::FirstButton;
-use crate::infrastructure::api::*;
 use crate::infrastructure::api::patient_service_client::*;
+use crate::infrastructure::api::*;
+use crate::infrastructure::ui::app_state_context::AppStateContext;
+use crate::infrastructure::ui::atoms::button::FirstButton;
+use crate::infrastructure::ui::organisms::header::MedicalHeader;
+use crate::infrastructure::ui::route::PrivateRoute;
 
 #[derive(Debug, Properties, PartialEq)]
 struct GridProperties {
@@ -67,21 +67,26 @@ fn SearchInput(properties: &SearchInputProperties) -> Html {
         spawn_local(async move {
             event.prevent_default();
             let mut client = build_client();
-            let patient_response = client.search_patient(SearchPatientRequest { name: Some("Miuler".to_string()) });
+            let patient_response = client.search_patient(SearchPatientRequest {
+                name: Some("Miuler".to_string()),
+            });
             match patient_response.await {
                 Ok(response) => {
                     let patients = response.into_inner().patients;
 
-                    let patients_vec: Vec<Patient> = patients.into_iter().map(|response| {
-                        Patient::new(
-                            response.id,
-                            response.first_name,
-                            response.email.unwrap_or("".to_string()),
-                            response.note.unwrap_or("".to_string()),
-                            false,
-                            response.icon.unwrap_or("".to_string()),
-                        )
-                    }).collect::<Vec<_>>();
+                    let patients_vec: Vec<Patient> = patients
+                        .into_iter()
+                        .map(|response| {
+                            Patient::new(
+                                response.id,
+                                response.first_name,
+                                response.email.unwrap_or("".to_string()),
+                                response.note.unwrap_or("".to_string()),
+                                false,
+                                response.icon.unwrap_or("".to_string()),
+                            )
+                        })
+                        .collect::<Vec<_>>();
                     patient_handler.emit(patients_vec);
                 }
                 Err(_) => {}
@@ -103,8 +108,7 @@ fn SearchInput(properties: &SearchInputProperties) -> Html {
     }
 }
 
-
-fn onclick(patient: &Patient, app_state_context: &AppStateContext) {
+fn patientOnclick(patient: &Patient, app_state_context: &AppStateContext) {
     info!("Paciente: {}", patient);
     app_state_context.dispatch(Some(patient.clone()));
 }
@@ -122,7 +126,7 @@ fn Grid(properties: &GridProperties) -> Html {
         let patient_onclick = patient.clone();
         let app_state_context = app_state_context.clone();
         html!{
-          <li onclick={move |_| {onclick(&patient_onclick, &app_state_context)}}>
+          <li onclick={move |_| {patientOnclick(&patient_onclick, &app_state_context)}}>
             <Link<PrivateRoute> classes="flex justify-between gap-x-6 py-5" to={PrivateRoute::HistoryDetail{id: patient_grid.id}}>
              <div class="flex gap-x-4">
                <img class="h-12 w-12 flex-none rounded-full bg-gray-50" src={patient_grid.avatar} alt="" />

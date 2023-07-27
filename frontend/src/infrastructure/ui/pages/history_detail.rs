@@ -15,26 +15,25 @@ pub fn HistoryDetail(properties: &HistoryDetailProperties) -> Html {
         .and_then(|app_state_context| app_state_context.patient.to_owned());
 
     match patient {
-        Some(patient) if patient.id == properties.id =>
-            html! {
-            <div class="min-h-full">
-              <MedicalHeader />
+        Some(patient) if patient.id == properties.id => html! {
+        <div class="min-h-full">
+          <MedicalHeader />
 
-              <header class="bg-white shadow">
-                <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                  <h1 class="text-3xl font-bold tracking-tight text-gray-900">{"Historial del Paciente"}</h1>
-                </div>
-              </header>
-              <main>
-                <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-                  <div class="px-10 py-10 bg-white rounded-2xl">
-                    <PatientDetail {patient}/>
-                  </div>
-                </div>
-              </main>
+          <header class="bg-white shadow">
+            <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+              <h1 class="text-3xl font-bold tracking-tight text-gray-900">{"Historial del Paciente"}</h1>
             </div>
-            },
-        _ => html! { <div>{"Seleccione un paciente"}</div> }
+          </header>
+          <main>
+            <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+              <div class="px-10 py-10 bg-white rounded-2xl">
+                <PatientDetail {patient}/>
+              </div>
+            </div>
+          </main>
+        </div>
+        },
+        _ => html! { <div>{"Seleccione un paciente"}</div> },
     }
 }
 

@@ -1,17 +1,19 @@
-use tonic::*;
 use tonic::transport::Server;
+use tonic::*;
 // use tonic_web::GrpcWebLayer;
 
-use medical_back::infraestructure::api::*;
 use medical_back::infraestructure::api::patient_service_server::*;
+use medical_back::infraestructure::api::*;
 
 #[derive(Default)]
 struct PatientServiceImpl;
 
 #[tonic::async_trait]
 impl PatientService for PatientServiceImpl {
-    async fn search_patient(&self, request: Request<SearchPatientRequest>) -> Result<Response<SearchPatientResponse>, Status> {
-
+    async fn search_patient(
+        &self,
+        request: Request<SearchPatientRequest>,
+    ) -> Result<Response<SearchPatientResponse>, Status> {
         let search_patient_response = SearchPatientResponse {
             first_name: Some("Hector Miuler".to_string()),
             last_name: Some("Malpica".to_string()),
@@ -95,7 +97,6 @@ impl PatientService for PatientServiceImpl {
     }
 }
 
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Hello, world!");
@@ -116,4 +117,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-

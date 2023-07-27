@@ -23,11 +23,13 @@ pub fn App() -> Html {
     }
 }
 
-fn public_switch(route: PublicRoute)  -> Html {
+fn public_switch(route: PublicRoute) -> Html {
     match route {
         PublicRoute::Home => html! { <Home /> },
         PublicRoute::About => html! { <Home /> },
-        PublicRoute::PrivatesRoot | PublicRoute::Privates => html! { <Switch<PrivateRoute> render={private_switch}/> },
+        PublicRoute::PrivatesRoot | PublicRoute::Privates => {
+            html! { <Switch<PrivateRoute> render={private_switch}/> }
+        }
         PublicRoute::NotFound => html! { <NotFound /> },
     }
 }

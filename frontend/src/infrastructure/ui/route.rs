@@ -1,7 +1,6 @@
 use parse_display::Display;
 use yew_router::prelude::*;
 
-
 #[derive(Display, Clone, PartialEq, Routable, Debug)]
 pub enum PublicRoute {
     #[at("/")]
