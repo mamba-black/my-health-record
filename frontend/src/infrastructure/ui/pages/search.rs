@@ -108,7 +108,7 @@ fn SearchInput(properties: &SearchInputProperties) -> Html {
     }
 }
 
-fn patientOnclick(patient: &Patient, app_state_context: &AppStateContext) {
+fn patient_onclick(patient: &Patient, app_state_context: &AppStateContext) {
     info!("Paciente: {}", patient);
     app_state_context.dispatch(Some(patient.clone()));
 }
@@ -122,29 +122,29 @@ fn Grid(properties: &GridProperties) -> Html {
     html! {
     <ul role="list" class="divide-y divide-gray-100">
     {patients.iter().map(|patient| {
-        let patient_grid = patient.clone();
-        let patient_onclick = patient.clone();
+        let grid_patient = patient.clone();
+        let onclick_patient = patient.clone();
         let app_state_context = app_state_context.clone();
         html!{
-          <li onclick={move |_| {patientOnclick(&patient_onclick, &app_state_context)}}>
-            <Link<PrivateRoute> classes="flex justify-between gap-x-6 py-5" to={PrivateRoute::HistoryDetail{id: patient_grid.id}}>
+          <li onclick={move |_| {patient_onclick(&onclick_patient, &app_state_context)}}>
+            <Link<PrivateRoute> classes="flex justify-between gap-x-6 py-5" to={PrivateRoute::HistoryDetail{id: grid_patient.id}}>
              <div class="flex gap-x-4">
-               <img class="h-12 w-12 flex-none rounded-full bg-gray-50" src={patient_grid.avatar} alt="" />
+               <img class="h-12 w-12 flex-none rounded-full bg-gray-50" src={grid_patient.avatar} alt="" />
                <div class="min-w-0 flex-auto">
                  <p class="text-sm font-semibold leading-6 text-gray-900">
-                     {patient_grid.name}
+                     {grid_patient.name}
                      <span class="relative inline-block px-2 py-0 font-semibold text-green-900 leading-tight">
                        <span  class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
                        <span class="relative">{"Cita programada"}</span>
                      </span>
                  </p>
-                 <p class="mt-1 truncate text-xs leading-5 text-gray-500">{patient_grid.email}</p>
+                 <p class="mt-1 truncate text-xs leading-5 text-gray-500">{grid_patient.email}</p>
                </div>
              </div>
              <div class="hidden sm:flex sm:flex-col sm:items-end">
-               <p class="text-sm leading-6 text-gray-900">{patient_grid.other}</p>
+               <p class="text-sm leading-6 text-gray-900">{grid_patient.other}</p>
                {
-                 if patient_grid.online {html!{
+                 if grid_patient.online {html!{
                    <div class="mt-1 flex items-center gap-x-1.5">
                      <div class="flex-none rounded-full bg-emerald-500/20 p-1">
                        <div class="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
