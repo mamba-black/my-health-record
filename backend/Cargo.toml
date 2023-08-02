@@ -5,6 +5,7 @@ edition = "2021"
 
 
 [dependencies]
+axum = "0.6.19"
 log = "0.4.17"
 log4rs = { path = "/home/miuler/proyectos/log4rs" }
 prost = "0.11.8"

@@ -10,4 +10,9 @@ repos:
       - id: conventional-pre-commit
         stages: [commit-msg]
         args: [] # optional: list of Conventional Commits types to allow e.g. [feat, fix, ci, chore, test]
+  -   repo: https://github.com/doublify/pre-commit-rust
+      rev: master
+      hooks:
+          -   id: fmt
+          #-   id: cargo-check
 

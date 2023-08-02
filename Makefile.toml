@@ -36,6 +36,32 @@ workspace = false
 command = "cargo"
 args = ["run", "--bin", "medical_back"]
 
+[tasks.backbuildrelease]
+workspace = false
+env = { "RUSTFLAGS" = "-C target-feature=+crt-static" }
+command = "cargo"
+args = ["build", "--release", "--target", "x86_64-unknown-linux-gnu", "--bin", "medical_back"]
+
+[tasks.backbuildcontainer]
+workspace = false
+dependencies = ["backbuildrelease"]
+command = "docker"
+args = ["build", "-t", "medical-back", "."]
+
+[tasks.backruncontainer]
+workspace = false
+script = "docker run -p 9000:9000 --rm medical-back:latest"
+
+[tasks.backdeploycontainer]
+workspace = false
+script = '''
+# gcloud auth configure-docker us-east1-docker.pkg.dev
+# docker push [LOCATION]-docker.pkg.dev/[PROJECT-ID]/[REPOSITORY]/[IMAGE]
+#
+docker tag medical-back:latest us-east1-docker.pkg.dev/miuler-medical-001/medical/medical-back:latest
+docker push us-east1-docker.pkg.dev/miuler-medical-001/medical/medical-back:latest
+'''
+
 [tasks.build]
 command = "cargo"
 args = ["build"]
