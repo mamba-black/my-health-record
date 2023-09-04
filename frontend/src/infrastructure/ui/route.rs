@@ -1,29 +1,14 @@
-use parse_display::Display;
-use yew_router::prelude::*;
-
-#[derive(Display, Clone, PartialEq, Routable, Debug)]
-pub enum PublicRoute {
-    #[at("/")]
-    Home,
-    #[at("/about")]
-    About,
-    #[at("/p")]
-    PrivatesRoot,
-    #[at("/p/*")]
-    Privates,
-    #[at("/*")]
-    NotFound,
+pub mod public {
+    pub const HOME: &str = "/";
+    pub const ABOUT: &str = "/about";
+    pub const PRIVATES_ROOT: &str = "/p";
+    pub const PRIVATES: &str = "/p/*";
+    pub const NOT_FOUND: &str = "/*any";
 }
 
-#[derive(Display, Clone, PartialEq, Routable, Debug)]
-pub enum PrivateRoute {
-    #[at("/p/histories")]
-    Histories,
-    #[display("/p/histories/{id}")]
-    #[at("/p/histories/:id")]
-    HistoryDetail { id: String },
-    #[at("/p")]
-    NotFound,
-    #[at("/p/*")]
-    NotFound2,
+pub mod private {
+    pub const HISTORIES: &str = "/p/histories";
+    pub const HISTORY_DETAIL: &str = "/p/histories/:id";
+    pub const NOT_FOUND: &str = "/p";
+    pub const NOT_FOUND2: &str = "/p/*";
 }

@@ -1,22 +1,13 @@
-use std::rc::Rc;
-
 use display_json::DisplayAsJson;
+use leptos::{ReadSignal, WriteSignal};
 use serde::Serialize;
-use yew::prelude::*;
 
 use crate::domain::patient::Patient;
 
-#[derive(Serialize, DisplayAsJson, Clone, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct AppState {
-    pub patient: Option<Patient>,
+    // pub patient: Option<Patient>,
+    // pub patient: ReadSignal<Option<Patient>>,
+    // pub patient_set: WriteSignal<Option<Patient>>,
+    // pub patient: String,
 }
-
-impl Reducible for AppState {
-    type Action = Option<Patient>;
-
-    fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
-        AppState { patient: action }.into()
-    }
-}
-
-pub type AppStateContext = UseReducerHandle<AppState>;
