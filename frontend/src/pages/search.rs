@@ -4,16 +4,17 @@ use log::*;
 use tonic_web_wasm_client::Client;
 use web_sys::{Location, MouseEvent, SubmitEvent};
 
+use crate::api::patient_service_client::*;
+use crate::api::*;
+use crate::components::app_state_context::AppState;
+use crate::di::DI;
 use crate::domain::patient::Patient;
-use crate::infrastructure::api::patient_service_client::*;
-use crate::infrastructure::api::*;
-use crate::infrastructure::ui::app_state_context::AppState;
-// use crate::infrastructure::ui::app_state_context::AppStateContext;
-use crate::infrastructure::ui::atoms::button::FirstButton;
-use crate::infrastructure::ui::organisms::header::MedicalHeader;
-use crate::infrastructure::ui::route::private;
+// use crate::components::app_state_context::AppStateContext;
+use crate::components::atoms::button::FirstButton;
+use crate::components::organisms::header::MedicalHeader;
+use crate::components::route::private;
 
-// use crate::infrastructure::ui::route::PrivateRoute;
+// use crate::components::route::PrivateRoute;
 
 #[component]
 pub fn Search() -> impl IntoView {
@@ -94,27 +95,22 @@ fn SearchInput(patients_set: WriteSignal<Vec<Patient>>) -> impl IntoView {
     }
 }
 
-fn patient_onclick(event: MouseEvent, patient: &Patient) {
-    event.prevent_default();
-    info!("Paciente: {}", patient);
-
-    let app_state = expect_context::<RwSignal<Option<Patient>>>();
-    let mut a = patient.name.clone();
-    info!("nombre del paciente: {}", a);
-    app_state.update(move |mut value| *value = Some(patient.clone()));
-    // app_state.patient_set.set(Some(patient.clone()));
-    // signal.set(AppState { patient: Some(patient.clone()) });
-
-    let path = private::HISTORY_DETAIL.replace(":id", &patient.id);
-    // window().location().set_pathname(path.as_str());
-    // provide_context(cx, AppState { patient: Some(patient.clone()) });
-
-    let navigate = use_navigate();
-    _ = navigate(path.as_str(), Default::default());
-}
-
 #[component]
 fn Grid(patients: ReadSignal<Vec<Patient>>) -> impl IntoView {
+    let patient_onclick = |event: MouseEvent, patient: &Patient| {
+        event.prevent_default();
+        debug!("Paciente: {}", patient);
+
+        DI.patient_service.search_patient(patient.clone());
+
+        let path = private::HISTORY_DETAIL.replace(":id", &patient.id);
+        // window().location().set_pathname(path.as_str());
+        // provide_context(cx, AppState { patient: Some(patient.clone()) });
+
+        let navigate = use_navigate();
+        _ = navigate(path.as_str(), Default::default());
+    };
+
     view! {
     <ul role="list" class="divide-y divide-gray-100">
         <For

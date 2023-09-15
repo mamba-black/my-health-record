@@ -1,7 +1,7 @@
 use leptos::*;
 
-use crate::infrastructure::ui::route::private;
-use crate::infrastructure::ui::route::public;
+use crate::components::route::private;
+use crate::components::route::public;
 
 const MENU_HIDDEN_CSS: &str = "transition ease-in duration-75 transform opacity-0 scale-95       absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none";
 const MENU_SHOW_CSS: &str = "transition ease-out duration-100 transform opacity-100 scale-100    absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none";

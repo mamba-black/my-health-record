@@ -1,8 +1,8 @@
 // use yew::prelude::*;
 
+use crate::components::app_state_context::AppState;
+use crate::components::organisms::header::MedicalHeader;
 use crate::domain::patient::Patient;
-use crate::infrastructure::ui::app_state_context::AppState;
-use crate::infrastructure::ui::organisms::header::MedicalHeader;
 use leptos::*;
 use leptos_router::*;
 use log::{debug, info};
@@ -187,6 +187,17 @@ fn PatientDetail(patient: Patient) -> impl IntoView {
           //     _ => view! {cx, <>},
           //   }
           // }
+          <EditButton />
+        </div>
+        <hr class="mb-6 border-t" />
+      </form>
+    </div>
+    }
+}
+
+#[component]
+fn EditButton() -> impl IntoView {
+    view! {
           <button
               class="w-full px-4 py-2 font-bold text-white bg-red-500 rounded-full hover:bg-red-700 focus:outline-none focus:shadow-outline md:w-32"
               on:click={move |_| {
@@ -200,9 +211,5 @@ fn PatientDetail(patient: Patient) -> impl IntoView {
               type="button">
             // {edit_button}
           </button>
-        </div>
-        <hr class="mb-6 border-t" />
-      </form>
-    </div>
     }
 }

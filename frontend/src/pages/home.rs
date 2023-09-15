@@ -1,6 +1,6 @@
 use leptos::{component, view, IntoView};
 
-use crate::infrastructure::ui::organisms::header_public::Header;
+use crate::components::organisms::header_public::Header;
 
 #[component]
 pub fn Home() -> impl IntoView {

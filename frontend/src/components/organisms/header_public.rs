@@ -1,7 +1,7 @@
 use leptos::{component, create_signal, log, view, IntoView, SignalGet};
 
-use crate::infrastructure::ui::route::private;
-use crate::infrastructure::ui::route::public;
+use crate::components::route::private;
+use crate::components::route::public;
 
 const MENU_HIDDEN_CSS: &str = "hidden fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-white px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10";
 const MENU_SHOW_CSS: &str = "fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-white px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10";
