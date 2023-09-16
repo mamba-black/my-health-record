@@ -30,12 +30,10 @@ pub fn HistoryDetail() -> impl IntoView {
     //let patient = move || {signal.get()};
 
     view! {
-        <div>
+        <>
         {move || match app_state.get() {
             Some(patient) if patient.id == id().unwrap().to_string() => view! {
-                <div class="min-h-full">
-                  <MedicalHeader />
-
+                <div>
                   <header class="bg-white shadow">
                     <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                       <h1 class="text-3xl font-bold tracking-tight text-gray-900">Historial del Paciente</h1>
@@ -53,7 +51,7 @@ pub fn HistoryDetail() -> impl IntoView {
             None => view! {<div><h1>Seleccione un paciente</h1></div> },
             _ => view! {<div>Error al mostrar informacion del paciente</div> },
         }}
-        </div>
+        </>
     }
 }
 

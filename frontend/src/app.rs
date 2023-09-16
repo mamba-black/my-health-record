@@ -7,6 +7,7 @@ use medical_front::domain::patient::Patient;
 use medical_front::pages::history_detail::HistoryDetail;
 use medical_front::pages::home::Home;
 use medical_front::pages::not_found::NotFound;
+use medical_front::pages::private_home::PrivateHome;
 use medical_front::pages::search::Search;
 
 // use medical_front::components::route::{PrivateRoute, PublicRoute};
@@ -31,10 +32,13 @@ pub fn App() -> impl IntoView {
     view! {
         <Router>
             <Routes>
-                <Route path=public::HOME            view=Home/>
-                <Route path=private::HISTORIES      view=Search/>
-                <Route path=private::HISTORY_DETAIL view=HistoryDetail/>
-                <Route path=public::NOT_FOUND       view=NotFound/>
+                <Route path=public::HOME                view=Home/>
+                <Route path=private::PRIVATE            view=PrivateHome>
+                    <Route path=""                      view=NotFound/>
+                    <Route path=private::HISTORIES      view=Search/>
+                    <Route path=private::HISTORY_DETAIL view=HistoryDetail/>
+                </Route>
+                <Route path=public::NOT_FOUND           view=NotFound/>
                 //PrivateRoute::HistoryDetail { id } => html! { <HistoryDetail id={id.clone()} /> },
             </Routes>
             patient.id: {move || a.with(|x| {

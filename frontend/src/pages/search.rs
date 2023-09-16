@@ -2,17 +2,15 @@ use leptos::*;
 use leptos_router::*;
 use log::*;
 use tonic_web_wasm_client::Client;
-use web_sys::{Location, MouseEvent, SubmitEvent};
+use web_sys::{MouseEvent, SubmitEvent};
 
 use crate::api::patient_service_client::*;
 use crate::api::*;
-use crate::components::app_state_context::AppState;
-use crate::di::DI;
-use crate::domain::patient::Patient;
 // use crate::components::app_state_context::AppStateContext;
 use crate::components::atoms::button::FirstButton;
-use crate::components::organisms::header::MedicalHeader;
 use crate::components::route::private;
+use crate::di::DI;
+use crate::domain::patient::Patient;
 
 // use crate::components::route::PrivateRoute;
 
@@ -22,9 +20,7 @@ pub fn Search() -> impl IntoView {
     let (patients, patients_set) = create_signal(patients);
 
     view! {
-    <div class="min-h-full">
-      <MedicalHeader />
-
+    <>
       <header class="bg-white shadow">
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <h1 class="text-3xl font-bold tracking-tight text-gray-900">Busqueda de pacientes</h1>
@@ -39,7 +35,7 @@ pub fn Search() -> impl IntoView {
           </div>
         </div>
       </main>
-    </div>
+    </>
     }
 }
 
@@ -103,7 +99,11 @@ fn Grid(patients: ReadSignal<Vec<Patient>>) -> impl IntoView {
 
         DI.patient_service.search_patient(patient.clone());
 
-        let path = private::HISTORY_DETAIL.replace(":id", &patient.id);
+        let path = format!(
+            "{}/{}",
+            private::PRIVATE,
+            private::HISTORY_DETAIL.replace(":id", &patient.id)
+        );
         // window().location().set_pathname(path.as_str());
         // provide_context(cx, AppState { patient: Some(patient.clone()) });
 

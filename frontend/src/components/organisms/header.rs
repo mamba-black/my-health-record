@@ -1,4 +1,5 @@
 use leptos::*;
+use leptos_router::*;
 
 use crate::components::route::private;
 use crate::components::route::public;
@@ -127,29 +128,33 @@ pub fn MedicalHeader() -> impl IntoView {
 }
 
 pub fn header_desktop() -> impl IntoView {
+    let histories = format!("{}/{}", private::PRIVATE, private::HISTORIES);
+
     view! {
     <div class="hidden md:block">
       <div class="ml-10 flex items-baseline space-x-4">
         // <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
         // aria-current="page"
-        <a href=public::HOME       class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Inicio</a>
-        <a href=private::HISTORIES class="bg-gray-900   text-white                         rounded-md px-3 py-2 text-sm font-medium">Busqueda</a>
-        <a href=public::HOME       class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Calendario</a>
-        <a href=public::ABOUT      class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Acerca de nosotros</a>
+        <a href=public::HOME      class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Inicio</a>
+        <A href=histories         class="bg-gray-900   text-white                         rounded-md px-3 py-2 text-sm font-medium">Busqueda</A>
+        <a href=public::HOME      class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Calendario</a>
+        <a href=public::ABOUT     class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Acerca de nosotros</a>
       </div>
     </div>
     }
 }
 
 pub fn header_mobile() -> impl IntoView {
+    let histories = format!("{}/{}", private::PRIVATE, private::HISTORIES);
+
     view! {
     <div class="space-y-1 px-2 pb-3 pt-2 sm:px-3">
       // <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
       // aria-current="page"
-      <a href=public::HOME       class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium" >Inicio</a>
-      <a href=private::HISTORIES class="bg-gray-900 text-white                           block rounded-md px-3 py-2 text-base font-medium">Busqueda</a>
-      <a href=public::HOME       class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">Calendario</a>
-      <a href=public::ABOUT      class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">Acerca de nosotros</a>
+      <a href=public::HOME      class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium" >Inicio</a>
+      <a href=histories         class="bg-gray-900 text-white                           block rounded-md px-3 py-2 text-base font-medium">Busqueda</a>
+      <a href=public::HOME      class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">Calendario</a>
+      <a href=public::ABOUT     class="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium">Acerca de nosotros</a>
     </div>
     }
 }

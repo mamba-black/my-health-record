@@ -9,6 +9,7 @@ const MENU_SHOW_CSS: &str = "fixed inset-y-0 right-0 z-50 w-full overflow-y-auto
 #[component]
 pub fn Header() -> impl IntoView {
     let (toggle_menu_status, set_toggle_menu_status) = create_signal(false);
+    let histories = format!("{}/{}", private::PRIVATE, private::HISTORIES);
 
     let menu_css = move || {
         log!("menu_css: {}", toggle_menu_status.get());
@@ -43,7 +44,7 @@ pub fn Header() -> impl IntoView {
         </div>
         <div class="hidden lg:flex lg:gap-x-12">
           <a class="text-sm font-semibold leading-6 text-gray-900" href=public::HOME>Inicio</a>
-          <a class="text-sm font-semibold leading-6 text-gray-900" href=private::HISTORIES>Historias</a>
+          <a class="text-sm font-semibold leading-6 text-gray-900" href=histories>Historias</a>
           <a class="text-sm font-semibold leading-6 text-gray-900" href=public::HOME>Calendario</a>
           <a class="text-sm font-semibold leading-6 text-gray-900" href=public::ABOUT>Acerca de nosotros</a>
         </div>

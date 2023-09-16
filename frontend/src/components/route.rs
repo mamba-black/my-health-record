@@ -7,8 +7,9 @@ pub mod public {
 }
 
 pub mod private {
-    pub const HISTORIES: &str = "/p/histories";
-    pub const HISTORY_DETAIL: &str = "/p/histories/:id";
-    pub const NOT_FOUND: &str = "/p";
+    pub const PRIVATE: &str = "/p";
+    pub const HISTORIES: &str = "histories";
+    pub const HISTORY_DETAIL: &str = "histories/:id";
+    // pub const NOT_FOUND: &str = "/p";
     pub const NOT_FOUND2: &str = "/p/*";
 }
