@@ -1,4 +1,6 @@
-use leptos::{component, create_signal, log, view, IntoView, SignalGet};
+use leptos::{component, create_signal, view, IntoView, SignalGet};
+use log::info;
+// use leptos::logging::log;
 
 use crate::components::route::private;
 use crate::components::route::public;
@@ -12,7 +14,7 @@ pub fn Header() -> impl IntoView {
     let histories = format!("{}/{}", private::PRIVATE, private::HISTORIES);
 
     let menu_css = move || {
-        log!("menu_css: {}", toggle_menu_status.get());
+        info!("menu_css: {}", toggle_menu_status.get());
         if toggle_menu_status.get() {
             MENU_SHOW_CSS
         } else {
@@ -21,7 +23,7 @@ pub fn Header() -> impl IntoView {
     };
 
     let toggle_menu = move |_| {
-        log!("toggle_menu: {}", toggle_menu_status.get());
+        info!("toggle_menu: {}", toggle_menu_status.get());
         set_toggle_menu_status(!toggle_menu_status.get());
     };
 

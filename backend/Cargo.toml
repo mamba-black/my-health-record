@@ -5,12 +5,12 @@ edition = "2021"
 
 
 [dependencies]
-axum = "0.6.19"
-log = "0.4.17"
+axum = "0.6.20"
+log = "0.4.20"
 log4rs = { path = "/home/miuler/proyectos/log4rs" }
-prost = "0.11.8"
-prost-types = "0.11.8"
-tokio = { version = "1.28.2", features = ["tokio-macros", "rt-multi-thread"] }
+prost = "0.11.9"
+prost-types = "0.11.9"
+tokio = { version = "1.32.0", features = ["tokio-macros", "rt-multi-thread"] }
 tonic = "0.9.2"
 tonic-reflection = "0.9.2"
 tonic-web = "0.9.2"
