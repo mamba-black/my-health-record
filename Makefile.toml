@@ -13,7 +13,7 @@ description = "Tailwind CSS, correrlo desde la misma carpeta frontend para que f
 args = ["--watch", "-i", "./tailwind.css", "-o", "./tailwind-output.css"]
 cwd = "frontend"
 
-[tasks.webrun]
+[tasks.runweb]
 workspace = false
 command = "trunk"
 args = ["serve"]
@@ -31,7 +31,7 @@ command = "firebase"
 args = ["deploy"]
 cwd = "frontend"
 
-[tasks.backrun]
+[tasks.runback]
 workspace = false
 command = "cargo"
 args = ["run", "--bin", "medical_back"]
@@ -48,7 +48,7 @@ dependencies = ["backbuildrelease"]
 command = "docker"
 args = ["build", "-t", "medical-back", "."]
 
-[tasks.backruncontainer]
+[tasks.runbackcontainer]
 workspace = false
 script = "docker run -p 9000:9000 --rm medical-back:latest"
 
