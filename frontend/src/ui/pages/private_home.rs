@@ -1,4 +1,4 @@
-use crate::components::organisms::header::MedicalHeader;
+use crate::ui::components::organisms::header::MedicalHeader;
 
 use leptos::*;
 use leptos_router::*;

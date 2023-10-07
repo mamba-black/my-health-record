@@ -3,8 +3,10 @@
 use leptos::*;
 use leptos_router::*;
 use log::{debug, info};
+use web_sys::SubmitEvent;
 
 use crate::domain::patient::Patient;
+use crate::ui::components::atoms::button::FirstButton;
 
 #[derive(Params, PartialEq)]
 pub struct HistoryDetailParams {
@@ -74,7 +76,7 @@ fn PatientDetail(patient: Patient) -> impl IntoView {
 
     view! {
         <div class="lg:wa-7/12 lg:justify-around">
-            <form>
+            <form on:submit=submit_handle>
                 <div class="mb-4 mx-auto md:flex">
                     <div class="mb-4 md:mr-2 md:mb-0 md:w-1/3">
                         <label class="block mb-2 text-sm font-bold text-gray-700" for="firstName">
@@ -166,7 +168,7 @@ fn PatientDetail(patient: Patient) -> impl IntoView {
                             placeholder="******************"/>
                     </div>
                 </div>
-                <div class="mb-6 text-center md:flex md:flex-row-reverse">
+                <div class="mb-6 text-center md:flex md:flex-row-reverse relative h-10">
                     // {
                     //   match edit_state3 {
                     //     EditState::Read => view! {cx, <>},
@@ -181,7 +183,8 @@ fn PatientDetail(patient: Patient) -> impl IntoView {
                     //     _ => view! {cx, <>},
                     //   }
                     // }
-                    <EditButton />
+                    // <EditButton />
+                    <FirstButton label="Editar".to_string() />
                 </div>
                 <hr class="mb-6 border-t" />
             </form>
@@ -189,11 +192,17 @@ fn PatientDetail(patient: Patient) -> impl IntoView {
     }
 }
 
+fn submit_handle(event: SubmitEvent) {
+    event.prevent_default();
+}
+
 #[component]
 fn EditButton() -> impl IntoView {
     view! {
         <button
-            class="w-full px-4 py-2 font-bold text-white bg-red-500 rounded-full hover:bg-red-700 focus:outline-none focus:shadow-outline md:w-32"
+            // class="w-full px-4 py-2 font-bold text-white bg-red-500 rounded-full hover:bg-red-700 focus:outline-none focus:shadow-outline md:w-32"
+            // bg-red-500 hover:bg-red-700
+            class="w-full px-4 py-2 font-bold text-white rounded-full focus:outline-none focus:shadow-outline md:w-32"
             on:click={move |_| {
                   info!("EditState::Edit");
             //   // edit_state2.set(EditState::Edit);
@@ -203,7 +212,8 @@ fn EditButton() -> impl IntoView {
             //   }
             }}
             type="button">
-          // {edit_button}
+            // {edit_button}
+            Editar
         </button>
     }
 }

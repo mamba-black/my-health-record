@@ -1,10 +1,10 @@
 // use wasm_bindgen::prelude::wasm_bindgen;
 
-pub mod components;
 pub mod di;
 pub mod domain;
-pub mod pages;
 pub mod services;
+pub mod ui;
+
 pub mod api {
     tonic::include_proto!("api");
 }

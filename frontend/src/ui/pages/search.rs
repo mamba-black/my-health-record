@@ -6,13 +6,13 @@ use web_sys::{MouseEvent, SubmitEvent};
 
 use crate::api::patient_service_client::*;
 use crate::api::*;
-// use crate::components::app_state_context::AppStateContext;
-use crate::components::atoms::button::FirstButton;
-use crate::components::route::private;
+// use crate::ui::components::app_state_context::AppStateContext;
 use crate::di::DI;
 use crate::domain::patient::Patient;
+use crate::ui::components::atoms::button::FirstButton;
+use crate::ui::components::route::private;
 
-// use crate::components::route::PrivateRoute;
+// use crate::ui::components::route::PrivateRoute;
 
 #[component]
 pub fn Search() -> impl IntoView {

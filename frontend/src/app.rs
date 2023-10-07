@@ -1,14 +1,14 @@
 use leptos::*;
 use leptos_router::*;
 
-use medical_front::components::route::private;
-use medical_front::components::route::public;
 use medical_front::domain::patient::Patient;
-use medical_front::pages::history_detail::HistoryDetail;
-use medical_front::pages::home::Home;
-use medical_front::pages::not_found::NotFound;
-use medical_front::pages::private_home::PrivateHome;
-use medical_front::pages::search::Search;
+use medical_front::ui::components::route::private;
+use medical_front::ui::components::route::public;
+use medical_front::ui::pages::history_detail::HistoryDetail;
+use medical_front::ui::pages::home::Home;
+use medical_front::ui::pages::not_found::NotFound;
+use medical_front::ui::pages::private_home::PrivateHome;
+use medical_front::ui::pages::search::Search;
 
 // use medical_front::components::route::{PrivateRoute, PublicRoute};
 // use medical_front::{initCodeClient, CodeClientConfig};
