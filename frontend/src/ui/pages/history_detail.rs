@@ -1,13 +1,14 @@
 use leptos::*;
 use leptos_router::*;
 use log::{debug, info};
-use web_sys::SubmitEvent;
+use std::any::Any;
+use web_sys::{Event, SubmitEvent};
 
 use crate::di::DI;
 use crate::domain::error::AppError;
 use crate::domain::patient::Patient;
 use crate::services::patient_service::PatientService;
-use crate::ui::components::atoms::button::FirstButton;
+use crate::ui::components::atoms::button::{ResetButton, SubmitButton};
 
 #[derive(Params, PartialEq)]
 pub struct HistoryDetailParams {
@@ -60,8 +61,9 @@ pub fn HistoryDetail() -> impl IntoView {
     }
 }
 
-enum EditState {
-    Read,
+#[derive(Clone)]
+pub(crate) enum EditState {
+    ReadOnly,
     Edit,
 }
 
@@ -69,21 +71,30 @@ enum EditState {
 fn PatientDetail(patient: Patient) -> impl IntoView {
     let name = patient.name.clone();
 
-    // let edit_state1 = use_state(|| EditState::Read);
-    // let edit_state2 = edit_state1.clone();
-    // let edit_state3 = edit_state1.clone();
-    let edit_state1 = EditState::Read;
-    let edit_state2 = EditState::Read;
-    let edit_state3 = EditState::Read;
-    // let (edit_button, read_only) = match *edit_state1 {
-    let (edit_button, read_only) = match edit_state1 {
-        EditState::Read => ("Editar", true),
-        EditState::Edit => ("Guardar", false),
+    let (edit_status, set_edit_status) = create_signal(EditState::ReadOnly);
+    let read_only = move || {
+        edit_status.with(|status| match status {
+            EditState::ReadOnly => true,
+            EditState::Edit => false,
+        })
+    };
+    let edit_button = move || {
+        edit_status.with(|status| match status {
+            EditState::ReadOnly => view! {
+                <></><SubmitButton label="Editar".to_string() />
+            },
+            EditState::Edit => view! {
+                <ResetButton label="Cancelar".to_string() />
+                <SubmitButton label="Guardar".to_string() />
+            },
+        })
     };
 
     view! {
         <div class="lg:wa-7/12 lg:justify-around">
-            <form on:submit=submit_handle>
+            <form
+                on:reset=move |e| reset_handle(e, edit_status, set_edit_status)
+                on:submit=move |e| submit_handle(e, edit_status, set_edit_status)>
                 <div class="mb-4 mx-auto md:flex">
                     <div class="mb-4 md:mr-2 md:mb-0 md:w-1/3">
                         <label class="block mb-2 text-sm font-bold text-gray-700" for="firstName">
@@ -191,7 +202,7 @@ fn PatientDetail(patient: Patient) -> impl IntoView {
                     //   }
                     // }
                     // <EditButton />
-                    <FirstButton label="Editar".to_string() />
+                    <div class="absolute right-2.5 ">{edit_button}</div>
                 </div>
                 <hr class="mb-6 border-t" />
             </form>
@@ -199,8 +210,33 @@ fn PatientDetail(patient: Patient) -> impl IntoView {
     }
 }
 
-fn submit_handle(event: SubmitEvent) {
+fn reset_handle(
+    event: Event,
+    edit_status: ReadSignal<EditState>,
+    set_edit_status: WriteSignal<EditState>,
+) {
+    // event.prevent_default();
+    info!("reset_handle: {:?}", event);
+    set_edit_status(EditState::ReadOnly);
+
+    // match edit_status.get() {
+    //     EditState::ReadOnly => {set_edit_status(EditState::Edit)},
+    //     EditState::Edit => {set_edit_status(EditState::ReadOnly)},
+    // };
+}
+
+fn submit_handle(
+    event: SubmitEvent,
+    edit_status: ReadSignal<EditState>,
+    set_edit_status: WriteSignal<EditState>,
+) {
     event.prevent_default();
+    info!("submit_handle: {}", event.type_());
+
+    match edit_status.get() {
+        EditState::ReadOnly => set_edit_status(EditState::Edit),
+        EditState::Edit => set_edit_status(EditState::ReadOnly),
+    };
 }
 
 #[component]
