@@ -1,14 +1,12 @@
 use leptos::*;
 use leptos_router::*;
 use log::*;
-use tonic_web_wasm_client::Client;
 use web_sys::{MouseEvent, SubmitEvent};
 
-use crate::api::patient_service_client::*;
-use crate::api::*;
 // use crate::ui::components::app_state_context::AppStateContext;
 use crate::di::DI;
 use crate::domain::patient::Patient;
+use crate::services::patient_service::PatientService;
 use crate::ui::components::atoms::button::FirstButton;
 use crate::ui::components::route::private;
 
@@ -37,39 +35,17 @@ pub fn Search() -> impl IntoView {
     </>}
 }
 
-fn build_client() -> PatientServiceClient<Client> {
-    let wasm_client = Client::new("http://localhost:9000".to_string());
-    PatientServiceClient::new(wasm_client)
-}
-
 #[component]
 fn SearchInput(set_patients: WriteSignal<Vec<Patient>>) -> impl IntoView {
     let onsubmit = move |event: SubmitEvent| {
         spawn_local(async move {
             event.prevent_default();
-            let mut client = build_client();
-            let patient_response = client.search_patient(SearchPatientRequest {
-                name: Some("Miuler".to_string()),
-            });
-            match patient_response.await {
-                Ok(response) => {
-                    let patients = response.into_inner().patients;
-
-                    let patients_vec: Vec<Patient> = patients
-                        .into_iter()
-                        .map(|response| {
-                            Patient::new(
-                                response.id,
-                                response.first_name,
-                                response.email.unwrap_or("".to_string()),
-                                response.note.unwrap_or("".to_string()),
-                                false,
-                                response.icon.unwrap_or("".to_string()),
-                            )
-                        })
-                        .collect::<Vec<_>>();
-                    set_patients(patients_vec);
-                }
+            match DI
+                .patient_service
+                .search_patient("Miuler".to_string())
+                .await
+            {
+                Ok(patient_response) => set_patients(patient_response),
                 Err(_) => {}
             };
         });
@@ -95,7 +71,7 @@ fn Grid(patients: ReadSignal<Vec<Patient>>) -> impl IntoView {
         event.prevent_default();
         debug!("Paciente: {}", patient);
 
-        DI.patient_service.search_patient(patient.clone());
+        DI.patient_service.update_app_status(patient.clone());
 
         let path = format!(
             "{}/{}",

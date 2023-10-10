@@ -1,13 +1,9 @@
-// use wasm_bindgen::prelude::wasm_bindgen;
+#![feature(async_fn_in_trait)]
 
 pub mod di;
 pub mod domain;
 pub mod services;
 pub mod ui;
-
-pub mod api {
-    tonic::include_proto!("api");
-}
 
 // #[wasm_bindgen]
 // #[derive(Clone, Debug)]

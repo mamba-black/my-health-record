@@ -1,11 +1,12 @@
-// use yew::prelude::*;
-
 use leptos::*;
 use leptos_router::*;
 use log::{debug, info};
 use web_sys::SubmitEvent;
 
+use crate::di::DI;
+use crate::domain::error::AppError;
 use crate::domain::patient::Patient;
+use crate::services::patient_service::PatientService;
 use crate::ui::components::atoms::button::FirstButton;
 
 #[derive(Params, PartialEq)]
@@ -22,10 +23,10 @@ pub fn HistoryDetail() -> impl IntoView {
         id_params.with(|p| {
             p.as_ref()
                 .map(move |id_params| id_params.id)
-                .map_err(|_| "ErrorInId".to_string())
+                .map_err(|e| AppError::GenericError(e.to_string()))
         })
     };
-    let app_state = expect_context::<RwSignal<Option<Patient>>>();
+    let app_state = DI.patient_service.get_app_status();
 
     view! {
         <>
@@ -45,6 +46,12 @@ pub fn HistoryDetail() -> impl IntoView {
                         </div>
                     </main>
                 </div>
+            },
+            None if !id().unwrap().to_string().is_empty() => {
+                info!("patient is None !!!");
+                DI.patient_service.find_and_update_app_status(id().unwrap().to_string());
+                // find_and_update_app_status();
+                view! {<div><h1>Cargar desde servicio</h1></div> }
             },
             None => view! {<div><h1>Seleccione un paciente</h1></div> },
             _ => view! {<div>Error al mostrar informacion del paciente</div> },
