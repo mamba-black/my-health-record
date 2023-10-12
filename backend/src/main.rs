@@ -1,9 +1,10 @@
 use tonic::transport::Server;
 use tonic::*;
-// use tonic_web::GrpcWebLayer;
 
 use medical_back::infraestructure::api::patient_service_server::*;
 use medical_back::infraestructure::api::*;
+
+// use tonic_web::GrpcWebLayer;
 
 #[derive(Default)]
 struct PatientServiceImpl;
@@ -20,7 +21,7 @@ impl PatientService for PatientServiceImpl {
             second_last_name: Some("Gallegos".to_string()),
             email: Some("miuler@gmail.com".to_string()),
             patients: vec![
-                PatientResponse {
+                PatientInformation {
                     id: "1".to_string(),
                     first_name: "Hector Miuler".to_string(),
                     last_name: "Malpica".to_string(),
@@ -30,7 +31,7 @@ impl PatientService for PatientServiceImpl {
                     icon: Some("https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
                     note: Some("Co-Founder / CEO".to_string()),
                 },
-                PatientResponse {
+                PatientInformation {
                     id: "2".to_string(),
                     first_name: "Leslie".to_string(),
                     last_name: "Alexander".to_string(),
@@ -40,7 +41,7 @@ impl PatientService for PatientServiceImpl {
                     icon: Some("https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
                     note: Some("Co-Founder / CEO".to_string()),
                 },
-                PatientResponse {
+                PatientInformation {
                     id: "3".to_string(),
                     first_name: "Michael".to_string(),
                     last_name: " Foster".to_string(),
@@ -50,7 +51,7 @@ impl PatientService for PatientServiceImpl {
                     icon: Some("https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
                     note: Some("Co-Founder / CEO".to_string()),
                 },
-                PatientResponse {
+                PatientInformation {
                     id: "4".to_string(),
                     first_name: "Dries".to_string(),
                     last_name: "Vincent".to_string(),
@@ -60,7 +61,7 @@ impl PatientService for PatientServiceImpl {
                     icon: Some("https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
                     note: Some("Business Relations".to_string()),
                 },
-                PatientResponse {
+                PatientInformation {
                     id: "5".to_string(),
                     first_name: "Lindsay".to_string(),
                     last_name: "Walton".to_string(),
@@ -70,7 +71,7 @@ impl PatientService for PatientServiceImpl {
                     icon: Some("https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
                     note: Some("Designer".to_string()),
                 },
-                PatientResponse {
+                PatientInformation {
                     id: "6".to_string(),
                     first_name: "Courtney".to_string(),
                     last_name: "Henry".to_string(),
@@ -80,7 +81,7 @@ impl PatientService for PatientServiceImpl {
                     icon: Some("https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
                     note: Some("Front-end Developer".to_string()),
                 },
-                PatientResponse {
+                PatientInformation {
                     id: "7".to_string(),
                     first_name: "Tom".to_string(),
                     last_name: "Cook".to_string(),
@@ -94,6 +95,30 @@ impl PatientService for PatientServiceImpl {
         };
 
         Ok(Response::new(search_patient_response))
+    }
+
+    async fn get_patient_by_id(
+        &self,
+        request: Request<PatientIdRequest>,
+    ) -> Result<Response<PatientInformation>, Status> {
+        let patient_information = PatientInformation{
+            id: "1".to_string(),
+            first_name: "Hector Miuler".to_string(),
+            last_name: "Malpica".to_string(),
+            second_last_name: Some("Gallegos".to_string()),
+            email: Some("miuler@gmail.com".to_string()),
+            phone_number: None,
+            icon: Some("https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80".to_string()),
+            note: Some("Co-Founder / CEO".to_string()),
+        };
+        Ok(Response::new(patient_information))
+    }
+
+    async fn save(
+        &self,
+        request: Request<PatientInformation>,
+    ) -> Result<Response<PatientInformation>, Status> {
+        Ok(Response::new(request.into_inner()))
     }
 }
 

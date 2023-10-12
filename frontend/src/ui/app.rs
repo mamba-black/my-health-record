@@ -1,7 +1,9 @@
 use leptos::*;
 use leptos_router::*;
+use log::info;
 
-use crate::domain::patient::Patient;
+use crate::di::DI;
+use crate::services::patient_service::{Load, PatientService};
 use crate::ui::components::route::private;
 use crate::ui::components::route::public;
 use crate::ui::pages::history_detail::HistoryDetail;
@@ -15,22 +17,33 @@ use crate::ui::pages::search::Search;
 //
 #[component]
 pub fn App() -> impl IntoView {
-    // let signal = create_rw_signal(cx, AppState::default());
-    // let (patient, patient_set) = create_signal(cx, Option::<Patient>::None);
-    // let (patient, patient_set) = create_signal(cx, "Test");
-    let a: RwSignal<Option<Patient>> = create_rw_signal(Option::<Patient>::None);
-    provide_context(a);
-    //     let app_context: UseReducerHandle<AppState> = use_reducer(|| AppState::default());
+    let load = DI.patient_service.get_loading().clone();
 
-    //     html! {
-    //     <ContextProvider <AppStateContext> context={app_context}>
-    //       <BrowserRouter>
-    //         <Switch<PublicRoute> render={public_switch} />
-    //       </BrowserRouter>
-    //     </ContextProvider <AppStateContext>>
-    //     }
+    let loading = move || {
+        load.with(|load| {
+            info!("load: {:?}", load);
+            match load {
+                Load::None => { view! { <div/> } },
+                Load::Loading => {
+                    view! {
+                        <div class="absolute bg-white bg-opacity-60 z-10 h-full w-full flex items-center justify-center">
+                          <div class="flex items-center">
+                            <span class="text-3xl mr-4">Loading</span>
+                            <svg class="animate-spin h-5 w-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          </div>
+                        </div>
+                    }
+                },
+            }
+        })
+    };
+
     view! {
         <Router>
+            {loading}
             <Routes>
                 <Route path=public::HOME                view=Home/>
                 <Route path=private::PRIVATE            view=PrivateHome>
@@ -41,58 +54,6 @@ pub fn App() -> impl IntoView {
                 <Route path=public::NOT_FOUND           view=NotFound/>
                 //PrivateRoute::HistoryDetail { id } => html! { <HistoryDetail id={id.clone()} /> },
             </Routes>
-            patient.id: {move || a.with(|x| {
-                if x.is_some() {
-                    x.clone().unwrap().name.clone()
-                } else {
-                    "None".to_string()
-                }
-            })}
         </Router>
     }
 }
-
-// fn public_switch(route: PublicRoute) -> Html {
-//     match route {
-//         PublicRoute::Home => html! { <Home /> },
-//         PublicRoute::About => html! { <Home /> },
-//         PublicRoute::PrivatesRoot | PublicRoute::Privates => {
-//             html! { <PrivateSwitch /> }
-//         }
-//         PublicRoute::NotFound => html! { <NotFound /> },
-//     }
-// }
-//
-// #[function_component]
-// fn PrivateSwitch() -> Html {
-//     let a = gloo_storage::LocalStorage::get::<String>("access_token");
-//     if a.is_ok() {
-//         info!("token: {}", a.unwrap());
-//         html! { <Switch<PrivateRoute> render={private_switch}/> }
-//     } else {
-//         info!("No hay token");
-//         // initCodeClient(CodeClientConfig::new (
-//         //     "937186309482-uc7dm6bc6o6p3disa546hq25n8dbov42.apps.googleusercontent.com".to_string(),
-//         //     "https://www.googleapis.com/auth/calendar.readonly".to_string(),
-//         //     "redirect".to_string(),
-//         //     "https://your.domain/code_callback_endpoint".to_string(),
-//         // ));
-//         html! { <Switch<PrivateRoute> render={private_switch}/> }
-//     }
-//
-//     // let auth = auth2::getAuthInstance();
-//     // if auth.isSignedIn() {
-//     //     info!("Esta logeado contra google");
-//     // } else {
-//     //     info!("Tienes que logearte contra google");
-//     // }
-//     // auth.signIn();
-// }
-//
-// fn private_switch(route: PrivateRoute) -> Html {
-//     match route {
-//         PrivateRoute::Histories => html! { <Search /> },
-//         PrivateRoute::HistoryDetail { id } => html! { <HistoryDetail id={id.clone()} /> },
-//         PrivateRoute::NotFound | PrivateRoute::NotFound2 => html! { <NotFound /> },
-//     }
-// }

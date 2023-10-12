@@ -1,4 +1,5 @@
-use leptos::{spawn_local, ReadSignal, RwSignal, SignalUpdate};
+use leptos::{create_rw_signal, spawn_local, ReadSignal, RwSignal, SignalSet, SignalUpdate};
+use std::time::Duration;
 // use leptos::tracing::debug;
 use log::{debug, error, info};
 use tonic_web_wasm_client::Client;
@@ -9,17 +10,50 @@ use crate::services::api::patient_service_client::*;
 use crate::services::api::*;
 
 pub trait PatientService: Send + Sync {
+    fn get_loading(&self) -> ReadSignal<Load>;
+    fn set_loading(&self, load: Load);
     fn get_app_status(&self) -> ReadSignal<Option<Patient>>;
     fn update_app_status(&self, patient: Patient);
-    fn find_and_update_app_status(&self, id: String);
+    async fn find_and_update_app_status(&self, id: String);
     async fn search_patient(&self, patient: String) -> Result<Vec<Patient>, AppError>;
+    async fn save(&self, patient: Patient);
+}
+
+#[derive(Debug)]
+pub(crate) enum Load {
+    None,
+    Loading,
 }
 
 pub struct PatientServiceImpl {
     pub app_state: RwSignal<Option<Patient>>,
+    pub loading: RwSignal<Load>,
+    pub client: PatientServiceClient<Client>,
+}
+
+impl PatientServiceImpl {
+    pub(crate) fn new() -> PatientServiceImpl {
+        let app_state = create_rw_signal(Option::<Patient>::None);
+        let loading = create_rw_signal(Load::None);
+        // provide_context(app_state);
+        // provide_context(loading);
+        Self {
+            app_state,
+            loading,
+            client: build_client(),
+        }
+    }
 }
 
 impl PatientService for PatientServiceImpl {
+    fn get_loading(&self) -> ReadSignal<Load> {
+        self.loading.read_only()
+    }
+
+    fn set_loading(&self, load: Load) {
+        self.loading.update(move |mut value| *value = load);
+    }
+
     fn get_app_status(&self) -> ReadSignal<Option<Patient>> {
         self.app_state.read_only()
     }
@@ -33,11 +67,17 @@ impl PatientService for PatientServiceImpl {
         // signal.set(AppState { patient: Some(patient.clone()) });
     }
 
-    fn find_and_update_app_status(&self, id: String) {
+    async fn find_and_update_app_status(&self, id: String) {
         debug!("find_and_update_app_status: {}", id);
+        let mut client = self.client.clone();
         let app_state = self.app_state;
         spawn_local(async move {
             // FIXME: Buscar en GRPC el paciente por id
+            let _patient = client
+                .get_patient_by_id(PatientIdRequest {
+                    id: Some(id.clone()),
+                })
+                .await;
             app_state.update(move |mut value| {
                 debug!("app_state.update: {}", id);
                 *value = Some(Patient::new(
@@ -53,7 +93,7 @@ impl PatientService for PatientServiceImpl {
     }
 
     async fn search_patient(&self, patient: String) -> Result<Vec<Patient>, AppError> {
-        let mut client = build_client();
+        let mut client = self.client.clone();
         let patient_response = client
             .search_patient(SearchPatientRequest {
                 name: Some("Miuler".to_string()),
@@ -77,6 +117,26 @@ impl PatientService for PatientServiceImpl {
             .collect::<Vec<_>>();
 
         Ok(patients_vec)
+    }
+
+    async fn save(&self, patient: Patient) {
+        self.set_loading(Load::Loading);
+        let mut client = self.client.clone();
+        // FIXME: Guardar el paciente usando GRPC
+        client
+            .save(PatientInformation {
+                id: "123".to_string(),
+                first_name: patient.name.clone(),
+                last_name: patient.name.clone(),
+                second_last_name: None,
+                email: Some(patient.email.clone()),
+                phone_number: None,
+                icon: None,
+                note: None,
+            })
+            .await;
+        async_std::task::sleep(Duration::from_millis(3000)).await;
+        self.set_loading(Load::None);
     }
 }
 

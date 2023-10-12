@@ -5,7 +5,11 @@ message SearchPatientRequest {
     optional string name = 1;
 }
 
-message PatientResponse {
+message PatientIdRequest {
+    optional string id = 1;
+}
+
+message PatientInformation {
     string id = 1;
     string firstName = 2;
     string lastName = 3;
@@ -21,9 +25,11 @@ message SearchPatientResponse {
     optional string lastName = 2;
     optional string secondLastName = 3;
     optional string email = 4;
-    repeated PatientResponse patients = 5;
+    repeated PatientInformation patients = 5;
 }
 
 service PatientService {
     rpc SearchPatient (SearchPatientRequest) returns (SearchPatientResponse) {}
+    rpc GetPatientById (PatientIdRequest) returns (PatientInformation) {}
+    rpc Save (PatientInformation) returns (PatientInformation) {}
 }
