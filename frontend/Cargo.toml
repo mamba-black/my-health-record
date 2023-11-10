@@ -19,21 +19,21 @@ console_log = { version = "1.0.0", features = ["color"] }
 derive_builder = "0.12.0"
 display_json = "0.2.1"
 #gloo-storage = "0.2.2"
-leptos = { version = "0.5.1", features = ["csr", "nightly", "serde"] }
+leptos = { version = "0.5.2", features = ["csr", "nightly", "serde"] }
 #leptos_meta = { version = "0.4.8", features = ["csr", "nightly"] }
-leptos_router = { version = "0.5.1", features = ["csr", "nightly"] }
+leptos_router = { version = "0.5.2", features = ["csr", "nightly"] }
 log = "0.4.20"
 parse-display = "0.8.2"
 prost = "0.11.9"
-serde = "1.0.188"
-serde_json = "1.0.107"
+serde = "1.0.192"
+serde_json = "1.0.108"
 serde_qs = "0.12.0"
 tonic = { version = "0.9.2", features = ["prost", "codegen"], default-features = false }
 tonic-web-wasm-client = "0.4.0"
-uuid = { version = "1.4.1", features = ["v4", "v5", "v6", "v7", "v8", "js"] }
-wasm-bindgen = "0.2.87"
+uuid = { version = "1.5.0", features = ["v4", "v5", "v6", "v7", "v8", "js"] }
+wasm-bindgen = "0.2.88"
 #wasm-logger = "0.2.0"
-web-sys = { version = "0.3.64", features = ["css", "CssStyleDeclaration"] }
+web-sys = { version = "0.3.65", features = ["css", "CssStyleDeclaration"] }
 #yew = { version="0.20", features=["csr"] }
 #yew-router = "0.17.0"
 

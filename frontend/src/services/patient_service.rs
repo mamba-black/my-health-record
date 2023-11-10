@@ -136,6 +136,7 @@ impl PatientService for PatientServiceImpl {
             })
             .await;
         async_std::task::sleep(Duration::from_millis(3000)).await;
+        // self.app_state(Some(patient));
         self.set_loading(Load::None);
     }
 }

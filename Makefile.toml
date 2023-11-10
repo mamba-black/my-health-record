@@ -2,6 +2,9 @@
 #[env]
 #CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = false
 
+[env]
+RUSTFLAGS="-Z macro-backtrace"
+
 [tasks.gitinspector]
 workspace = false
 script = "gitinspector -HTlrm -F html > gitinspector.html"
