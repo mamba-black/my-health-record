@@ -5,7 +5,10 @@ use serde::Serialize;
 #[derive(Serialize, DisplayAsJson, Builder, Debug, PartialEq, Clone)]
 pub struct Patient {
     pub id: String,
-    pub name: String,
+    pub full_name: String,
+    pub first_name: String,
+    pub last_name: String,
+    pub second_name: String,
     pub email: String,
     pub other: String,
     pub online: bool,
@@ -15,7 +18,10 @@ pub struct Patient {
 impl Patient {
     pub fn new(
         id: String,
-        name: String,
+        full_name: String,
+        first_name: String,
+        last_name: String,
+        second_name: String,
         email: String,
         other: String,
         online: bool,
@@ -23,7 +29,10 @@ impl Patient {
     ) -> Patient {
         Patient {
             id,
-            name,
+            full_name,
+            first_name,
+            last_name,
+            second_name,
             email,
             other,
             online,
@@ -40,6 +49,9 @@ mod test {
     fn test_patient_new() {
         let patient = Patient::new(
             "123".to_string(),
+            "Miuler".to_string(),
+            "Miuler".to_string(),
+            "Miuler".to_string(),
             "Miuler".to_string(),
             "email".to_string(),
             "other".to_string(),

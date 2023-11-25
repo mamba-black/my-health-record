@@ -101,7 +101,7 @@ fn Grid(patients: ReadSignal<Vec<Patient>>) -> impl IntoView {
                                     <img class="h-12 w-12 flex-none rounded-full bg-gray-50" src={patient.avatar} alt="" />
                                     <div class="min-w-0 flex-auto">
                                         <p class="text-sm font-semibold leading-6 text-gray-900">
-                                            {patient.name}
+                                            {patient.full_name}
                                             <span class="relative inline-block px-2 py-0 font-semibold text-green-900 leading-tight">
                                                 <span  class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
                                                 <span class="relative">Cita programada</span>

@@ -59,7 +59,7 @@ impl PatientService for PatientServiceImpl {
     }
 
     fn update_app_status(&self, patient: Patient) {
-        let patient_name = patient.name.clone();
+        let patient_name = patient.full_name.clone();
         info!("nombre del paciente: {}", patient_name);
         self.app_state
             .update(move |mut value| *value = Some(patient.clone()));
@@ -82,6 +82,9 @@ impl PatientService for PatientServiceImpl {
                 debug!("app_state.update: {}", id);
                 *value = Some(Patient::new(
                     id,
+                    "Miuler".to_string(),
+                    "Miuler".to_string(),
+                    "Miuler".to_string(),
                     "Miuler".to_string(),
                     "email".to_string(),
                     "other".to_string(),
@@ -107,6 +110,9 @@ impl PatientService for PatientServiceImpl {
             .map(|response| {
                 Patient::new(
                     response.id,
+                    response.first_name.clone(),
+                    response.first_name.clone(),
+                    response.first_name.clone(),
                     response.first_name,
                     response.email.unwrap_or("".to_string()),
                     response.note.unwrap_or("".to_string()),
@@ -126,8 +132,8 @@ impl PatientService for PatientServiceImpl {
         client
             .save(PatientInformation {
                 id: "123".to_string(),
-                first_name: patient.name.clone(),
-                last_name: patient.name.clone(),
+                first_name: patient.full_name.clone(),
+                last_name: patient.full_name.clone(),
                 second_last_name: None,
                 email: Some(patient.email.clone()),
                 phone_number: None,
