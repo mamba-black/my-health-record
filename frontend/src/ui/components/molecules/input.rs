@@ -5,7 +5,8 @@ use web_sys::Event;
 pub fn Input<F>(
     id: String,
     name: String,
-    value: RwSignal<String>,
+    value: Signal<String>,
+    set_value: SignalSetter<String>,
     readonly: F,
     #[prop(default = "text".to_string())] _type: String,
 ) -> impl IntoView
@@ -14,7 +15,7 @@ where
 {
     let on_input = move |e: Event| {
         let _value = event_target_value(&e);
-        value.update(|mut v| *v = _value.clone());
+        set_value(_value.clone());
     };
 
     view! {
@@ -28,7 +29,7 @@ where
             placeholder={name}
             readonly={readonly}
             on:input=on_input
-            prop:value={value.read_only()}
+            prop:value={value}
             />
     }
 }
