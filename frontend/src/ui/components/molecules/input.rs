@@ -19,17 +19,18 @@ where
     };
 
     view! {
-        <label class="block mb-2 text-sm font-bold text-gray-700" for={id.clone()}>
-            {name.clone()}
-        </label>
-        <input
-            class="w-full px-3 py-2 text-sm leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
-            id={id}
-            type=_type
-            placeholder={name}
-            readonly={readonly}
-            on:input=on_input
-            prop:value={value}
-            />
+        <div class="history-input">
+            <label for={id.clone()}>
+                {name.clone()}
+            </label>
+            <input
+                id={id}
+                type=_type
+                placeholder={name}
+                readonly={readonly}
+                on:input=on_input
+                prop:value={value}
+                />
+        </div>
     }
 }

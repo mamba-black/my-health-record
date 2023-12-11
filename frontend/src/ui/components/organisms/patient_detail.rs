@@ -35,12 +35,27 @@ pub fn PatientDetail(patient: Patient) -> impl IntoView {
         |patient| patient.second_name.clone(),
         |patient, value| patient.second_name = value,
     );
+    let (phone, set_phone) = create_slice(
+        patient_signal,
+        |patient| patient.email.clone(),
+        |patient, value| patient.email = value,
+    );
     let (email, set_email) = create_slice(
         patient_signal,
         |patient| patient.email.clone(),
         |patient, value| patient.email = value,
     );
+    let (birthday, set_birthday) = create_slice(
+        patient_signal,
+        |patient| patient.email.clone(),
+        |patient, value| patient.email = value,
+    );
     let (address, set_address) = create_slice(
+        patient_signal,
+        |patient| patient.other.clone(),
+        |patient, value| patient.other = value,
+    );
+    let (district, set_district) = create_slice(
         patient_signal,
         |patient| patient.other.clone(),
         |patient, value| patient.other = value,
@@ -73,21 +88,21 @@ pub fn PatientDetail(patient: Patient) -> impl IntoView {
                 on:reset=move |e| reset_handle(e, edit_status, patient_signal)
                 on:submit=move |e| submit_handle(e, edit_status, patient_signal)>
                 <div class="mb-4 mx-auto md:flex">
-                    <div class="mb-4 md:mr-2 md:mb-0 md:w-1/3">
+                    <div class="md:w-1/3 md:mr-4">
                         <Input id="firstName".to_string()
                                name="Nombre".to_string()
                                value={first_name}
                                set_value={set_first_name}
                                readonly={read_only} />
                     </div>
-                    <div class="mb-4 md:mr-2 md:ml-2 md:w-1/3">
+                    <div class="md:w-1/3 md:mr-4">
                         <Input id="lastName".to_string()
                                name="Apellido Paterno".to_string()
                                value={last_name}
                                set_value={set_last_name}
                                readonly={read_only} />
                     </div>
-                    <div class="md:ml-2 md:w-1/3">
+                    <div class="md:w-1/3">
                         <Input id="secondLastName".to_string()
                                name="Apellido Materno".to_string()
                                value={second_name}
@@ -96,14 +111,31 @@ pub fn PatientDetail(patient: Patient) -> impl IntoView {
                     </div>
                 </div>
                 <div class="mb-4 mx-auto md:flex">
-                    <div class="mb-4 md:mb-0 md:w-2/3">
+                    <div class="md:w-2/3 md:mr-4">
                         <Input id="secondLastName".to_string()
                                name="Dirección".to_string()
                                value={address}
                                set_value={set_address}
                                readonly={read_only} />
                     </div>
-                    <div class="md:ml-5 md:w-1/3">
+                    <div class="md:w-1/3">
+                        <Input id="district".to_string()
+                               name="Distrito".to_string()
+                               readonly={read_only}
+                               value={email}
+                               set_value={set_email}/>
+                    </div>
+                </div>
+                <div class="mb-4 mx-auto md:flex">
+                    <div class="md:w-1/3 md:mr-4">
+                        <Input id="phone".to_string()
+                               name="Telefono".to_string()
+                               readonly={read_only}
+                               value={phone}
+                               set_value={set_phone}
+                               _type="tel".to_string() />
+                    </div>
+                    <div class="md:w-1/3 md:mr-4">
                         <Input id="email".to_string()
                                name="Correo electronico".to_string()
                                readonly={read_only}
@@ -111,8 +143,14 @@ pub fn PatientDetail(patient: Patient) -> impl IntoView {
                                set_value={set_email}
                                _type="email".to_string() />
                     </div>
-                </div>
-                <div class="mb-4 mx-auto md:flex">
+                    <div class="md:w-1/3">
+                        <Input id="birthday".to_string()
+                               name="Fecha de cumpleaños".to_string()
+                               readonly={read_only}
+                               value={birthday}
+                               set_value={set_birthday}
+                               _type="date".to_string() />
+                    </div>
                 </div>
                 <div class="mb-6 text-center md:flex md:flex-row-reverse relative h-10">
                     <div class="absolute right-2.5 ">{edit_button}</div>
