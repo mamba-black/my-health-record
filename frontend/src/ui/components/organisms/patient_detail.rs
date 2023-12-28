@@ -91,54 +91,54 @@ pub fn PatientDetail(patient: Patient) -> impl IntoView {
                 <div class="md:grid md:grid-cols-3 md:gap-4 space-y-5 md:space-y-0">
 
                     // ---------------------------------------------
-                    <Input id="firstName".to_string()
-                           name="Nombre".to_string()
+                    <Input id="firstName"
+                           name="Nombre"
                            value={first_name}
                            set_value={set_first_name}
                            readonly={read_only} />
-                    <Input id="lastName".to_string()
-                           name="Apellido Paterno".to_string()
+                    <Input id="lastName"
+                           name="Apellido Paterno"
                            value={last_name}
                            set_value={set_last_name}
                            readonly={read_only} />
-                    <Input id="secondLastName".to_string()
-                           name="Apellido Materno".to_string()
+                    <Input id="secondLastName"
+                           name="Apellido Materno"
                            value={second_name}
                            set_value={set_second_name}
                            readonly={read_only} />
 
                     // ---------------------------------------------
-                    <Input id="secondLastName".to_string()
-                           name="Dirección".to_string()
+                    <Input id="secondLastName"
+                           name="Dirección"
                            value={address}
                            set_value={set_address}
-                           class="col-span-2".to_string()
+                           class="col-span-2"
                            readonly={read_only} />
-                    <Input id="district".to_string()
-                           name="Distrito".to_string()
+                    <Input id="district"
+                           name="Distrito"
                            readonly={read_only}
                            value={email}
                            set_value={set_email}/>
 
                     // ---------------------------------------------
-                    <Input id="phone".to_string()
-                           name="Telefono".to_string()
+                    <Input id="phone"
+                           name="Telefono"
                            readonly={read_only}
                            value={phone}
                            set_value={set_phone}
-                           _type="tel".to_string() />
-                    <Input id="email".to_string()
-                           name="Correo electronico".to_string()
+                           _type="tel" />
+                    <Input id="email"
+                           name="Correo electronico"
                            readonly={read_only}
                            value={email}
                            set_value={set_email}
-                           _type="email".to_string() />
-                    <Input id="birthday".to_string()
-                           name="Fecha de cumpleaños".to_string()
+                           _type="email" />
+                    <Input id="birthday"
+                           name="Fecha de cumpleaños"
                            readonly={read_only}
                            value={birthday}
                            set_value={set_birthday}
-                           _type="date".to_string() />
+                           _type="date" />
 
                     // ---------------------------------------------
                     <div class="col-span-3">
@@ -147,23 +147,22 @@ pub fn PatientDetail(patient: Patient) -> impl IntoView {
                     <h2 class="col-span-3">Antecedentes</h2>
 
                     // ---------------------------------------------
-                    <Input id="alergy".to_string()
-                           name="Alergias".to_string()
+                    <Input id="alergy"
+                           name="Alergias"
                            readonly={read_only}
                            value={birthday}
                            set_value={set_birthday}
-                           class="col-span-3".to_string() />
+                           class="col-span-3" />
 
                     // ---------------------------------------------
-                    <Checkbox />
-                    <Input id="".to_string() name="Hepatitis".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
-                    <Input id="".to_string() name="Diabetes".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
-                    <Input id="".to_string() name="Hemorragia".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
-                    <Input id="".to_string() name="Presion alta".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
-                    <Input id="".to_string() name="Presion baja".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
-                    <Input id="".to_string() name="Colesteros".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
-                    <Input id="".to_string() name="Asma".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
-                    <Input id="".to_string() name="TBC".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Checkbox name="Hepatitis" value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Checkbox name="Diabetes" value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Checkbox name="Hemorragia" value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Checkbox name="Presion alta" value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Checkbox name="Presion baja" value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Checkbox name="Colesteros" value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Checkbox name="Asma" value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Checkbox name="TBC" value={birthday} set_value={set_birthday} readonly={read_only} />
 
                     // ---------------------------------------------
                     //

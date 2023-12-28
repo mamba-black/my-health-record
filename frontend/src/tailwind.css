@@ -19,10 +19,10 @@
     }
     .history-input {
         label {
-            @apply block mb-2 text-sm font-bold text-gray-700;
+            @apply block mb-2 text-sm text-gray-700;
         }
         input {
-            @apply w-full px-3 py-2 text-sm leading-tight text-gray-700 border rounded shadow appearance-none  focus:outline-none focus:border-blue-800; /*focus:shadow-outline*/
+            @apply font-bold w-full px-3 py-2 text-sm leading-tight text-gray-700 border rounded shadow appearance-none  focus:outline-none focus:border-blue-800; /*focus:shadow-outline*/
         }
     }
 }
