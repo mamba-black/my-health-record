@@ -7,6 +7,7 @@ use crate::di::DI;
 use crate::domain::patient::Patient;
 use crate::services::patient_service::PatientService;
 use crate::ui::components::atoms::button::{ResetButton, SubmitButton};
+use crate::ui::components::molecules::checkbox::Checkbox;
 use crate::ui::components::molecules::input::Input;
 
 #[derive(Clone)]
@@ -87,75 +88,93 @@ pub fn PatientDetail(patient: Patient) -> impl IntoView {
             <form
                 on:reset=move |e| reset_handle(e, edit_status, patient_signal)
                 on:submit=move |e| submit_handle(e, edit_status, patient_signal)>
-                <div class="mb-4 mx-auto md:flex">
-                    <div class="md:w-1/3 md:mr-4">
-                        <Input id="firstName".to_string()
-                               name="Nombre".to_string()
-                               value={first_name}
-                               set_value={set_first_name}
-                               readonly={read_only} />
+                <div class="md:grid md:grid-cols-3 md:gap-4 space-y-5 md:space-y-0">
+
+                    // ---------------------------------------------
+                    <Input id="firstName".to_string()
+                           name="Nombre".to_string()
+                           value={first_name}
+                           set_value={set_first_name}
+                           readonly={read_only} />
+                    <Input id="lastName".to_string()
+                           name="Apellido Paterno".to_string()
+                           value={last_name}
+                           set_value={set_last_name}
+                           readonly={read_only} />
+                    <Input id="secondLastName".to_string()
+                           name="Apellido Materno".to_string()
+                           value={second_name}
+                           set_value={set_second_name}
+                           readonly={read_only} />
+
+                    // ---------------------------------------------
+                    <Input id="secondLastName".to_string()
+                           name="Dirección".to_string()
+                           value={address}
+                           set_value={set_address}
+                           class="col-span-2".to_string()
+                           readonly={read_only} />
+                    <Input id="district".to_string()
+                           name="Distrito".to_string()
+                           readonly={read_only}
+                           value={email}
+                           set_value={set_email}/>
+
+                    // ---------------------------------------------
+                    <Input id="phone".to_string()
+                           name="Telefono".to_string()
+                           readonly={read_only}
+                           value={phone}
+                           set_value={set_phone}
+                           _type="tel".to_string() />
+                    <Input id="email".to_string()
+                           name="Correo electronico".to_string()
+                           readonly={read_only}
+                           value={email}
+                           set_value={set_email}
+                           _type="email".to_string() />
+                    <Input id="birthday".to_string()
+                           name="Fecha de cumpleaños".to_string()
+                           readonly={read_only}
+                           value={birthday}
+                           set_value={set_birthday}
+                           _type="date".to_string() />
+
+                    // ---------------------------------------------
+                    <div class="col-span-3">
+                        <hr class="h-px mt-8" />
                     </div>
-                    <div class="md:w-1/3 md:mr-4">
-                        <Input id="lastName".to_string()
-                               name="Apellido Paterno".to_string()
-                               value={last_name}
-                               set_value={set_last_name}
-                               readonly={read_only} />
-                    </div>
-                    <div class="md:w-1/3">
-                        <Input id="secondLastName".to_string()
-                               name="Apellido Materno".to_string()
-                               value={second_name}
-                               set_value={set_second_name}
-                               readonly={read_only} />
-                    </div>
+                    <h2 class="col-span-3">Antecedentes</h2>
+
+                    // ---------------------------------------------
+                    <Input id="alergy".to_string()
+                           name="Alergias".to_string()
+                           readonly={read_only}
+                           value={birthday}
+                           set_value={set_birthday}
+                           class="col-span-3".to_string() />
+
+                    // ---------------------------------------------
+                    <Checkbox />
+                    <Input id="".to_string() name="Hepatitis".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Input id="".to_string() name="Diabetes".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Input id="".to_string() name="Hemorragia".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Input id="".to_string() name="Presion alta".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Input id="".to_string() name="Presion baja".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Input id="".to_string() name="Colesteros".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Input id="".to_string() name="Asma".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Input id="".to_string() name="TBC".to_string() value={birthday} set_value={set_birthday} readonly={read_only} />
+
+                    // ---------------------------------------------
+                    //
+
+                    // ---------------------------------------------
+                    //
+
+                    // ---------------------------------------------
+                    <div class="col-span-2"></div>
+                    <div class="justify-self-end">{edit_button}</div>
                 </div>
-                <div class="mb-4 mx-auto md:flex">
-                    <div class="md:w-2/3 md:mr-4">
-                        <Input id="secondLastName".to_string()
-                               name="Dirección".to_string()
-                               value={address}
-                               set_value={set_address}
-                               readonly={read_only} />
-                    </div>
-                    <div class="md:w-1/3">
-                        <Input id="district".to_string()
-                               name="Distrito".to_string()
-                               readonly={read_only}
-                               value={email}
-                               set_value={set_email}/>
-                    </div>
-                </div>
-                <div class="mb-4 mx-auto md:flex">
-                    <div class="md:w-1/3 md:mr-4">
-                        <Input id="phone".to_string()
-                               name="Telefono".to_string()
-                               readonly={read_only}
-                               value={phone}
-                               set_value={set_phone}
-                               _type="tel".to_string() />
-                    </div>
-                    <div class="md:w-1/3 md:mr-4">
-                        <Input id="email".to_string()
-                               name="Correo electronico".to_string()
-                               readonly={read_only}
-                               value={email}
-                               set_value={set_email}
-                               _type="email".to_string() />
-                    </div>
-                    <div class="md:w-1/3">
-                        <Input id="birthday".to_string()
-                               name="Fecha de cumpleaños".to_string()
-                               readonly={read_only}
-                               value={birthday}
-                               set_value={set_birthday}
-                               _type="date".to_string() />
-                    </div>
-                </div>
-                <div class="mb-6 text-center md:flex md:flex-row-reverse relative h-10">
-                    <div class="absolute right-2.5 ">{edit_button}</div>
-                </div>
-                <hr class="mb-6 border-t" />
             </form>
         </div>
     }

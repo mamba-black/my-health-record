@@ -9,6 +9,7 @@ pub fn Input<F>(
     set_value: SignalSetter<String>,
     readonly: F,
     #[prop(default = "text".to_string())] _type: String,
+    #[prop(default = "".to_string())] class: String,
 ) -> impl IntoView
 where
     F: Fn() -> bool + 'static,
@@ -19,7 +20,7 @@ where
     };
 
     view! {
-        <div class="history-input">
+        <div class=format!("{} history-input", class)>
             <label for={id.clone()}>
                 {name.clone()}
             </label>
