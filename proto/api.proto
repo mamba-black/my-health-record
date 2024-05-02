@@ -13,6 +13,7 @@ message PatientInformation {
     string id = 1;
     string firstName = 2;
     string lastName = 3;
+    string birthdate = 9;
     optional string secondLastName = 4;
     optional string email = 5;
     optional string phoneNumber = 6;

@@ -22,13 +22,13 @@ command = "trunk"
 args = ["serve"]
 cwd = "frontend"
 
-[tasks.webbuild]
+[tasks.buildweb]
 workspace = false
 command = "trunk"
-args = ["build", "--release"]
+args = ["build"]#, "--release"
 cwd = "frontend"
 
-[tasks.webdeploy]
+[tasks.deployweb]
 workspace = false
 command = "firebase"
 args = ["deploy"]
@@ -39,11 +39,11 @@ workspace = false
 command = "cargo"
 args = ["run", "--bin", "medical_back"]
 
-[tasks.backbuildrelease]
+[tasks.buildback]
 workspace = false
 env = { "RUSTFLAGS" = "-C target-feature=+crt-static" }
 command = "cargo"
-args = ["build", "--release", "--target", "x86_64-unknown-linux-gnu", "--bin", "medical_back"]
+args = ["build", "--target", "x86_64-unknown-linux-gnu", "--bin", "medical_back"]#, "--release"
 
 [tasks.backbuildcontainer]
 workspace = false
@@ -55,7 +55,7 @@ args = ["build", "-t", "medical-back", "."]
 workspace = false
 script = "docker run -p 9000:9000 --rm medical-back:latest"
 
-[tasks.backdeploycontainer]
+[tasks.deployback]
 workspace = false
 script = '''
 # gcloud auth configure-docker us-east1-docker.pkg.dev

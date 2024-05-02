@@ -47,6 +47,7 @@ pub fn HistoryDetail() -> impl IntoView {
                     </div>
                 },
                 None if !id.is_empty() => {
+                    // FIXME: Ver porque no esta funcianando
                     info!("patient is None !!!");
                     // let id = id.clone();
                     spawn_local(async move {

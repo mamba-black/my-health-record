@@ -92,16 +92,17 @@ fn Grid(patients: ReadSignal<Vec<Patient>>) -> impl IntoView {
                 key=|patient| patient.id.clone()
                 children= move |patient| {
                     let patient1 = patient.clone();
+                    let full_name = patient.full_name();
                     view!{
                         <li>
                             <a on:click=move |e| {patient_onclick(e, &patient1)}
                                 class="flex justify-between gap-x-6 py-5">
                                 // href={private::HISTORY_DETAIL.replace(":id", &patient.id)}>
                                 <div class="flex gap-x-4">
-                                    <img class="h-12 w-12 flex-none rounded-full bg-gray-50" src={patient.avatar} alt="" />
+                                    <img class="h-12 w-12 flex-none rounded-full bg-gray-50" src={&patient.avatar.unwrap_or("".to_string())} alt="" />
                                     <div class="min-w-0 flex-auto">
                                         <p class="text-sm font-semibold leading-6 text-gray-900">
-                                            {patient.full_name}
+                                            {full_name}
                                             <span class="relative inline-block px-2 py-0 font-semibold text-green-900 leading-tight">
                                                 <span  class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
                                                 <span class="relative">Cita programada</span>
@@ -111,7 +112,7 @@ fn Grid(patients: ReadSignal<Vec<Patient>>) -> impl IntoView {
                                     </div>
                                 </div>
                                 <div class="hidden sm:flex sm:flex-col sm:items-end">
-                                    <p class="text-sm leading-6 text-gray-900">{patient.other}</p>
+                                    <p class="text-sm leading-6 text-gray-900">{}</p>
                                     {
                                         if patient.online {view!{<>
                                             <div class="mt-1 flex items-center gap-x-1.5">

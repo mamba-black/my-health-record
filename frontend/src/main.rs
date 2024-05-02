@@ -33,8 +33,8 @@ pub fn init_log() {
         Ok(Config { level }) => {
             let level = Level::from_str(&level).unwrap();
             let _ = console_log::init_with_level(level);
-            info!("================================================>>>");
-            info!("log level: [{:?}]", level);
+            info!("== ==============================================>>>");
+            info!("== log level: [{:?}]", level);
         }
         _ => {
             let _ = console_log::init_with_level(Level::Warn);
@@ -51,7 +51,7 @@ pub fn init_log() {
         warn!("== TEST: log warn");
         error!("== TEST: log error");
         info!("== Log Iniciado");
-        info!("================================================<<<");
+        info!("== ==============================================<<<");
     };
 }
 

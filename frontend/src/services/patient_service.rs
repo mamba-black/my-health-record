@@ -5,7 +5,7 @@ use log::{debug, error, info};
 use tonic_web_wasm_client::Client;
 
 use crate::domain::error::AppError;
-use crate::domain::patient::Patient;
+use crate::domain::patient::{Patient, PatientBuilder};
 use crate::services::api::patient_service_client::*;
 use crate::services::api::*;
 
@@ -59,7 +59,7 @@ impl PatientService for PatientServiceImpl {
     }
 
     fn update_app_status(&self, patient: Patient) {
-        let patient_name = patient.full_name.clone();
+        let patient_name = patient.full_name().clone();
         info!("nombre del paciente: {}", patient_name);
         self.app_state
             .update(move |mut value| *value = Some(patient.clone()));
@@ -80,17 +80,7 @@ impl PatientService for PatientServiceImpl {
                 .await;
             app_state.update(move |mut value| {
                 debug!("app_state.update: {}", id);
-                *value = Some(Patient::new(
-                    id,
-                    "Miuler".to_string(),
-                    "Miuler".to_string(),
-                    "Miuler".to_string(),
-                    "Miuler".to_string(),
-                    "email".to_string(),
-                    "other".to_string(),
-                    true,
-                    "avatar".to_string(),
-                ));
+                *value = Some(Patient::default());
             });
         });
     }
@@ -108,17 +98,21 @@ impl PatientService for PatientServiceImpl {
         let patients_vec = patients
             .into_iter()
             .map(|response| {
-                Patient::new(
-                    response.id,
-                    response.first_name.clone(),
-                    response.first_name.clone(),
-                    response.first_name.clone(),
-                    response.first_name,
-                    response.email.unwrap_or("".to_string()),
-                    response.note.unwrap_or("".to_string()),
-                    false,
-                    response.icon.unwrap_or("".to_string()),
-                )
+                PatientBuilder::default()
+                    .id(response.id)
+                    .first_name(response.first_name.clone())
+                    .last_name(response.last_name.clone())
+                    .second_name(response.second_last_name)
+                    .email(response.email.clone())
+                    .birthdate(response.birthdate.clone())
+                    .phone_number(response.phone_number.clone())
+                    .other("".to_string()) // FIXME: Agregar desde GRPC
+                    .online(false) // FIXME: Agregar desde GRPC
+                    .avatar(response.icon.clone())
+                    .address(None) // FIXME: Agregar desde GRPC
+                    .allergies(vec![]) // FIXME: Agregar desde GRPC
+                    .build()
+                    .unwrap()
             })
             .collect::<Vec<_>>();
 
@@ -129,13 +123,14 @@ impl PatientService for PatientServiceImpl {
         self.set_loading(Load::Loading);
         let mut client = self.client.clone();
         // FIXME: Guardar el paciente usando GRPC
-        client
+        let _ = client
             .save(PatientInformation {
                 id: "123".to_string(),
-                first_name: patient.full_name.clone(),
-                last_name: patient.full_name.clone(),
+                first_name: patient.first_name.clone(),
+                last_name: patient.last_name.clone(),
                 second_last_name: None,
-                email: Some(patient.email.clone()),
+                birthdate: patient.birthdate.clone(),
+                email: patient.email.clone(),
                 phone_number: None,
                 icon: None,
                 note: None,

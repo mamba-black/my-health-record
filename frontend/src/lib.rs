@@ -1,4 +1,5 @@
 #![feature(async_fn_in_trait)]
+#![feature(lazy_cell)]
 
 pub mod di;
 pub mod domain;
