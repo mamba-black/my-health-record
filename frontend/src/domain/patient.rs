@@ -3,7 +3,7 @@ use display_json::DisplayAsJson;
 use serde::Serialize;
 
 #[derive(Serialize, Default, DisplayAsJson, Builder, Debug, PartialEq, Clone)]
-#[builder(field(public))]
+#[builder(field(public), default)]
 pub struct Patient {
     pub id: String,
     pub first_name: String,
@@ -17,6 +17,14 @@ pub struct Patient {
     pub avatar: Option<String>,
     pub address: Option<Address>,
     pub allergies: Vec<String>,
+    pub hepatitis: bool,
+    pub diabetes: bool,
+    pub hemorrhage: bool,
+    pub high_pressure: bool,
+    pub low_pressure: bool,
+    pub cholesterol: bool,
+    pub asthma: bool,
+    pub tbc: bool,
 }
 
 impl Patient {

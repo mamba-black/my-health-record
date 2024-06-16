@@ -4,6 +4,7 @@ use log::{debug, info};
 
 use crate::di::DI;
 use crate::services::patient_service::PatientService;
+use crate::ui::components::atoms::button::SubmitButton;
 use crate::ui::components::organisms::patient_detail::PatientDetail;
 
 #[derive(Params, PartialEq)]
@@ -15,7 +16,7 @@ pub struct HistoryDetailParams {
 pub fn HistoryDetail() -> impl IntoView {
     debug!("HistoryDetail");
 
-    let app_state = DI.patient_service.get_app_status().clone();
+    // let app_state = DI.patient_service.get_app_status().clone();
     let id_params = use_params::<HistoryDetailParams>();
     debug!("id: {:?}", id_params);
     let id = move || {
@@ -29,26 +30,31 @@ pub fn HistoryDetail() -> impl IntoView {
         <>
         {move || {
             let id = id();
-            match app_state.get() {
-                Some(patient) if patient.id == id => view! {
-                    <div>
-                        <header class="bg-white shadow">
-                            <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                                <h1 class="text-3xl font-bold tracking-tight text-gray-900">Historial del Paciente</h1>
-                            </div>
-                        </header>
-                        <main>
-                            <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-                                <div class="px-10 py-10 bg-white rounded-2xl">
-                                    <PatientDetail patient/>
+            let patient_opt = DI.patient_service.get_app_status().get();
+            match patient_opt {
+                Some(patient) if patient.id == id => {
+                    let full_name = format!("{} {} {}", patient.first_name, patient.last_name, patient.clone().second_name.unwrap_or("".to_string()));
+                    view! {
+                        <div>
+                            <header class="bg-white shadow">
+                                <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                                    <h1 class="text-3xl font-bold tracking-tight text-gray-900">Historial del Paciente: {full_name}</h1>
+                                    <SubmitButton label="Historial".to_string() />
                                 </div>
-                            </div>
-                        </main>
-                    </div>
+                            </header>
+                            <main>
+                                <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+                                    <div class="px-10 py-10 bg-white rounded-2xl">
+                                        <PatientDetail patient/>
+                                    </div>
+                                </div>
+                            </main>
+                        </div>
+                    }
                 },
                 None if !id.is_empty() => {
                     // FIXME: Ver porque no esta funcianando
-                    info!("patient is None !!!");
+                    info!("patient is None, id: {} !!!", id);
                     // let id = id.clone();
                     spawn_local(async move {
                         DI.patient_service
@@ -59,7 +65,7 @@ pub fn HistoryDetail() -> impl IntoView {
                     view! {<div><h1>Cargar desde servicio</h1></div> }
                 },
                 None => view! {<div><h1>Seleccione un paciente</h1></div> },
-                _ => view! {<div>Error al mostrar informacion del paciente</div> },
+                _ => view! {<div>Error al mostrar informacion del paciente: {format!("patient_opt: {:?}", patient_opt)}</div> },
             }
         }}
         </>

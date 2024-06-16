@@ -80,7 +80,7 @@ impl PatientService for PatientServiceImpl {
                 .await;
             app_state.update(move |mut value| {
                 debug!("app_state.update: {}", id);
-                *value = Some(Patient::default());
+                *value = Some(PatientBuilder::default().id(id).build().unwrap());
             });
         });
     }
@@ -121,6 +121,7 @@ impl PatientService for PatientServiceImpl {
 
     async fn save(&self, patient: Patient) {
         self.set_loading(Load::Loading);
+        info!("Guardando paciente: {:?}", patient);
         let mut client = self.client.clone();
         // FIXME: Guardar el paciente usando GRPC
         let _ = client
@@ -136,7 +137,7 @@ impl PatientService for PatientServiceImpl {
                 note: None,
             })
             .await;
-        async_std::task::sleep(Duration::from_millis(3000)).await;
+        async_std::task::sleep(Duration::from_millis(1000)).await;
         // self.app_state(Some(patient));
         self.set_loading(Load::None);
     }

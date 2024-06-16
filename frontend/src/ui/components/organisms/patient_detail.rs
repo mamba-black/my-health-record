@@ -28,6 +28,14 @@ mod dto {
         pub street: String,
         pub district: String,
         pub allergies: Vec<String>,
+        pub hepatitis: bool,
+        pub diabetes: bool,
+        pub hemorrhage: bool,
+        pub high_pressure: bool,
+        pub low_pressure: bool,
+        pub cholesterol: bool,
+        pub asthma: bool,
+        pub tbc: bool,
     }
 
     impl From<Patient> for PatientDetailDTO {
@@ -56,6 +64,14 @@ mod dto {
                 street: street,
                 district: district,
                 allergies: patient.allergies,
+                hepatitis: patient.hepatitis,
+                diabetes: patient.diabetes,
+                hemorrhage: patient.hemorrhage,
+                high_pressure: patient.high_pressure,
+                low_pressure: patient.low_pressure,
+                cholesterol: patient.cholesterol,
+                asthma: patient.asthma,
+                tbc: patient.tbc,
             }
         }
     }
@@ -80,6 +96,14 @@ mod dto {
                 .avatar(Some(patient_detail_dto.avatar))
                 .address(Some(address))
                 .allergies(patient_detail_dto.allergies)
+                .hepatitis(patient_detail_dto.hepatitis)
+                .diabetes(patient_detail_dto.diabetes)
+                .hemorrhage(patient_detail_dto.hemorrhage)
+                .high_pressure(patient_detail_dto.high_pressure)
+                .low_pressure(patient_detail_dto.low_pressure)
+                .cholesterol(patient_detail_dto.cholesterol)
+                .asthma(patient_detail_dto.asthma)
+                .tbc(patient_detail_dto.tbc)
                 .build()
                 .unwrap()
         }
@@ -137,6 +161,53 @@ pub fn PatientDetail(patient: Patient) -> impl IntoView {
         patient_signal,
         |patient_detail_dto| patient_detail_dto.street.clone(),
         |patient_detail_dto, street| patient_detail_dto.street = street,
+    );
+    let (allergies, set_allergies) = create_slice(
+        patient_signal,
+        |patient_detail_dto| patient_detail_dto.allergies.clone().join(","),
+        |patient_detail_dto, allergies: String| {
+            patient_detail_dto.allergies = allergies.split(',').map(|s| s.to_string()).collect()
+        },
+    );
+    let (hepatitis, set_hepatitis) = create_slice(
+        patient_signal,
+        |patient_detail_dto| patient_detail_dto.hepatitis.clone(),
+        |patient_detail_dto, value: bool| patient_detail_dto.hepatitis = value,
+    );
+    let (diabetes, set_diabetes) = create_slice(
+        patient_signal,
+        |patient_detail_dto| patient_detail_dto.diabetes.clone(),
+        |patient_detail_dto, value: bool| patient_detail_dto.diabetes = value,
+    );
+    let (hemorrhage, set_hemorrhage) = create_slice(
+        patient_signal,
+        |patient_detail_dto| patient_detail_dto.hemorrhage.clone(),
+        |patient_detail_dto, value: bool| patient_detail_dto.hemorrhage = value,
+    );
+    let (high_pressure, set_high_pressure) = create_slice(
+        patient_signal,
+        |patient_detail_dto| patient_detail_dto.high_pressure.clone(),
+        |patient_detail_dto, value: bool| patient_detail_dto.high_pressure = value,
+    );
+    let (low_pressure, set_low_pressure) = create_slice(
+        patient_signal,
+        |patient_detail_dto| patient_detail_dto.low_pressure.clone(),
+        |patient_detail_dto, value: bool| patient_detail_dto.low_pressure = value,
+    );
+    let (cholesterol, set_cholesterol) = create_slice(
+        patient_signal,
+        |patient_detail_dto| patient_detail_dto.cholesterol.clone(),
+        |patient_detail_dto, value: bool| patient_detail_dto.cholesterol = value,
+    );
+    let (asthma, set_asthma) = create_slice(
+        patient_signal,
+        |patient_detail_dto| patient_detail_dto.asthma.clone(),
+        |patient_detail_dto, value: bool| patient_detail_dto.asthma = value,
+    );
+    let (tbc, set_tbc) = create_slice(
+        patient_signal,
+        |patient_detail_dto| patient_detail_dto.tbc.clone(),
+        |patient_detail_dto, value: bool| patient_detail_dto.tbc = value,
     );
 
     let read_only = move || {
@@ -224,22 +295,22 @@ pub fn PatientDetail(patient: Patient) -> impl IntoView {
                     <h2 class="col-span-3">Antecedentes</h2>
 
                     // ---------------------------------------------
-                    // <Input id="alergy"
-                    //        name="Alergias"
-                    //        readonly={read_only}
-                    //        value={birthday}
-                    //        set_value={set_birthday}
-                    //        class="col-span-3" />
+                    <Input id="alergy"
+                           name="Alergias"
+                           readonly={read_only}
+                           value={allergies}
+                           set_value={set_allergies}
+                           class="col-span-3" />
 
                     // ---------------------------------------------
-                    // <Checkbox name="Hepatitis" value={birthday} set_value={set_birthday} readonly={read_only} />
-                    // <Checkbox name="Diabetes" value={birthday} set_value={set_birthday} readonly={read_only} />
-                    // <Checkbox name="Hemorragia" value={birthday} set_value={set_birthday} readonly={read_only} />
-                    // <Checkbox name="Presion alta" value={birthday} set_value={set_birthday} readonly={read_only} />
-                    // <Checkbox name="Presion baja" value={birthday} set_value={set_birthday} readonly={read_only} />
-                    // <Checkbox name="Colesteros" value={birthday} set_value={set_birthday} readonly={read_only} />
-                    // <Checkbox name="Asma" value={birthday} set_value={set_birthday} readonly={read_only} />
-                    // <Checkbox name="TBC" value={birthday} set_value={set_birthday} readonly={read_only} />
+                    <Checkbox name="Hepatitis" value={hepatitis} set_value={set_hepatitis} readonly={read_only} />
+                    <Checkbox name="Diabetes" value={diabetes} set_value={set_diabetes} readonly={read_only} />
+                    <Checkbox name="Hemorragia" value={hemorrhage} set_value={set_hemorrhage} readonly={read_only} />
+                    <Checkbox name="Presion alta" value={high_pressure} set_value={set_high_pressure} readonly={read_only} />
+                    <Checkbox name="Presion baja" value={low_pressure} set_value={set_low_pressure} readonly={read_only} />
+                    <Checkbox name="Colesterol" value={cholesterol} set_value={set_cholesterol} readonly={read_only} />
+                    <Checkbox name="Asma" value={asthma} set_value={set_asthma} readonly={read_only} />
+                    <Checkbox name="TBC" value={tbc} set_value={set_tbc} readonly={read_only} />
 
                     // ---------------------------------------------
                     //

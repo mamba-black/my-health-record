@@ -108,7 +108,7 @@ impl PatientService for PatientServiceImpl {
         &self,
         request: Request<PatientIdRequest>,
     ) -> Result<Response<PatientInformation>, Status> {
-        let patient_information = PatientInformation{
+        let patient_information = PatientInformation {
             id: "1".to_string(),
             first_name: "Hector Miuler".to_string(),
             last_name: "Malpica".to_string(),
@@ -149,4 +149,59 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use fluvio_jolt::{transform, TransformSpec};
+    use serde_json::{json, Value};
+
+    #[test]
+    fn test() {
+        let input: Value = serde_json::from_str(
+            r#"
+        {
+            "id": 1,
+            "name": "John Smith",
+            "accounts": [
+                {
+                    "id": 1000,
+                    "type": "Checking"
+                }
+            ]
+        }
+        "#,
+        )
+        .unwrap();
+
+        let out = r#"[
+            {
+                "operation": "shift",
+                "spec": {
+                    "accounts": {
+                        "*": {
+                            "id": "accounts[&(1)].id",
+                            "type": "accounts[&(1)].type",
+                            "@(2,name)": "accounts[&(1)].name"
+                        }
+                    }
+                }
+            }
+        ]"#;
+
+        let spec: TransformSpec = serde_json::from_str(out).unwrap();
+
+        let output = transform(input, &spec).unwrap();
+
+        assert_eq!(
+            output,
+            json!({
+                  "accounts": [{
+                    "id": 1000,
+                    "type": "Checking",
+                    "name": "John Smith"
+                  }]
+            })
+        );
+    }
 }
