@@ -1,15 +1,15 @@
 use leptos::*;
 use leptos_router::*;
-use log::{debug, info};
+use log::{debug, error, info};
 
 use crate::di::DI;
 use crate::services::patient_service::PatientService;
 use crate::ui::components::atoms::button::SubmitButton;
 use crate::ui::components::organisms::patient_detail::PatientDetail;
 
-#[derive(Params, PartialEq)]
+#[derive(Debug, Params, PartialEq)]
 pub struct HistoryDetailParams {
-    id: usize,
+    id: String,
 }
 
 #[component]
@@ -18,11 +18,17 @@ pub fn HistoryDetail() -> impl IntoView {
 
     // let app_state = DI.patient_service.get_app_status().clone();
     let id_params = use_params::<HistoryDetailParams>();
-    debug!("id: {:?}", id_params);
+    debug!("Memo<id>: {:?}", id_params);
     let id = move || {
-        id_params.with(move |id_param| match id_param {
-            Ok(_id_param) => _id_param.id.to_string(),
-            _ => "".to_string(),
+        id_params.with(move |id_param| {
+            debug!("id_param: {:?}", id_param);
+            match id_param {
+                Ok(_id_param) => _id_param.id.to_string(),
+                _ => {
+                    error!("El id no se pudo parsear a string o es nulo");
+                    "".to_string()
+                }
+            }
         })
     };
 
@@ -65,7 +71,12 @@ pub fn HistoryDetail() -> impl IntoView {
                     view! {<div><h1>Cargar desde servicio</h1></div> }
                 },
                 None => view! {<div><h1>Seleccione un paciente</h1></div> },
-                _ => view! {<div>Error al mostrar informacion del paciente: {format!("patient_opt: {:?}", patient_opt)}</div> },
+                _ => {
+                    let patient_opt_2 = patient_opt.clone();
+                    let patient_opt_id = if patient_opt.is_some() { patient_opt.unwrap().id } else { "No existe id".to_string() };
+                    info!("id: {}, patient_opt_id: {}", id, patient_opt_id);
+                    view! {<div>Error al mostrar informacion del paciente: {format!("patient_opt: {:?}", patient_opt_2)}</div> }
+                },
             }
         }}
         </>

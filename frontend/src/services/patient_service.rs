@@ -60,6 +60,7 @@ impl PatientService for PatientServiceImpl {
 
     fn update_app_status(&self, patient: Patient) {
         let patient_name = patient.full_name().clone();
+        info!("id del paciente: {:?}", patient.id);
         info!("nombre del paciente: {}", patient_name);
         self.app_state
             .update(move |mut value| *value = Some(patient.clone()));
