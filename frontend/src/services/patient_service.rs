@@ -1,7 +1,7 @@
+use chrono::prelude::*;
 use leptos::{create_rw_signal, spawn_local, ReadSignal, RwSignal, SignalSet, SignalUpdate};
-use std::time::Duration;
-// use leptos::tracing::debug;
 use log::{debug, error, info};
+use std::time::Duration;
 use tonic_web_wasm_client::Client;
 
 use crate::domain::error::AppError;
@@ -99,13 +99,19 @@ impl PatientService for PatientServiceImpl {
         let patients_vec = patients
             .into_iter()
             .map(|response| {
+                debug!("birthdate: {}", response.birthdate.clone());
+                let birthdate = response
+                    .birthdate
+                    .clone()
+                    .parse::<NaiveDate>()
+                    .expect("Error en el parseo de fecha");
                 PatientBuilder::default()
                     .id(response.id)
                     .first_name(response.first_name.clone())
                     .last_name(response.last_name.clone())
                     .second_name(response.second_last_name)
                     .email(response.email.clone())
-                    .birthdate(response.birthdate.clone())
+                    .birthdate(birthdate)
                     .phone_number(response.phone_number.clone())
                     .other("".to_string()) // FIXME: Agregar desde GRPC
                     .online(false) // FIXME: Agregar desde GRPC
@@ -124,6 +130,7 @@ impl PatientService for PatientServiceImpl {
         self.set_loading(Load::Loading);
         info!("Guardando paciente: {:?}", patient);
         let mut client = self.client.clone();
+        let birthdate = patient.birthdate.clone().format("%Y-%m-%d").to_string();
         // FIXME: Guardar el paciente usando GRPC
         let _ = client
             .save(PatientInformation {
@@ -131,7 +138,7 @@ impl PatientService for PatientServiceImpl {
                 first_name: patient.first_name.clone(),
                 last_name: patient.last_name.clone(),
                 second_last_name: None,
-                birthdate: patient.birthdate.clone(),
+                birthdate,
                 email: patient.email.clone(),
                 phone_number: None,
                 icon: None,
@@ -146,5 +153,6 @@ impl PatientService for PatientServiceImpl {
 
 fn build_client() -> PatientServiceClient<Client> {
     let wasm_client = Client::new("http://localhost:9000".to_string());
+    // let wasm_client = Client::new("https://modern-diesel-getting-playback.trycloudflare.com".to_string());
     PatientServiceClient::new(wasm_client)
 }

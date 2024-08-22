@@ -1,3 +1,4 @@
+pub mod appointment;
 pub(crate) mod error;
 pub mod patient;
 

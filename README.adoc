@@ -4,6 +4,8 @@ Proyecto base donde integra backend y frontend
 
 == front
 
+Desarrollado con leptos
+
 [source,bash]
 ----
 front/npmInstallDependencies

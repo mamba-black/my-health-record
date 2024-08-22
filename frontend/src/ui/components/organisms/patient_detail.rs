@@ -12,6 +12,7 @@ use crate::ui::components::molecules::input::Input;
 
 mod dto {
     use crate::domain::patient::{AddressBuilder, Patient, PatientBuilder};
+    use chrono::NaiveDate;
 
     #[derive(Clone, Debug, Default)]
     pub struct PatientDetailDTO {
@@ -55,7 +56,7 @@ mod dto {
                 first_name: patient.first_name,
                 last_name: patient.last_name,
                 second_name: patient.second_name.unwrap_or_default(),
-                birthdate: patient.birthdate,
+                birthdate: patient.birthdate.format("%Y-%m-%d").to_string(),
                 phone_number: patient.phone_number.unwrap_or_default(),
                 email: patient.email.unwrap_or_default(),
                 other: patient.other,
@@ -88,7 +89,12 @@ mod dto {
                 .first_name(patient_detail_dto.first_name)
                 .last_name(patient_detail_dto.last_name)
                 .second_name(Some(patient_detail_dto.second_name))
-                .birthdate(patient_detail_dto.birthdate)
+                .birthdate(
+                    patient_detail_dto
+                        .birthdate
+                        .parse::<NaiveDate>()
+                        .expect("Error en el parseo de fecha"),
+                )
                 .phone_number(Some(patient_detail_dto.phone_number))
                 .email(Some(patient_detail_dto.email))
                 .other(patient_detail_dto.other)

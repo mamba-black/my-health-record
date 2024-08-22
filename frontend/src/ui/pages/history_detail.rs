@@ -5,6 +5,7 @@ use log::{debug, error, info};
 use crate::di::DI;
 use crate::services::patient_service::PatientService;
 use crate::ui::components::atoms::button::SubmitButton;
+use crate::ui::components::organisms::patient_consultation_list::PatientConsultationList;
 use crate::ui::components::organisms::patient_detail::PatientDetail;
 
 #[derive(Debug, Params, PartialEq)]
@@ -39,12 +40,13 @@ pub fn HistoryDetail() -> impl IntoView {
             let patient_opt = DI.patient_service.get_app_status().get();
             match patient_opt {
                 Some(patient) if patient.id == id => {
+                    let patient2 = patient.clone();
                     let full_name = format!("{} {} {}", patient.first_name, patient.last_name, patient.clone().second_name.unwrap_or("".to_string()));
                     view! {
                         <div>
                             <header class="bg-white shadow">
                                 <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                                    <h1 class="text-3xl font-bold tracking-tight text-gray-900">Historial del Paciente: {full_name}</h1>
+                                    <h1 class="text-3xl font-bold tracking-tight text-gray-900">Ficha del Paciente: {full_name}</h1>
                                     <SubmitButton label="Historial".to_string() />
                                 </div>
                             </header>
@@ -52,6 +54,11 @@ pub fn HistoryDetail() -> impl IntoView {
                                 <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
                                     <div class="px-10 py-10 bg-white rounded-2xl">
                                         <PatientDetail patient/>
+                                    </div>
+                                </div>
+                                <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+                                    <div class="px-10 py-10 bg-white rounded-2xl">
+                                        <PatientConsultationList patient=patient2/>
                                     </div>
                                 </div>
                             </main>

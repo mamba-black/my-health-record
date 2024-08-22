@@ -1,15 +1,17 @@
+use chrono::prelude::*;
+use chrono::TimeZone;
 use derive_builder::Builder;
 use display_json::DisplayAsJson;
 use serde::Serialize;
 
-#[derive(Serialize, Default, DisplayAsJson, Builder, Debug, PartialEq, Clone)]
+#[derive(Serialize, DisplayAsJson, Builder, Default, Debug, PartialEq, Clone)]
 #[builder(field(public), default)]
 pub struct Patient {
     pub id: String,
     pub first_name: String,
     pub last_name: String,
     pub second_name: Option<String>,
-    pub birthdate: String,
+    pub birthdate: NaiveDate,
     pub phone_number: Option<String>,
     pub email: Option<String>,
     pub other: String,
