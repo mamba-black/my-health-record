@@ -90,7 +90,7 @@ impl PatientService for PatientServiceImpl {
         let mut client = self.client.clone();
         let patient_response = client
             .search_patient(SearchPatientRequest {
-                name: Some("Miuler".to_string()),
+                name: Some(patient),
             })
             .await?;
 

@@ -3,19 +3,24 @@ use leptos_router::*;
 use log::*;
 use web_sys::{MouseEvent, SubmitEvent};
 
-// use crate::ui::components::app_state_context::AppStateContext;
 use crate::di::DI;
 use crate::domain::patient::Patient;
 use crate::services::patient_service::PatientService;
 use crate::ui::components::atoms::button::SubmitButton;
 use crate::ui::components::route::private;
 
-// use crate::ui::components::route::PrivateRoute;
+#[derive(Debug, Params, PartialEq)]
+struct HistoryDetailQueries {
+    name: String,
+}
 
 #[component]
 pub fn Search() -> impl IntoView {
     let patients: Vec<Patient> = vec![];
     let (patients, set_patients) = create_signal(patients);
+
+    let queries = use_query::<HistoryDetailQueries>();
+    debug!("Memo<Result<Queries>>: {:?}", queries);
 
     view! {<>
         <header class="bg-white shadow">
@@ -37,15 +42,17 @@ pub fn Search() -> impl IntoView {
 
 #[component]
 fn SearchInput(set_patients: WriteSignal<Vec<Patient>>) -> impl IntoView {
+    let (patient_name, patient_name_set) = create_signal("".to_string());
+
     let onsubmit = move |event: SubmitEvent| {
+        let name = patient_name.get();
+        info!("name: {}", name);
+
         spawn_local(async move {
             event.prevent_default();
-            match DI
-                .patient_service
-                .search_patient("Miuler".to_string())
-                .await
-            {
-                Ok(patient_response) => set_patients(patient_response),
+            let patients_response = DI.patient_service.search_patient(name.to_string()).await;
+            match patients_response {
+                Ok(patients) => set_patients(patients),
                 Err(_) => {}
             };
         });
@@ -58,7 +65,7 @@ fn SearchInput(set_patients: WriteSignal<Vec<Patient>>) -> impl IntoView {
                 <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                     <svg aria-hidden="true" class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
-                <input type="search" id="default-search" class="w-full p-4 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search Mockups, Logos..." required=true />
+                <input type="search" id="default-search" class="w-full p-4 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Busqueda de pacientes, nombre..." required=true on:input=move |e| patient_name_set(event_target_value(&e).clone()) />
                 <span class="absolute right-2.5 pt-2"><SubmitButton label={"Busqueda".to_string()} /></span>
             </div>
         </form>

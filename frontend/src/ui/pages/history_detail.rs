@@ -9,7 +9,7 @@ use crate::ui::components::organisms::patient_consultation_list::PatientConsulta
 use crate::ui::components::organisms::patient_detail::PatientDetail;
 
 #[derive(Debug, Params, PartialEq)]
-pub struct HistoryDetailParams {
+struct HistoryDetailParams {
     id: String,
 }
 
@@ -17,11 +17,11 @@ pub struct HistoryDetailParams {
 pub fn HistoryDetail() -> impl IntoView {
     debug!("HistoryDetail");
 
-    // let app_state = DI.patient_service.get_app_status().clone();
-    let id_params = use_params::<HistoryDetailParams>();
-    debug!("Memo<id>: {:?}", id_params);
+    let params = use_params::<HistoryDetailParams>();
+    debug!("Memo<Result<Params>>: {:?}", params);
+
     let id = move || {
-        id_params.with(move |id_param| {
+        params.with(move |id_param| {
             debug!("id_param: {:?}", id_param);
             match id_param {
                 Ok(_id_param) => _id_param.id.to_string(),

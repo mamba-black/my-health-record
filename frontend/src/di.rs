@@ -1,9 +1,7 @@
-use leptos::{create_rw_signal, provide_context, RwSignal};
 // use parse_display::helpers::once_cell::sync::Lazy;
 use std::sync::LazyLock;
 
-use crate::domain::patient::Patient;
-use crate::services::patient_service::{Load, PatientServiceImpl};
+use crate::services::patient_service::PatientServiceImpl;
 
 pub struct DIPrd {
     // pub(crate) patient_service: Box<dyn PatientService>,
