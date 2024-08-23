@@ -1,12 +1,15 @@
 use crate::domain::appointment::State::InProgress;
 use crate::domain::appointment::*;
 use crate::domain::patient::Patient;
+use crate::ui::components::atoms::button::SubmitButton;
 use chrono::format::Numeric::Month;
 use chrono::prelude::*;
-use chrono::{DateTime, Datelike, Local, Locale, TimeZone};
+use chrono::{DateTime, Datelike, Local, Locale, TimeDelta, TimeZone};
 use chrono_tz::America::Lima;
 use leptos::*;
 use leptos_router::ToHref;
+use timeago::languages::spanish::Spanish;
+use timeago::Formatter;
 use ulid::Ulid;
 
 #[component]
@@ -14,24 +17,25 @@ pub fn PatientConsultationList(patient: Patient) -> impl IntoView {
     use chrono::prelude::*;
     let date = Utc.with_ymd_and_hms(2019, 10, 28, 9, 10, 11).unwrap();
     // `2019-10-28T09:10:11Z`
+    let formatter = Formatter::with_language(Spanish);
     let month = Month::try_from(u8::try_from(date.month()).unwrap()).ok();
 
-    let (aa, bb) = create_signal(vec![
+    let (appointments, bb) = create_signal(vec![
         AppointmentBuilder::default()
             .patient_id(Ulid::new().to_string())
-            .date(Local::now().with_timezone(&Lima))
+            .date(Local::now().with_timezone(&Lima) - TimeDelta::hours(72))
             .state(InProgress)
             .build()
             .expect("ERROR AQUI"),
         AppointmentBuilder::default()
             .patient_id(Ulid::new().to_string())
-            .date(Local::now().with_timezone(&Lima))
+            .date(Local::now().with_timezone(&Lima) - TimeDelta::hours(900))
             .state(InProgress)
             .build()
             .expect("ERROR AQUI"),
         AppointmentBuilder::default()
             .patient_id(Ulid::new().to_string())
-            .date(Local::now().with_timezone(&Lima))
+            .date(Local::now().with_timezone(&Lima) - TimeDelta::days(200))
             .state(InProgress)
             .build()
             .expect("ERROR AQUI"),
@@ -40,18 +44,21 @@ pub fn PatientConsultationList(patient: Patient) -> impl IntoView {
     view! {
         <div class="lg:wa-7/12 lg:justify-around">
             <form>
+                <div class="text-right"><SubmitButton label="Nueva consulta".to_string() /></div>
                 <ul role="list" class="divide-y divide-gray-100">
                     <For
-                        each=aa
+                        each=appointments
                         key=|appointment| appointment.patient_id.clone()
                         children= move |appointment: Appointment| {
                             // let patient1 = patient.clone();
                             // let full_name = patient.full_name();
                             let month = Month::try_from(u8::try_from(appointment.date.month()).unwrap()).unwrap();
+                            let past = formatter.convert_chrono(appointment.date, Local::now());
+
                             view!{
                                 <li>
-                                    <a
-                                        class="flex justify-between gap-x-6 py-5">
+                                    //
+                                    <a class="flex justify-between gap-x-6 p-5 m-2 border rounded-lg border-transparent hover:border-blue-500 hover:bg-sky-100 hover:shadow-lg hover:cursor-pointer">
                                         // href={private::HISTORY_DETAIL.replace(":id", &patient.id)}>
                                         <div class="flex gap-x-4">
 
@@ -98,7 +105,7 @@ pub fn PatientConsultationList(patient: Patient) -> impl IntoView {
                                                 //         <p class="text-xs leading-5 text-gray-500">Online</p>
                                                 //     </div>
                                                 // </>}} else {view!{<>
-                                                    <p class="mt-1 text-xs leading-5 text-gray-500">"Last seen "<time datetime="2023-01-23T13:23Z">3h ago</time></p>
+                                                    <p class="mt-1 text-xs leading-5 text-gray-500"><time datetime={appointment.date.to_string()}>{past}</time></p>
                                                 // </>}}
                                             // }
                                         </div>

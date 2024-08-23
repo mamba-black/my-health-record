@@ -14,7 +14,7 @@
     }
     .history-checkbox {
         label {
-            @apply block text-sm font-bold text-gray-700;
+            @apply block text-sm font-bold;
         }
     }
     .history-input {

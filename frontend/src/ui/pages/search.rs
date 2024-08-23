@@ -96,7 +96,7 @@ fn Grid(patients: ReadSignal<Vec<Patient>>) -> impl IntoView {
                     view!{
                         <li>
                             <a on:click=move |e| {patient_onclick(e, &patient1)}
-                                class="flex justify-between gap-x-6 py-5">
+                                class="flex justify-between gap-x-6 p-5 m-2 border rounded-lg border-transparent hover:border-blue-500 hover:bg-sky-100 hover:shadow-lg hover:cursor-pointer">
                                 // href={private::HISTORY_DETAIL.replace(":id", &patient.id)}>
                                 <div class="flex gap-x-4">
                                     <img class="h-12 w-12 flex-none rounded-full bg-gray-50" src={&patient.avatar.unwrap_or("".to_string())} alt="" />
