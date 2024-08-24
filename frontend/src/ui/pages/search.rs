@@ -1,6 +1,7 @@
 use leptos::*;
 use leptos_router::*;
 use log::*;
+use std::ops::Add;
 use web_sys::{MouseEvent, SubmitEvent};
 
 use crate::di::DI;
@@ -18,9 +19,6 @@ struct HistoryDetailQueries {
 pub fn Search() -> impl IntoView {
     let patients: Vec<Patient> = vec![];
     let (patients, set_patients) = create_signal(patients);
-
-    let queries = use_query::<HistoryDetailQueries>();
-    debug!("Memo<Result<Queries>>: {:?}", queries);
 
     view! {<>
         <header class="bg-white shadow">
@@ -40,32 +38,96 @@ pub fn Search() -> impl IntoView {
     </>}
 }
 
+fn find_patient(
+    event: Option<SubmitEvent>,
+    patient_name: String,
+    set_patients: WriteSignal<Vec<Patient>>,
+) {
+    let location = use_location();
+    let navigate = use_navigate();
+
+    info!("patient_name: {}", patient_name);
+
+    let mut url = location
+        .pathname
+        .with_untracked(|e| e.clone())
+        .to_string()
+        .add("?");
+    let query = location.query.with_untracked(|q| q.clone());
+    let keys = query.0.keys();
+
+    let mut contain_name = false;
+    for key in keys {
+        let value = if key == "name" {
+            contain_name = true;
+            patient_name.clone()
+        } else {
+            query.get(key).get_or_insert(&("".to_string())).clone()
+        };
+
+        url = url.add(format!("{}={}&", key, value).as_str());
+    }
+    if !contain_name {
+        url = url.add(format!("{}={}&", "name", patient_name).as_str());
+    }
+    _ = navigate(url.as_str(), Default::default());
+
+    spawn_local(async move {
+        if let Some(event) = event {
+            event.prevent_default();
+        }
+
+        let patients_response = DI
+            .patient_service
+            .search_patient(patient_name.to_string())
+            .await;
+        match patients_response {
+            Ok(patients) => set_patients(patients),
+            Err(_) => {}
+        };
+    });
+}
+
 #[component]
 fn SearchInput(set_patients: WriteSignal<Vec<Patient>>) -> impl IntoView {
-    let (patient_name, patient_name_set) = create_signal("".to_string());
+    let queries = use_query::<HistoryDetailQueries>();
 
-    let onsubmit = move |event: SubmitEvent| {
-        let name = patient_name.get();
-        info!("name: {}", name);
+    let name = queries.with_untracked(move |q| match q {
+        Ok(queries) => {
+            find_patient(None, queries.name.clone(), set_patients);
+            queries.name.clone()
+        }
+        Err(_) => "".to_string(),
+    });
 
-        spawn_local(async move {
-            event.prevent_default();
-            let patients_response = DI.patient_service.search_patient(name.to_string()).await;
-            match patients_response {
-                Ok(patients) => set_patients(patients),
-                Err(_) => {}
-            };
+    let (patient_name, patient_name_set) = create_signal(name);
+
+    let name_get = move || {
+        debug!("Memo<Result<Queries>>: {:?}", queries);
+        let name = queries.with(move |q| match q {
+            Ok(queries) => queries.name.clone(),
+            Err(_) => "".to_string(),
         });
+        debug!("patient_name: {}", name);
+        name
     };
 
     view! {
-        <form on:submit=onsubmit>
+        <form on:submit=move |event| find_patient(Some(event), patient_name.get(), set_patients)>
             <label for="default-search" class="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">Search</label>
             <div class="relative items-center h-14">
                 <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                     <svg aria-hidden="true" class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
-                <input type="search" id="default-search" class="w-full p-4 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Busqueda de pacientes, nombre..." required=true on:input=move |e| patient_name_set(event_target_value(&e).clone()) />
+                <input
+                    type="search"
+                    id="default-search"
+                    class="w-full p-4 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    placeholder="Busqueda de pacientes, nombre..."
+                    required=true
+                    on:input=move |e| patient_name_set(event_target_value(&e).clone())
+                    prop:value=name_get
+                    />
                 <span class="absolute right-2.5 pt-2"><SubmitButton label={"Busqueda".to_string()} /></span>
             </div>
         </form>
@@ -85,8 +147,6 @@ fn Grid(patients: ReadSignal<Vec<Patient>>) -> impl IntoView {
             private::PRIVATE,
             private::HISTORY_DETAIL.replace(":id", &patient.id)
         );
-        // window().location().set_pathname(path.as_str());
-        // provide_context(cx, AppState { patient: Some(patient.clone()) });
 
         let navigate = use_navigate();
         _ = navigate(path.as_str(), Default::default());
