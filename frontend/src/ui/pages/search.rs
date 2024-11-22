@@ -1,3 +1,4 @@
+use leptos::tracing::instrument::WithSubscriber;
 use leptos::*;
 use leptos_router::*;
 use log::*;
@@ -17,6 +18,7 @@ struct HistoryDetailQueries {
 
 #[component]
 pub fn Search() -> impl IntoView {
+    debug!("Component Search");
     let patients: Vec<Patient> = vec![];
     let (patients, set_patients) = create_signal(patients);
 
@@ -92,15 +94,16 @@ fn find_patient(
 fn SearchInput(set_patients: WriteSignal<Vec<Patient>>) -> impl IntoView {
     let queries = use_query::<HistoryDetailQueries>();
 
-    let name = queries.with_untracked(move |q| match q {
+    let (patient_name, patient_name_set) = create_signal("".to_string());
+
+    queries.with_untracked(move |q| match q {
         Ok(queries) => {
             find_patient(None, queries.name.clone(), set_patients);
-            queries.name.clone()
+            patient_name_set(queries.name.clone());
+            ()
         }
-        Err(_) => "".to_string(),
+        Err(_) => (),
     });
-
-    let (patient_name, patient_name_set) = create_signal(name);
 
     let name_get = move || {
         debug!("Memo<Result<Queries>>: {:?}", queries);
