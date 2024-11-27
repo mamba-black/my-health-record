@@ -1,4 +1,4 @@
-use leptos::{component, view, IntoView};
+use leptos::prelude::*;
 
 use crate::ui::components::organisms::header_public::Header;
 

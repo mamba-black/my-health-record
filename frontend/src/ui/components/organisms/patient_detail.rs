@@ -1,5 +1,8 @@
 use leptos::component;
-use leptos::*;
+use leptos::either::Either;
+use leptos::html::HtmlElement;
+use leptos::prelude::*;
+use leptos::task::spawn_local;
 use log::info;
 use web_sys::{Event, SubmitEvent};
 
@@ -225,15 +228,15 @@ pub fn PatientDetail(patient: Patient) -> impl IntoView {
 
     let edit_button = move || {
         edit_status.with(|status| match status {
-            EditState::ReadOnly(_) => view! {
+            EditState::ReadOnly(_) => Either::Left(view! {
                 <div><SubmitButton label="Editar".to_string() /></div>
-            },
-            EditState::Edit(_) => view! {
+            }),
+            EditState::Edit(_) => Either::Right(view! {
                 <div class="space-x-3">
                     <SubmitButton label="Guardar".to_string() />
                     <ResetButton label="Cancelar".to_string() />
                 </div>
-            },
+            }),
         })
     };
 

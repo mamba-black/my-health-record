@@ -1,5 +1,15 @@
-use leptos::tracing::instrument::WithSubscriber;
+// use leptos::tracing::instrument::WithSubscriber;
+// use leptos::prelude::*;
+use leptos::either::Either;
+use leptos::prelude::{
+    create_signal, event_target_value, ClassAttribute, For, Get, GlobalAttributes, OnAttribute,
+    PropAttribute, ReadSignal, With, WithUntracked, WriteSignal,
+};
+use leptos::task::spawn_local;
 use leptos::*;
+use leptos::{component, view, IntoView};
+use leptos_router::hooks::{use_location, use_navigate, use_query};
+use leptos_router::params::Params;
 use leptos_router::*;
 use log::*;
 use std::ops::Add;
@@ -22,7 +32,7 @@ pub fn Search() -> impl IntoView {
     let patients: Vec<Patient> = vec![];
     let (patients, set_patients) = create_signal(patients);
 
-    view! {<>
+    view! {
         <header class="bg-white shadow">
             <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                 <h1 class="text-3xl font-bold tracking-tight text-gray-900">Busqueda de pacientes</h1>
@@ -37,7 +47,7 @@ pub fn Search() -> impl IntoView {
                 </div>
             </div>
         </main>
-    </>}
+    }
 }
 
 fn find_patient(
@@ -55,23 +65,17 @@ fn find_patient(
         .with_untracked(|e| e.clone())
         .to_string()
         .add("?");
+
     let query = location.query.with_untracked(|q| q.clone());
-    let keys = query.0.keys();
 
-    let mut contain_name = false;
-    for key in keys {
-        let value = if key == "name" {
-            contain_name = true;
-            patient_name.clone()
+    for (key, value) in query {
+        if key == "name" {
+            url = url.add(format!("{}={}&", key, patient_name.clone()).as_str());
         } else {
-            query.get(key).get_or_insert(&("".to_string())).clone()
-        };
+            url = url.add(format!("{}={}&", key, value).as_str());
+        }
+    }
 
-        url = url.add(format!("{}={}&", key, value).as_str());
-    }
-    if !contain_name {
-        url = url.add(format!("{}={}&", "name", patient_name).as_str());
-    }
     _ = navigate(url.as_str(), Default::default());
 
     spawn_local(async move {
@@ -184,16 +188,16 @@ fn Grid(patients: ReadSignal<Vec<Patient>>) -> impl IntoView {
                                 <div class="hidden sm:flex sm:flex-col sm:items-end">
                                     <p class="text-sm leading-6 text-gray-900">{}</p>
                                     {
-                                        if patient.online {view!{<>
+                                        if patient.online {Either::Left(view!{<>
                                             <div class="mt-1 flex items-center gap-x-1.5">
                                                 <div class="flex-none rounded-full bg-emerald-500/20 p-1">
                                                     <div class="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
                                                 </div>
                                                 <p class="text-xs leading-5 text-gray-500">Online</p>
                                             </div>
-                                        </>}} else {view!{<>
+                                        </>})} else {Either::Right(view!{<>
                                             <p class="mt-1 text-xs leading-5 text-gray-500">"Last seen "<time datetime="2023-01-23T13:23Z">3h ago</time></p>
-                                        </>}}
+                                        </>})}
                                     }
                                 </div>
                             </a>

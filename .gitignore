@@ -192,3 +192,5 @@ tailwind-output.css
 *.lock
 *.backup
 gitinspector.html
+
+.cargo

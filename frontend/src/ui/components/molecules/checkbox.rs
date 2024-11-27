@@ -1,7 +1,9 @@
-use leptos::{
-    component, event_target_checked, event_target_value, view, IntoView, Signal, SignalGet,
-    SignalSetter, SignalWith,
-};
+use leptos::prelude::*;
+use leptos::reactive::wrappers::write::SignalSetter;
+// use leptos::{
+//     component, event_target_checked, event_target_value, view, IntoView, Signal, SignalGet,
+//     SignalSetter, SignalWith,
+// };
 use log::info;
 use rand::Rng;
 use web_sys::Event;
@@ -15,7 +17,7 @@ pub fn Checkbox<F>(
     set_value: SignalSetter<bool>,
 ) -> impl IntoView
 where
-    F: Fn() -> bool + 'static + Clone,
+    F: Fn() -> bool + 'static + Clone + Send,
 {
     info!("Checkbox: {:?}", value.clone());
     let on_input = move |e: Event| {
@@ -40,7 +42,7 @@ where
         <div class="history-checkbox flex items-center mb-4">
             <input id={id.clone()}
                 disabled={input_readonly}
-                type="checkbox"
+                r#type="checkbox"
                 on:change=on_input
                 prop:checked={value}
                 class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" />

@@ -1,4 +1,6 @@
-use leptos::*;
+use leptos::either::Either;
+use leptos::prelude::*;
+use leptos_router::components::*;
 use leptos_router::*;
 use log::info;
 
@@ -23,9 +25,9 @@ pub fn App() -> impl IntoView {
         load.with(|load| {
             info!("load: {:?}", load);
             match load {
-                Load::None => { view! { <div/> } },
+                Load::None => { Either::Left(view! { <div/> }) },
                 Load::Loading => {
-                    view! {
+                    Either::Right(view! {
                         <div class="absolute bg-white bg-opacity-60 z-10 h-full w-full flex items-center justify-center">
                           <div class="flex items-center">
                             <span class="text-3xl mr-4">Loading</span>
@@ -35,7 +37,7 @@ pub fn App() -> impl IntoView {
                             </svg>
                           </div>
                         </div>
-                    }
+                    })
                 },
             }
         })
@@ -44,15 +46,16 @@ pub fn App() -> impl IntoView {
     view! {
         <Router>
             {loading}
-            <Routes>
-                <Route path=public::HOME                view=Home/>
-                <Route path=private::PRIVATE            view=PrivateHome>
-                    <Route path=""                      view=NotFound/>
-                    <Route path=private::HISTORIES      view=Search/>
-                    <Route path=private::HISTORY_DETAIL view=HistoryDetail/>
+            <Routes fallback=|| "Not found.">
+                <Route path=StaticSegment(public::HOME)                view=Home/>
+                <Route path=StaticSegment(public::HOME)                view=Home/>
+                <Route path=StaticSegment(private::PRIVATE)            view=PrivateHome>
+                    <Route path=StaticSegment("")                      view=NotFound/>
+                    <Route path=StaticSegment(private::HISTORIES)      view=Search/>
+                    <Route path=ParamSegment(private::HISTORY_DETAIL)  view=HistoryDetail/>
                 </Route>
-                <Route path=public::NOT_FOUND           view=NotFound/>
-                //PrivateRoute::HistoryDetail { id } => html! { <HistoryDetail id={id.clone()} /> },
+                // <Route path=path!(public::NOT_FOUND)           view=NotFound/>
+                // //PrivateRoute::HistoryDetail { id } => html! { <HistoryDetail id={id.clone()} /> },
             </Routes>
         </Router>
     }

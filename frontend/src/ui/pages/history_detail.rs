@@ -1,4 +1,6 @@
-use leptos::*;
+use leptos::prelude::*;
+use leptos::task::spawn_local;
+use leptos_router::hooks::use_params;
 use leptos_router::*;
 use log::{debug, error, info};
 
@@ -79,14 +81,16 @@ pub fn HistoryDetail() -> impl IntoView {
                             .await;
                     });
                     // find_and_update_app_status();
-                    view! {<div><h1>Cargar desde servicio</h1></div> }
+                    let a = view! { <div><h1>Cargar desde servicio</h1></div> };
+                    a
                 },
                 None => view! {<div><h1>Seleccione un paciente</h1></div> },
                 _ => {
                     let patient_opt_2 = patient_opt.clone();
                     let patient_opt_id = if patient_opt.is_some() { patient_opt.unwrap().id } else { "No existe id".to_string() };
                     info!("id: {}, patient_opt_id: {}", id, patient_opt_id);
-                    view! {<div>Error al mostrar informacion del paciente: {format!("patient_opt: {:?}", patient_opt_2)}</div> }
+                    let a =view! {<div>Error al mostrar informacion del paciente: {format!("patient_opt: {:?}", patient_opt_2)}</div> };
+                    a
                 },
             }
         }}

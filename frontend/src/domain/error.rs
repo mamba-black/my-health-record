@@ -1,5 +1,5 @@
 use crate::domain::error::AppError::Grpc;
-use leptos_router::ParamsError;
+use leptos_router::params::ParamsError;
 use std::error::Error;
 use tonic::Status;
 

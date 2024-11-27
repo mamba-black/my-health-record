@@ -1,4 +1,5 @@
-use leptos::*;
+use leptos::prelude::*;
+use leptos::reactive::wrappers::write::SignalSetter;
 use rand::Rng;
 use web_sys::Event;
 
@@ -13,7 +14,7 @@ pub fn Input<F>(
     #[prop(optional)] class: &'static str,
 ) -> impl IntoView
 where
-    F: Fn() -> bool + 'static,
+    F: Fn() -> bool + Send + 'static,
 {
     let on_input = move |e: Event| {
         let _value = event_target_value(&e);

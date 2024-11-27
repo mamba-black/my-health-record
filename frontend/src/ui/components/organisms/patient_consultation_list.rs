@@ -5,10 +5,12 @@ use crate::ui::components::atoms::button::SubmitButton;
 use chrono::prelude::*;
 use chrono::{Datelike, Local, Locale, TimeDelta, TimeZone};
 use chrono_tz::America::Lima;
-use leptos::*;
+use leptos::either::Either;
+use leptos::prelude::*;
 use timeago::languages::spanish::Spanish;
 use timeago::Formatter;
 use ulid::Ulid;
+use web_sys::MouseEvent;
 
 #[component]
 pub fn PatientConsultationList(patient: Patient) -> impl IntoView {
@@ -51,6 +53,8 @@ pub fn PatientConsultationList(patient: Patient) -> impl IntoView {
             .expect("ERROR AQUI"),
     ]);
 
+    let on_click = move |e: MouseEvent, appointment: &Appointment| {};
+
     view! {
         <div class="lg:wa-7/12 lg:justify-around">
             <form>
@@ -70,11 +74,13 @@ pub fn PatientConsultationList(patient: Patient) -> impl IntoView {
                             } else {
                                 formatter.ago("dentro de ").convert_chrono(now, appointment.date)
                             };
+                            let appointment2 = appointment.clone();
 
                             view!{
                                 <li>
                                     //
-                                    <a class="flex justify-between gap-x-6 p-5 m-2 border rounded-lg border-transparent hover:border-blue-500 hover:bg-sky-100 hover:shadow-lg hover:cursor-pointer">
+                                    <a on:click=move |e| { on_click(e, &appointment2) }
+                                       class="flex justify-between gap-x-6 p-5 m-2 border rounded-lg border-transparent hover:border-blue-500 hover:bg-sky-100 hover:shadow-lg hover:cursor-pointer">
                                         // href={private::HISTORY_DETAIL.replace(":id", &patient.id)}>
                                         <div class="flex gap-x-4">
 
@@ -97,23 +103,23 @@ pub fn PatientConsultationList(patient: Patient) -> impl IntoView {
                                                         <span  class="absolute inset-0 bg-orange-300 opacity-50 rounded-full"></span>
                                                         {
                                                             if appointment.date > now {
-                                                                view!{<span class="relative">Cita programada</span>}
+                                                                Either::Left(view!{<span class="relative">Cita programada</span>})
                                                             } else {
-                                                                view!{<span></span>}
+                                                                Either::Right(view!{<span></span>})
                                                             }
                                                         }
                                                     </span>
                                                     <span>  </span>
                                                     {
                                                         if appointment.exams.is_some() {
-                                                            view! {
+                                                            Either::Left(view! {
                                                                 <span class="relative inline-block px-2 py-0 font-semibold text-green-900 leading-tight">
                                                                     <span class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
                                                                     <span class="relative"> Exemenes</span>
                                                                 </span>
-                                                            }
+                                                            })
                                                         } else {
-                                                            view!{<span></span>}
+                                                            Either::Right(view!{<span></span>})
                                                         }
                                                     }
                                                 </p>

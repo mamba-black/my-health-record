@@ -1,5 +1,7 @@
-use leptos::{component, view, IntoView};
-use web_sys::MouseEvent;
+// use leptos::{component, view, IntoView};
+// use leptos::*;
+use leptos::prelude::*;
+// use leptos::prelude::ClassAttribute;
 
 #[component]
 pub fn SubmitButton(label: String) -> impl IntoView {
