@@ -1,7 +1,7 @@
 use crate::ui::components::route::private;
 use crate::ui::components::route::public;
 use leptos::prelude::*;
-use leptos_router::components::A;
+use leptos_router::components::*;
 use leptos_router::*;
 
 const MENU_HIDDEN_CSS: &str = "transition ease-in duration-75 transform opacity-0 scale-95       absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none";
@@ -136,7 +136,8 @@ pub fn header_desktop() -> impl IntoView {
                 // <!-- Current: "bg-gray-900 text-white", Default: "text-gray-300 hover:bg-gray-700 hover:text-white" -->
                 // aria-current="page"
                 <a href=public::HOME      class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Inicio</a>
-                <A href=histories         class="bg-gray-900   text-white                         rounded-md px-3 py-2 text-sm font-medium">Busqueda</A>
+                // <A href=histories         class="bg-gray-900   text-white                         rounded-md px-3 py-2 text-sm font-medium">Busqueda</A>
+                <A href=histories         >Busqueda</A>
                 <a href=public::HOME      class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Calendario</a>
                 <a href=public::ABOUT     class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Acerca de nosotros</a>
             </div>
