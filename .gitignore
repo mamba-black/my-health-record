@@ -190,6 +190,7 @@ project/plugins/project/
 tailwind-output.css
 .firebase
 *.lock
+*.lockb
 *.backup
 gitinspector.html
 
