@@ -13,7 +13,7 @@
   const findPatient = (event: Event) => {
     event.preventDefault();
     name = name.toUpperCase();
-    patients = [new Patient("Picard", 85, "miuler@gmail.com"), new Patient("Jan", 85, "miuler@gmail.com")];
+    patients = [new Patient("123321", "Picard", 85, "miuler@gmail.com"), new Patient("456465", "Jan", 85, "miuler@gmail.com")];
   };
 </script>
 

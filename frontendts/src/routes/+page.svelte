@@ -1,7 +1,6 @@
 <script lang="ts">
-  import viteLogo from "/vite.svg";
-  import svelteLogo from "./assets/svelte.svg";
-  import Search from "./lib/Search.svelte";
+  import svelteLogo from "$lib/svelte.svg";
+  import Search from "$lib/Search.svelte";
 </script>
 
 <Search />
@@ -11,12 +10,12 @@
 <center>
   <table>
     <tbody>
-      <tr>
-        <td><img src={viteLogo} class="logo" alt="Vite Logo" /></td>
-        <td>
-          <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-        </td>
-      </tr>
+    <tr>
+      <td><img src="/vite.svg" class="logo" alt="Vite Logo" /></td>
+      <td>
+        <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
+      </td>
+    </tr>
     </tbody>
   </table>
 </center>

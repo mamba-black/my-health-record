@@ -9,7 +9,7 @@
     <li>
       <!--      onclick={patient_onclick(e, &patient1)}-->
       <a
-        href="#"
+        href="/history/{patient.id}"
         class="flex justify-between gap-x-6 p-5 m-2 border rounded-lg border-transparent hover:border-blue-500 hover:bg-sky-100 hover:shadow-lg hover:cursor-pointer"
       >
         <!-- // href={private::HISTORY_DETAIL.replace(":id", &patient.id)}>-->
