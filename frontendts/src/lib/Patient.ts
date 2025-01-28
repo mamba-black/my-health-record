@@ -1,12 +1,22 @@
 export default class Patient {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
+  secondLastName: string;
   age: number;
   email: string;
 
-  constructor(id: string, name: string, age: number, email: string) {
+  constructor(id: string,
+              firstName: string,
+              lastName: string,
+              secondLastName: string,
+              age: number,
+              email: string) {
+
     this.id = id;
-    this.name = name;
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.secondLastName = secondLastName;
     this.age = age;
     this.email = email;
   }

@@ -13,7 +13,15 @@
   const findPatient = (event: Event) => {
     event.preventDefault();
     name = name.toUpperCase();
-    patients = [new Patient("123321", "Picard", 85, "miuler@gmail.com"), new Patient("456465", "Jan", 85, "miuler@gmail.com")];
+
+    // Simular la llamada externa
+    setTimeout(() => {
+      patients = [
+        new Patient("123321", "Picard", 85, "miuler@gmail.com"),
+        new Patient("456465", "Jan", 85, "miuler@gmail.com")
+      ];
+    }, 2000);
+
   };
 </script>
 

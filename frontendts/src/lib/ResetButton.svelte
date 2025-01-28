@@ -1,5 +1,5 @@
 <script lang="ts">
-  let label: string = $props();
+  let { label = "" } = $props();
 </script>
 
 <button type="reset" class="button-reset">

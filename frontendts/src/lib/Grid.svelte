@@ -1,7 +1,13 @@
 <script lang="ts">
   import type Patient from "./Patient";
+  import {goto} from "$app/navigation";
 
   let { patients = $bindable() }: { patients: Patient[] } = $props();
+
+  let gotoPatient = (e: Event, patient: Patient) => {
+    e.preventDefault();
+    goto(`/history/${patient.id}`, { state: patient });
+  };
 </script>
 
 <ul role="list" class="divide-y divide-gray-100">
@@ -9,7 +15,7 @@
     <li>
       <!--      onclick={patient_onclick(e, &patient1)}-->
       <a
-        href="/history/{patient.id}"
+        href="/history/{patient.id}" onclick={(e) => gotoPatient(e, patient)}
         class="flex justify-between gap-x-6 p-5 m-2 border rounded-lg border-transparent hover:border-blue-500 hover:bg-sky-100 hover:shadow-lg hover:cursor-pointer"
       >
         <!-- // href={private::HISTORY_DETAIL.replace(":id", &patient.id)}>-->
@@ -17,7 +23,7 @@
           <!--                <img class="h-12 w-12 flex-none rounded-full bg-gray-50" src={&patient.avatar.unwrap_or("".to_string())} alt="" />-->
           <div class="min-w-0 flex-auto">
             <p class="text-sm font-semibold leading-6 text-gray-900">
-              {patient.name}
+              {patient.firstName}
               <span class="relative inline-block px-2 py-0 font-semibold text-green-900 leading-tight">
                 <span class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
                 <span class="relative">Cita programada</span>
