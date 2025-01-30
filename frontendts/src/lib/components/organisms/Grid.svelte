@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import type Patient from "./Patient";
-  import {goto} from "$app/navigation";
 
   let { patients = $bindable() }: { patients: Patient[] } = $props();
 
@@ -15,7 +15,8 @@
     <li>
       <!--      onclick={patient_onclick(e, &patient1)}-->
       <a
-        href="/history/{patient.id}" onclick={(e) => gotoPatient(e, patient)}
+        href="/history/{patient.id}"
+        onclick={(e) => gotoPatient(e, patient)}
         class="flex justify-between gap-x-6 p-5 m-2 border rounded-lg border-transparent hover:border-blue-500 hover:bg-sky-100 hover:shadow-lg hover:cursor-pointer"
       >
         <!-- // href={private::HISTORY_DETAIL.replace(":id", &patient.id)}>-->

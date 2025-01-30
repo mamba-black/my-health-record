@@ -4,8 +4,8 @@
 -->
 
 <script lang="ts">
-  import Patient from "./Patient";
-  import SubmitButton from "./SubmitButton.svelte";
+  import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
+  import Patient from "$lib/Patient";
 
   let { patients = $bindable() }: { patients: Patient[] } = $props();
   let name: string = $state("");
@@ -17,11 +17,10 @@
     // Simular la llamada externa
     setTimeout(() => {
       patients = [
-        new Patient("123321", "Picard", 85, "miuler@gmail.com"),
-        new Patient("456465", "Jan", 85, "miuler@gmail.com")
+        new Patient("123321", "Jan", "Picard", 85, "miuler@gmail.com"),
+        new Patient("456465", "Miuler", "Malpica", 45),
       ];
     }, 2000);
-
   };
 </script>
 
