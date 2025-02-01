@@ -4,15 +4,20 @@
   import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
   import Patient from "$lib/Patient";
 
-  let _patient: Patient = $props();
+  let { patient }: { patient: Patient} = $props();
+  let patientCache = patient;
 
+  let _patient = $state(patient);
   let read_only = $state(true);
-  let patient = $state(_patient);
 
-  function reset_handle(e: Event) {
-    e.preventDefault();
+  console.log(`patientCache: ${JSON.stringify(patientCache)}`);
+  console.log(`patient: ${JSON.stringify(_patient)}`);
+
+
+  function reset_handle() {
     console.log("reset_handle");
-    console.log(`patient: ${JSON.stringify(patient)}`);
+    console.log(`patientCache: ${JSON.stringify(patientCache)}`);
+    console.log(`_patient: ${JSON.stringify(_patient)}`);
     read_only = true;
   }
 
@@ -20,22 +25,26 @@
     console.log("submit_handle");
     console.log(`patient: ${JSON.stringify(patient)}`);
     read_only = !read_only;
+    console.log(`_patient1: ${JSON.stringify(_patient)}`)
+    patientCache = patient;
   }
+
+
 </script>
 
 <div class="lg:wa-7/12 lg:justify-around">
-  <form onreset={e => reset_handle(e)} onsubmit={submit_handle}>
+  <form onsubmit={submit_handle}>
     <!--    on:reset=move |e| reset_handle(e, edit_status, patient_signal)-->
     <!--    on:submit=move |e| submit_handle(e, edit_status, patient_signal)-->
-    [({patient.firstName})]
+    [({_patient.firstName})]
     <div class="md:grid md:grid-cols-3 md:gap-4 space-y-5 md:space-y-0">
       <!-- --------------------------------------------- -->
-      <Input id="firstName" name="Nombre" bind:value={patient.firstName} readonly={read_only} required={true} />
-      <Input id="lastName" name="Apellido Paterno" value={patient.lastName} readonly={read_only} required={true} />
-      <Input id="secondLastName" name="Apellido Materno" value={patient.secondLastName} readonly={read_only} />
+      <Input id="firstName" name="Nombre" bind:value={_patient.firstName} readonly={read_only} required={true} />
+      <Input id="lastName" name="Apellido Paterno" value={_patient.lastName} readonly={read_only} required={true} />
+      <Input id="secondLastName" name="Apellido Materno" value={_patient.secondLastName} readonly={read_only} />
 
       <!-- --------------------------------------------- -->
-      <Input id="street" name="Dirección" value={patient.address} _class="col-span-2" readonly={read_only} />
+      <Input id="street" name="Dirección" value={_patient.address} _class="col-span-2" readonly={read_only} />
       <Input id="district" name="Distrito" value={"district"} readonly={read_only} />
 
       <!-- --------------------------------------------- -->
@@ -77,7 +86,7 @@
         {:else}
           <div class="space-x-3">
             <SubmitButton label="Guardar" />
-            <ResetButton label="Cancelar" />
+            <ResetButton label="Cancelar" onclick={reset_handle} />
           </div>
         {/if}
       </div>

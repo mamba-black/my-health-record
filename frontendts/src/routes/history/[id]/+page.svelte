@@ -6,7 +6,7 @@
 
   let patient = page.state as Patient;
   let full_name = patient.firstName;
-  console.log("patient full_name: ", full_name);
+  console.log("patient in page, full_name: ", JSON.stringify(patient));
 </script>
 
 <div>
@@ -23,12 +23,12 @@
   <main>
     <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
       <div class="px-10 py-10 bg-white rounded-2xl">
-        <PatientDetail patient />
+        <PatientDetail patient={patient} />
       </div>
     </div>
     <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
       <div class="px-10 py-10 bg-white rounded-2xl">
-        <PatientConsultationList patient="patient2" />
+        <PatientConsultationList patient={patient} />
       </div>
     </div>
   </main>
