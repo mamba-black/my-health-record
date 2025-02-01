@@ -8,7 +8,16 @@
     required?: boolean;
     _class?: string;
   }
-  let { id, name, value = $bindable(), readonly, _type = "text", required = false, _class = "" }: Props = $props();
+
+  let {
+    id,
+    name,
+    value = $bindable(),
+    readonly,
+    _type = "text",
+    required = false,
+    _class = ""
+  }: Props = $props();
 
   if (id == null || id.trim() == "") {
     let rnd = Math.floor(Math.random() * 1000);

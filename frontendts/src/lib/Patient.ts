@@ -1,29 +1,15 @@
 import Address from "$lib/Address";
+import Allergies from "$lib/Allergies";
 
 export default class Patient {
-  id: string;
-  firstName: string;
-  lastName: string;
-  secondLastName?: string;
-  age?: number;
-  email?: string;
-  address: Address;
-
   constructor(
-    id: string,
-    firstName: string,
-    lastName: string,
-    age: number,
-    secondLastName?: string,
-    email?: string,
-    address: Address = new Address(),
-  ) {
-    this.id = id;
-    this.firstName = firstName;
-    this.lastName = lastName;
-    this.secondLastName = secondLastName;
-    this.age = age;
-    this.email = email;
-    this.address = address;
-  }
+    public id: string,
+    public firstName: string,
+    public lastName: string,
+    public age: number,
+    public secondLastName?: string,
+    public email?: string,
+    public address: Address = new Address(),
+    public allergies: Allergies = new Allergies(),
+  ) {}
 }
