@@ -2,9 +2,14 @@
   import { page } from "$app/state";
   import PatientConsultationList from "$lib/components/organisms/PatientConsultationList.svelte";
   import PatientDetail from "$lib/components/organisms/PatientDetail.svelte";
-  import type Patient from "$lib/Patient";
+  import Patient from "$lib/Patient";
 
   let patient = page.state as Patient;
+  if (Object.keys(patient).length === 0) {
+    patient = new Patient("", "", "", 0);
+  }
+  console.debug("history/[id] - patient:", patient);
+
   let full_name = patient.firstName;
   console.log("patient in page, full_name: ", JSON.stringify(patient));
 </script>

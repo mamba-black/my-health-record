@@ -7,7 +7,7 @@ export default class Patient {
   secondLastName?: string;
   age?: number;
   email?: string;
-  address?: Address;
+  address: Address;
 
   constructor(
     id: string,
@@ -16,7 +16,7 @@ export default class Patient {
     age: number,
     secondLastName?: string,
     email?: string,
-    address?: Address,
+    address: Address = new Address(),
   ) {
     this.id = id;
     this.firstName = firstName;

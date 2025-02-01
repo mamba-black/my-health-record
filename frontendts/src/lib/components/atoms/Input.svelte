@@ -2,7 +2,7 @@
   interface Props {
     id: string;
     name: string;
-    value: string;
+    value?: string;
     readonly: boolean;
     _type?: string;
     required?: boolean;
@@ -10,7 +10,6 @@
   }
   let { id, name, value = $bindable(), readonly, _type = "text", required = false, _class = "" }: Props = $props();
 
-  console.debug(`id: ${id}`);
   if (id == null || id.trim() == "") {
     let rnd = Math.floor(Math.random() * 1000);
     id = `input-${name}-${rnd}`;
