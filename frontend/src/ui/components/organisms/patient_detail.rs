@@ -232,7 +232,7 @@ pub fn PatientDetail(patient: Patient) -> impl IntoView {
                 <div><SubmitButton label="Editar".to_string() /></div>
             }),
             EditState::Edit(_) => Either::Right(view! {
-                <div class="space-x-3">
+                 <div class="space-x-3">
                     <SubmitButton label="Guardar".to_string() />
                     <ResetButton label="Cancelar".to_string() />
                 </div>
