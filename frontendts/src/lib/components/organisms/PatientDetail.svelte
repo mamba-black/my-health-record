@@ -63,11 +63,6 @@
       <Checkbox id="asthma" name="Asma" bind:value={_patient.allergies.asthma} readonly={readOnly} />
       <Checkbox id="tbc" name="TBC" bind:value={_patient.allergies.tbc} readonly={readOnly} />
 
-      <!-- --------------------------------------------- -->
-      <!--      //-->
-
-      <!-- --------------------------------------------- -->
-      <!--      //-->
 
       <!-- --------------------------------------------- -->
       <div class="col-span-2"></div>
