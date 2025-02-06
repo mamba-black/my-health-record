@@ -1,7 +1,7 @@
 <script lang="ts">
   import Grid from "$lib/components/organisms/Grid.svelte";
   import SearchInput from "$lib/components/organisms/SearchInput.svelte";
-  import type Patient from "$lib/Patient";
+  import type Patient from "$lib/domain/Patient";
 
   let { patients = $bindable() }: { patients: Patient[] } = $props();
 </script>

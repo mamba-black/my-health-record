@@ -2,7 +2,7 @@
   import Input from "$lib/components/atoms/Input.svelte";
   import ResetButton from "$lib/components/atoms/ResetButton.svelte";
   import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
-  import Patient from "$lib/Patient";
+  import Patient from "$lib/domain/Patient";
   import Checkbox from "$lib/components/atoms/Checkbox.svelte";
   import _ from "lodash";
 

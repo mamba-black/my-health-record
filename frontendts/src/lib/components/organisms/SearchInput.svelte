@@ -5,7 +5,7 @@
 
 <script lang="ts">
   import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
-  import Patient from "$lib/Patient";
+  import Patient from "$lib/domain/Patient";
 
   let { patients = $bindable() }: { patients: Patient[] } = $props();
   let name: string = $state("");

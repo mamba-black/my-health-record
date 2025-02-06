@@ -1,7 +1,7 @@
 <script lang="ts">
-  import Patient from "$lib/Patient";
+  import Patient from "$lib/domain/Patient";
   import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
-  import Appointment from "$lib/Appointment";
+  import Appointment from "$lib/domain/Appointment";
 
   let { patient }: { patient: Patient } = $props();
 

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import type Patient from "./Patient";
+  import type Patient from "$lib/domain/Patient";
 
   let { patients = $bindable() }: { patients: Patient[] } = $props();
 

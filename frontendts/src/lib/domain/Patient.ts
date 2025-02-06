@@ -1,5 +1,5 @@
-import Address from "$lib/Address";
-import Allergies from "$lib/Allergies";
+import Address from "$lib/domain/Address";
+import Allergies from "$lib/domain/Allergies";
 
 export default class Patient {
   constructor(
