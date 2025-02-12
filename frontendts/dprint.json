@@ -18,6 +18,9 @@
   },
   "yaml": {
   },
+  "includes": [
+    "**/*.{ts,js,svelte}"
+  ],
   "excludes": [
     "**/node_modules",
     "**/*-lock.json"

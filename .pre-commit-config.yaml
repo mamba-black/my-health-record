@@ -1,4 +1,3 @@
-
 repos:
   - repo: https://github.com/zricethezav/gitleaks
     rev: v8.2.0
@@ -10,9 +9,15 @@ repos:
       - id: conventional-pre-commit
         stages: [commit-msg]
         args: [] # optional: list of Conventional Commits types to allow e.g. [feat, fix, ci, chore, test]
-  -   repo: https://github.com/doublify/pre-commit-rust
-      rev: master
-      hooks:
-          -   id: fmt
-          #-   id: cargo-check
+#  - repo: https://github.com/spinergie/pre-commit-dprint
+#    rev: main
+#    hooks:
+#      - id: dprint
+#        entry: dprint fmt
+#        args: [-c, dprint.json]
 
+# -   repo: https://github.com/doublify/pre-commit-rust
+#     rev: master
+#     hooks:
+#         -   id: fmt
+#         #-   id: cargo-check

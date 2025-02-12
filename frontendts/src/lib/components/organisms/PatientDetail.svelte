@@ -1,12 +1,12 @@
 <script lang="ts">
+  import Checkbox from "$lib/components/atoms/Checkbox.svelte";
   import Input from "$lib/components/atoms/Input.svelte";
   import ResetButton from "$lib/components/atoms/ResetButton.svelte";
   import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
   import Patient from "$lib/domain/Patient";
-  import Checkbox from "$lib/components/atoms/Checkbox.svelte";
   import _ from "lodash";
 
-  let { patient }: { patient: Patient} = $props();
+  let { patient }: { patient: Patient } = $props();
   let patientCache = _.cloneDeep(patient);
   let _patient = $state(patient);
   let readOnly = $state(true);
@@ -24,7 +24,6 @@
     readOnly = !readOnly;
     patientCache = _.cloneDeep(_patient);
   }
-
 </script>
 
 <div class="lg:wa-7/12 lg:justify-around">
@@ -36,7 +35,13 @@
       <Input id="secondLastName" name="Apellido Materno" bind:value={_patient.secondLastName} readonly={readOnly} />
 
       <!-- --------------------------------------------- -->
-      <Input id="street" name="Dirección" bind:value={_patient.address.street} _class="col-span-2" readonly={readOnly} />
+      <Input
+        id="street"
+        name="Dirección"
+        bind:value={_patient.address.street}
+        _class="col-span-2"
+        readonly={readOnly}
+      />
       <Input id="district" name="Distrito" value={"district"} readonly={readOnly} />
 
       <!-- --------------------------------------------- -->
@@ -57,12 +62,16 @@
       <Checkbox id="hepatitis" name="Hepatitis" bind:value={_patient.allergies.hepatitis} readonly={readOnly} />
       <Checkbox id="diabetes" name="Diabetes" bind:value={_patient.allergies.diabetes} readonly={readOnly} />
       <Checkbox id="hemorrhage" name="Hemorragia" bind:value={_patient.allergies.hemorrhage} readonly={readOnly} />
-      <Checkbox id="highPressure" name="Presion alta" bind:value={_patient.allergies.highPressure} readonly={readOnly} />
+      <Checkbox
+        id="highPressure"
+        name="Presion alta"
+        bind:value={_patient.allergies.highPressure}
+        readonly={readOnly}
+      />
       <Checkbox id="lowPressure" name="Presion baja" bind:value={_patient.allergies.lowPressure} readonly={readOnly} />
       <Checkbox id="cholesterol" name="Colesterol" bind:value={_patient.allergies.cholesterol} readonly={readOnly} />
       <Checkbox id="asthma" name="Asma" bind:value={_patient.allergies.asthma} readonly={readOnly} />
       <Checkbox id="tbc" name="TBC" bind:value={_patient.allergies.tbc} readonly={readOnly} />
-
 
       <!-- --------------------------------------------- -->
       <div class="col-span-2"></div>

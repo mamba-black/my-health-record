@@ -16,7 +16,7 @@
     readonly,
     _type = "text",
     required = false,
-    _class = ""
+    _class = "",
   }: Props = $props();
 
   if (id == null || id.trim() == "") {
