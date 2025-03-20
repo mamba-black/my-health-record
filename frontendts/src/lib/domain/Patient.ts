@@ -8,6 +8,7 @@ export default class Patient {
     public lastName: string,
     public age: number,
     public secondLastName?: string,
+    public phone?: string,
     public email?: string,
     public address: Address = new Address(),
     public allergies: Allergies = new Allergies(),

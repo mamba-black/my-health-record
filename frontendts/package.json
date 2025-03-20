@@ -24,6 +24,7 @@
     "vite": "^6.0.5"
   },
   "dependencies": {
+    "dayjs": "^1.11.13",
     "grpc-web": "^1.5.0",
     "lodash": "^4.17.21"
   }

@@ -42,11 +42,11 @@
         _class="col-span-2"
         readonly={readOnly}
       />
-      <Input id="district" name="Distrito" value={"district"} readonly={readOnly} />
+      <Input id="district" name="Distrito" value={_patient.address.district} readonly={readOnly} />
 
       <!-- --------------------------------------------- -->
-      <Input id="phone" name="Telefono" readonly={readOnly} value={"phone"} _type="tel" />
-      <Input id="email" name="Correo electronico" readonly={readOnly} value={"email"} _type="email" />
+      <Input id="phone" name="Telefono" readonly={readOnly} value={_patient.phone} _type="tel" />
+      <Input id="email" name="Correo electronico" readonly={readOnly} value={_patient.email} _type="email" />
       <Input id="birthday" name="Fecha de cumpleaños" readonly={readOnly} value={"birthday"} _type="date" />
 
       <!-- --------------------------------------------- -->
