@@ -18,7 +18,8 @@
     readOnly = true;
   }
 
-  function submit_handle() {
+  function submit_handle(e: Event) {
+    e.preventDefault();
     console.debug("patient original:", patientCache);
     console.debug("patient modificado:", $state.snapshot(_patient));
     readOnly = !readOnly;
