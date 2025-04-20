@@ -1,4 +1,4 @@
-export default class Allergies {
+export default class MedicalConditions {
   constructor(
     public hepatitis = false,
     public diabetes = false,

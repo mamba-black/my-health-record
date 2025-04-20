@@ -1,5 +1,5 @@
 import Address from "$lib/domain/Address";
-import Allergies from "$lib/domain/Allergies";
+import MedicalConditions from "$lib/domain/MedicalConditions";
 
 export default class Patient {
   constructor(
@@ -11,6 +11,6 @@ export default class Patient {
     public phone?: string,
     public email?: string,
     public address: Address = new Address(),
-    public allergies: Allergies = new Allergies(),
+    public medicalConditions: MedicalConditions = new MedicalConditions(),
   ) {}
 }

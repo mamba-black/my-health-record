@@ -1,10 +1,10 @@
 <script lang="ts">
-  import Checkbox from "$lib/components/atoms/Checkbox.svelte";
   import Input from "$lib/components/atoms/Input.svelte";
   import ResetButton from "$lib/components/atoms/ResetButton.svelte";
   import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
   import Patient from "$lib/domain/Patient";
   import _ from "lodash";
+  import MedicalConditions from "$lib/components/organisms/MedicalConditions.svelte";
 
   let { patient }: { patient: Patient } = $props();
   let patientCache = _.cloneDeep(patient);
@@ -54,25 +54,7 @@
       <div class="col-span-3">
         <hr class="h-px mt-8" />
       </div>
-      <h2 class="col-span-3">Antecedentes</h2>
-
-      <!-- --------------------------------------------- -->
-      <Input id="allergy" name="Alergias" readonly={readOnly} value={"allergies"} _class="col-span-3" />
-
-      <!-- --------------------------------------------- -->
-      <Checkbox id="hepatitis" name="Hepatitis" bind:value={_patient.allergies.hepatitis} readonly={readOnly} />
-      <Checkbox id="diabetes" name="Diabetes" bind:value={_patient.allergies.diabetes} readonly={readOnly} />
-      <Checkbox id="hemorrhage" name="Hemorragia" bind:value={_patient.allergies.hemorrhage} readonly={readOnly} />
-      <Checkbox
-        id="highPressure"
-        name="Presion alta"
-        bind:value={_patient.allergies.highPressure}
-        readonly={readOnly}
-      />
-      <Checkbox id="lowPressure" name="Presion baja" bind:value={_patient.allergies.lowPressure} readonly={readOnly} />
-      <Checkbox id="cholesterol" name="Colesterol" bind:value={_patient.allergies.cholesterol} readonly={readOnly} />
-      <Checkbox id="asthma" name="Asma" bind:value={_patient.allergies.asthma} readonly={readOnly} />
-      <Checkbox id="tbc" name="TBC" bind:value={_patient.allergies.tbc} readonly={readOnly} />
+      <MedicalConditions patient={patient}></MedicalConditions>
 
       <!-- --------------------------------------------- -->
       <div class="col-span-2"></div>
