@@ -10,7 +10,7 @@
 </script>
 
 <div class="col-span-3 md:grid md:grid-cols-3 md:gap-4 space-y-5 md:space-y-0">
-  <h2 class="col-span-3">Antecedentes</h2>
+  <h3 class="col-span-3 text-2xl font-bold tracking-tight text-gray-900 pt-1">Antecedentes</h3>
 
   <!-- --------------------------------------------- -->
   <Input id="allergy" name="Alergias" readonly={readOnly} value={"allergies"} _class="col-span-3" />
