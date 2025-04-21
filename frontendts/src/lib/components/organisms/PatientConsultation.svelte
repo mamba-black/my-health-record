@@ -23,6 +23,11 @@
     <textarea class="[field-sizing:content] w-full mt-5">
       Paciente presenta cuadro de resfriado común, con congestión nasal severa, tos productiva y dolor de garganta. Se auscultan sibilancias leves. Se recomienda reposo, hidratación abundante y paracetamol para la fiebre.
     </textarea>
+    <h3 class="col-span-3 text-2xl font-bold tracking-tight text-gray-900 pt-1 mt-6">Tratamiento</h3>
+    <textarea class="[field-sizing:content] w-full mt-5">
+      - Paracetamos
+      - Ibuprofeno
+    </textarea>
     <div class="justify-self-end">
       <button onclick={onClick} class="button-submit">Cerrar</button>
     </div>
