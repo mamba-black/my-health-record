@@ -6,6 +6,7 @@
   import relativeTime from "dayjs/plugin/relativeTime";
   import "dayjs/locale/es";
   import PatientConsultation from "$lib/components/organisms/PatientConsultation.svelte";
+  import {log} from "$lib/services/LoggerService";
 
   dayjs.extend(relativeTime);
   dayjs.locale("es");
@@ -17,10 +18,10 @@
 
   {
     var march = dayjs("2017-03");
-    console.log(march.format("MMMM")); // 'March'
+    log.debug(march.format("MMMM")); // 'March'
 
     march.locale("es");
-    console.log(march.format("MMMM")); // 'Marzo'
+    log.debug(march.format("MMMM")); // 'Marzo'
   }
 
   let appointments = [dayjs("2025-01-01T23:35:01"), dayjs("2025-03-01T23:35:01")]
@@ -37,8 +38,15 @@
     });
 
   function onClick(appointment: Appointment, e: Event) {
+    let data = {
+      isOpen: isOpen,
+      appointment: appointment,
+      event: e,
+    };
+    log.debug(data);
     e.preventDefault();
     isOpen = !isOpen;
+    log.debug("isOpen", isOpen);
   }
 </script>
 
@@ -46,12 +54,11 @@
   <form>
     <div class="text-right"><SubmitButton label="Nueva consulta" /></div>
     <ul role="list" class="divide-y divide-gray-100">
-      <PatientConsultation isOpen={isOpen} patient="{patient}" > </PatientConsultation>
+      <PatientConsultation bind:isOpen={isOpen} patient={patient} > </PatientConsultation>
       {#each appointments as appointment}
         <li>
           <a
             class="flex justify-between gap-x-6 p-5 m-2 border rounded-lg border-transparent hover:border-blue-500 hover:bg-sky-100 hover:shadow-lg hover:cursor-pointer"
-            href=""
             onclick={e => onClick(appointment.appointment, e)}
           >
             <div class="flex gap-x-4">

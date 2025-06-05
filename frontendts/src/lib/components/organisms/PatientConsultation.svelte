@@ -1,5 +1,7 @@
 <script lang="ts">
   import MedicalConditions from "$lib/components/organisms/MedicalConditions.svelte";
+  import {log} from "$lib/services/LoggerService";
+  // import {Edra} from "$lib/components/edra/headless";
 
   let { isOpen = $bindable(), patient } = $props();
   // let { patient }: { patient: Patient } = $props();
@@ -7,6 +9,7 @@
   function onClick(e: Event) {
     e.preventDefault();
     isOpen = !isOpen;
+    log.debug("isOpen", isOpen);
   }
 </script>
 
@@ -24,6 +27,10 @@
       Paciente presenta cuadro de resfriado común, con congestión nasal severa, tos productiva y dolor de garganta. Se auscultan sibilancias leves. Se recomienda reposo, hidratación abundante y paracetamol para la fiebre.
     </textarea>
     <h3 class="col-span-3 text-2xl font-bold tracking-tight text-gray-900 pt-1 mt-6">Tratamiento</h3>
+<!--    <Edra>-->
+<!--      - Paracetamos-->
+<!--      - Ibuprofeno-->
+<!--    </Edra>-->
     <textarea class="[field-sizing:content] w-full mt-5">
       - Paracetamos
       - Ibuprofeno

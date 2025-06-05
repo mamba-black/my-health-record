@@ -1,9 +1,6 @@
 <script lang="ts">
-  import Search from "$lib/components/pages/Search.svelte";
   import svelteLogo from "$lib/svelte.svg";
 </script>
-
-<Search />
 
 <!-- =============================================================== -->
 <hr />
@@ -11,7 +8,7 @@
   <table>
     <tbody>
       <tr>
-        <td><img src="/vite.svg" class="logo" alt="Vite Logo" /></td>
+        <td><a href="search"><img src="/vite.svg" class="logo" alt="Vite Logo" /></a></td>
         <td>
           <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
         </td>
