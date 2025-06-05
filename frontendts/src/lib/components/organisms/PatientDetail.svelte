@@ -15,6 +15,7 @@
     console.debug("patient original:", patientCache);
     console.debug("patient modificado:", $state.snapshot(_patient));
     _patient = _.cloneDeep(patientCache);
+    console.debug("patient modificado:", $state.snapshot(_patient));
     readOnly = true;
   }
 
@@ -43,18 +44,18 @@
         _class="col-span-2"
         readonly={readOnly}
       />
-      <Input id="district" name="Distrito" value={_patient.address.district} readonly={readOnly} />
+      <Input id="district" name="Distrito" bind:value={_patient.address.district} readonly={readOnly} />
 
       <!-- --------------------------------------------- -->
-      <Input id="phone" name="Telefono" readonly={readOnly} value={_patient.phone} _type="tel" />
-      <Input id="email" name="Correo electronico" readonly={readOnly} value={_patient.email} _type="email" />
+      <Input id="phone" name="Telefono" readonly={readOnly} bind:value={_patient.phone} _type="tel" />
+      <Input id="email" name="Correo electronico" readonly={readOnly} bind:value={_patient.email} _type="email" />
       <Input id="birthday" name="Fecha de cumpleaños" readonly={readOnly} value={"birthday"} _type="date" />
 
       <!-- --------------------------------------------- -->
       <div class="col-span-3">
         <hr class="h-px mt-8" />
       </div>
-      <MedicalConditions patient={patient}></MedicalConditions>
+      <MedicalConditions medical_conditions={_patient.medicalConditions} readonly={readOnly}></MedicalConditions>
 
       <!-- --------------------------------------------- -->
       <div class="col-span-2"></div>
