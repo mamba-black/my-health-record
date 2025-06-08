@@ -3,15 +3,19 @@
   import PatientConsultationList from "$lib/components/organisms/PatientConsultationList.svelte";
   import PatientDetail from "$lib/components/organisms/PatientDetail.svelte";
   import Patient from "$lib/domain/Patient";
+  import {log} from "$lib/services/LoggerService";
 
-  let patient = page.state as Patient;
-  if (Object.keys(patient).length === 0) {
-    patient = new Patient("", "", "", 0);
-  }
-  console.debug("history/[id] - patient:", patient);
+  let patient: Patient = Object.keys(page.state).length === 0
+    ? new Patient("13", "Hector", "Malpica", 0, "Gallegos")
+    : page.state as Patient ;
+  log.debug("patient in page state:", patient);
+
+  let reset = $state(false);
+  let isEditing = $state(false);
 
   let full_name = patient.firstName;
-  console.log("patient in page, full_name: ", JSON.stringify(patient));
+  log.log("patient in page, full_name: ", JSON.stringify(patient));
+
 </script>
 
 <div>
@@ -28,11 +32,20 @@
   <main>
     <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
       <div class="px-10 py-10 bg-white rounded-2xl">
-        <PatientDetail patient={patient} />
+        <PatientDetail
+          patient={patient}
+          bind:reset={reset}
+          setEditing={ (editing) => isEditing = editing }/>
       </div>
     </div>
     <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-      <div class="px-10 py-10 bg-white rounded-2xl">
+      <div class="px-10 py-10 bg-white rounded-2xl"
+           on:click|capture={(e:Event) => {
+             if (isEditing) {
+              e.stopPropagation();
+              reset = true;
+             }
+           }}>
         <PatientConsultationList patient={patient} />
       </div>
     </div>

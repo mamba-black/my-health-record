@@ -5,27 +5,39 @@
   import Patient from "$lib/domain/Patient";
   import _ from "lodash";
   import MedicalConditions from "$lib/components/organisms/MedicalConditions.svelte";
+  import {log} from "$lib/services/LoggerService";
 
-  let { patient }: { patient: Patient } = $props();
+  type PROPS = {
+    patient: Patient,
+    reset: boolean,
+    setEditing?: (readOnly: boolean) => void,
+  };
+
+  let { patient, reset = $bindable(false), setEditing}: PROPS = $props();
+
   let patientCache = _.cloneDeep(patient);
   let _patient = $state(patient);
   let readOnly = $state(true);
 
   function reset_handle() {
-    console.debug("patient original:", patientCache);
-    console.debug("patient modificado:", $state.snapshot(_patient));
     _patient = _.cloneDeep(patientCache);
-    console.debug("patient modificado:", $state.snapshot(_patient));
     readOnly = true;
+    setEditing?.(!readOnly);
   }
 
   function submit_handle(e: Event) {
     e.preventDefault();
-    console.debug("patient original:", patientCache);
-    console.debug("patient modificado:", $state.snapshot(_patient));
     readOnly = !readOnly;
+    setEditing?.(!readOnly);
     patientCache = _.cloneDeep(_patient);
   }
+
+  $effect(() => {
+    if (reset) {
+      reset_handle();
+      reset = false;
+    }
+  });
 </script>
 
 <div class="lg:wa-7/12 lg:justify-around">
