@@ -15,7 +15,7 @@
 
 {#if isOpen}
   <div
-    class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4/5 max-w-[800px] bg-white p-6 rounded-lg shadow-xl"
+    class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4/5 max-w-[800px] bg-white p-6 rounded-lg shadow-xl border border-gray-400"
   >
     <MedicalConditions medical_conditions={patient.medicalConditions}> </MedicalConditions>
     <h3 class="col-span-3 text-2xl font-bold tracking-tight text-gray-900 pt-1 mt-6">Sintomas</h3>
