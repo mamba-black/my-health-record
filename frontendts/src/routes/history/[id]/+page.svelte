@@ -4,6 +4,7 @@
   import PatientDetail from "$lib/components/organisms/PatientDetail.svelte";
   import Patient from "$lib/domain/Patient";
   import {log} from "$lib/services/LoggerService";
+  import ConfirmModal from "$lib/components/organisms/ConfirmModal.svelte";
 
   let patient: Patient = Object.keys(page.state).length === 0
     ? new Patient("13", "Hector", "Malpica", 0, "Gallegos")
@@ -12,6 +13,7 @@
 
   let reset = $state(false);
   let isEditing = $state(false);
+  let openModal = $state(false);
 
   let full_name = patient.firstName;
   log.log("patient in page, full_name: ", JSON.stringify(patient));
@@ -30,6 +32,9 @@
     </div>
   </header>
   <main>
+    <ConfirmModal
+      bind:isOpen={openModal}
+      callback={(confirm) => {if(!confirm) reset = true;}} />
     <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
       <div class="px-10 py-10 bg-white rounded-2xl">
         <PatientDetail
@@ -42,8 +47,8 @@
       <div class="px-10 py-10 bg-white rounded-2xl"
            on:click|capture={(e:Event) => {
              if (isEditing) {
-              e.stopPropagation();
-              reset = true;
+               openModal = true;
+               e.stopPropagation();
              }
            }}>
         <PatientConsultationList patient={patient} />

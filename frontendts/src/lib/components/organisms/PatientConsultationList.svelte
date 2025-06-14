@@ -14,7 +14,7 @@
   let { patient }: { patient: Patient } = $props();
 
   let now = dayjs();
-  let isOpen = $state(false);
+  let openPatientConsultation = $state(false);
 
   {
     var march = dayjs("2017-03");
@@ -38,15 +38,9 @@
     });
 
   function onClick(appointment: Appointment, e: Event) {
-    let data = {
-      isOpen: isOpen,
-      appointment: appointment,
-      event: e,
-    };
-    log.debug(data);
     e.preventDefault();
-    isOpen = !isOpen;
-    log.debug("isOpen", isOpen);
+    openPatientConsultation = !openPatientConsultation;
+    log.debug("isOpen", openPatientConsultation);
   }
 </script>
 
@@ -54,7 +48,8 @@
   <form>
     <div class="text-right"><SubmitButton label="Nueva consulta" /></div>
     <ul role="list" class="divide-y divide-gray-100">
-      <PatientConsultation bind:isOpen={isOpen} patient={patient} > </PatientConsultation>
+      <PatientConsultation bind:isOpen={openPatientConsultation}
+                           patient={patient} />
       {#each appointments as appointment}
         <li>
           <a

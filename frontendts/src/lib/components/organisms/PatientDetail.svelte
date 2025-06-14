@@ -5,7 +5,6 @@
   import Patient from "$lib/domain/Patient";
   import _ from "lodash";
   import MedicalConditions from "$lib/components/organisms/MedicalConditions.svelte";
-  import {log} from "$lib/services/LoggerService";
 
   type PROPS = {
     patient: Patient,
