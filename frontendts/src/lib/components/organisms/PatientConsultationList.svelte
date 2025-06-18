@@ -1,6 +1,6 @@
 <script lang="ts">
   import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
-  import Appointment from "$lib/domain/Appointment";
+  import Appointment, {State} from "$lib/domain/Appointment";
   import Patient from "$lib/domain/Patient";
   import dayjs from "dayjs";
   import relativeTime from "dayjs/plugin/relativeTime";
@@ -11,7 +11,7 @@
   dayjs.extend(relativeTime);
   dayjs.locale("es");
 
-  let { patient }: { patient: Patient } = $props();
+  let { patient, appointments }: { patient: Patient, appointments: Appointment[] } = $props();
 
   let now = dayjs();
   let openPatientConsultation = $state(false);
@@ -24,17 +24,15 @@
     log.debug(march.format("MMMM")); // 'Marzo'
   }
 
-  let appointments = [dayjs("2025-01-01T23:35:01"), dayjs("2025-03-01T23:35:01")]
-    .map(d => {
-      let appointment = new Appointment(0, d); // TODO: Esto tiene que venir
-      let date = "";
-      let exams: string[] = [];
+  let appointmentWrappers: { appointment: Appointment; date: string }[] = appointments
+    .map(appointment => {
+      let date: string;
       if (now < appointment.date) {
         date = "dentro de " + appointment.date.from(now);
       } else {
         date = appointment.date.from(now);
       }
-      return { appointment, date, exams };
+      return { appointment, date };
     });
 
   function onClick(appointment: Appointment, e: Event) {
@@ -50,28 +48,28 @@
     <ul role="list" class="divide-y divide-gray-100">
       <PatientConsultation bind:isOpen={openPatientConsultation}
                            patient={patient} />
-      {#each appointments as appointment}
+      {#each appointmentWrappers as appointmentWrapper}
         <li>
           <a
             class="flex justify-between gap-x-6 p-5 m-2 border rounded-lg border-transparent hover:border-blue-500 hover:bg-sky-100 hover:shadow-lg hover:cursor-pointer"
-            onclick={e => onClick(appointment.appointment, e)}
+            onclick={e => onClick(appointmentWrapper.appointment, e)}
           >
             <div class="flex gap-x-4">
               <div class="flex-col justify-center items-center rounded-lg bg-white overflow-hidden shadow-md w-20">
                 <div class="bg-blue-500 text-white py-1 px-1">
                   <p class="text-xs font-semibold text-white uppercase tracking-wide text-center">
-                    {appointment.appointment.date.format("MMMM")}
+                    {appointmentWrapper.appointment.date.format("MMMM")}
                     <span class="text-gray-300 leading-none">
-                      <br>{appointment.appointment.date.format("YYYY")}
+                      <br>{appointmentWrapper.appointment.date.format("YYYY")}
                     </span>
                   </p>
                 </div>
                 <div class="flex-col justify-center items-center">
                   <p class="text-xs text-gray-400 text-center pt-1 px-4 leading-none">
-                    {appointment.appointment.date.format("dddd")}
+                    {appointmentWrapper.appointment.date.format("dddd")}
                   </p>
                   <p class="font-bold text-black text-center pb-1.5 px-3 leading-none" style="font-size: 18px">
-                    {appointment.appointment.date.day()}
+                    {appointmentWrapper.appointment.date.day()}
                   </p>
                 </div>
               </div>
@@ -82,14 +80,14 @@
 
                   <span class="relative inline-block px-2 py-0 font-semibold text-green-900 leading-tight">
                     <span class="absolute inset-0 bg-orange-300 opacity-50 rounded-full"></span>
-                    {#if appointment.appointment.date > now}
+                    {#if appointmentWrapper.appointment.date > now}
                       <span class="relative">Cita programada</span>
                     {:else}
                       <span></span>
                     {/if}
                   </span>
                   <span> </span>
-                  {#if appointment.exams.length > 0}
+                  {#if appointmentWrapper.appointment.exams.length > 0}
                     <span class="relative inline-block px-2 py-0 font-semibold text-green-900 leading-tight">
                       <span class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
                       <span class="relative"> Exemenes</span>
@@ -115,7 +113,7 @@
               <!--            //     </div>-->
               <!--            // </>}} else {view!{<>-->
               <p class="mt-1 text-xs leading-5 text-gray-500">
-                <time datetime={appointment.appointment.date}>{appointment.date}</time>
+                <time datetime={appointmentWrapper.appointment.date}>{appointmentWrapper.date}</time>
               </p>
               <!--            // </>}}-->
               <!--            // }-->
