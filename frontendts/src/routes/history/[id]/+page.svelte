@@ -5,9 +5,10 @@
   import Patient from "$lib/domain/Patient";
   import {log} from "$lib/services/LoggerService";
   import ConfirmModal from "$lib/components/organisms/ConfirmModal.svelte";
+  import MedicalConditions from "$lib/domain/MedicalConditions";
 
   let patient: Patient = Object.keys(page.state).length === 0
-    ? new Patient("13", "Hector", "Malpica", 0, "Gallegos")
+    ? new Patient("13", "Hector", "Malpica", 0, "Gallegos", undefined, undefined, undefined, new MedicalConditions(true))
     : page.state as Patient ;
   log.debug("patient in page state:", patient);
 

@@ -12,6 +12,7 @@
   } = $props();
 </script>
 
+{#if !readonly || value}
 <div class="history-checkbox flex items-center mb-4">
   <input
     id={id}
@@ -30,3 +31,4 @@
   <!--    class:text-gray-300={move || is300(is300_readonly(), value.get())}-->
   <!--    class:text-gray-500={move || is500(is500_readonly(), value.get())}> -->
 </div>
+{/if}
