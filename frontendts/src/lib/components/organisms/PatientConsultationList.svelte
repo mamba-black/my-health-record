@@ -7,6 +7,7 @@
   import "dayjs/locale/es";
   import PatientConsultation from "$lib/components/organisms/PatientConsultation.svelte";
   import {log} from "$lib/services/LoggerService";
+  import STitle from "$lib/components/atoms/STitle.svelte";
 
   dayjs.extend(relativeTime);
   dayjs.locale("es");
@@ -15,6 +16,7 @@
 
   let now = dayjs();
   let openPatientConsultation = $state(false);
+  let selectedAppointment: Appointment | undefined = $state();
 
   {
     var march = dayjs("2017-03");
@@ -38,15 +40,18 @@
   function onClick(appointment: Appointment, e: Event) {
     e.preventDefault();
     openPatientConsultation = !openPatientConsultation;
+    selectedAppointment = appointment;
     log.debug("isOpen", openPatientConsultation);
   }
 </script>
 
-<div class="lg:wa-7/12 lg:justify-around">
+<div class="">
+  <STitle>Atenciones</STitle>
   <form>
     <div class="text-right"><SubmitButton label="Nueva consulta" /></div>
     <ul role="list" class="divide-y divide-gray-100">
       <PatientConsultation bind:isOpen={openPatientConsultation}
+                           bind:appointment={selectedAppointment}
                            patient={patient} />
       {#each appointmentWrappers as appointmentWrapper}
         <li>

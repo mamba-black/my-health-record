@@ -46,7 +46,7 @@
   >
     <div class="relative p-8 bg-white w-96 max-w-md mx-auto rounded-lg shadow-xl">
       <!-- Título y mensaje -->
-      <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">{message}</h3>
+      <p class="text-lg leading-6 font-medium text-gray-900 mb-4">{message}</p>
 <!--      <div class="mt-2 mb-6">-->
 <!--        <p class="text-sm text-gray-500">-->
 <!--          {message}-->
