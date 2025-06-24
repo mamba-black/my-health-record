@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Grid from "$lib/components/organisms/Grid.svelte";
+  import SearchList from "$lib/components/organisms/SearchList.svelte";
   import SearchInput from "$lib/components/organisms/SearchInput.svelte";
   import type Patient from "$lib/domain/Patient";
 
@@ -18,7 +18,7 @@
   <div class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
     <div class="px-10 py-10 bg-white rounded-2xl">
       <SearchInput bind:patients={patients} />
-      <Grid bind:patients={patients} />
+      <SearchList bind:patients={patients} />
     </div>
   </div>
 </main>

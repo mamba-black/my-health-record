@@ -25,7 +25,7 @@
   <!--         prop:checked={value}-->
   <!--          />-->
 
-  <label for={id} class="ms-2 text-sm font-medium">
+  <label for={id} class="ms-2">
     {name}
   </label>
   <!--    class:text-gray-300={move || is300(is300_readonly(), value.get())}-->

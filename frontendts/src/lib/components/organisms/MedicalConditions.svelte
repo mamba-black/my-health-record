@@ -22,7 +22,7 @@
     class="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-md col-span-3 md:grid md:grid-cols-3 md:gap-4 space-y-5 md:space-y-0">
 
     <!-- --------------------------------------------- -->
-    <Input id="allergy" name="Alergias" readonly={readonly} value={"allergies"} _class="col-span-3"/>
+    <Input id="allergy" name="Alergias" readonly={readonly} value={"allergies"} _class="col-span-3" />
 
     <!-- --------------------------------------------- -->
     <Checkbox id="hepatitis" name="Hepatitis" bind:value={_medical_conditions.hepatitis} readonly={readonly}/>
