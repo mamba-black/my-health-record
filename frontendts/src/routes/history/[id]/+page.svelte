@@ -44,6 +44,7 @@
         setEditing={ (editing) => isEditing = editing }/>
     </div>
     <div class="mb-8"
+         role="list"
          on:click|capture={(e:Event) => {
              if (isEditing) {
                openModal = true;

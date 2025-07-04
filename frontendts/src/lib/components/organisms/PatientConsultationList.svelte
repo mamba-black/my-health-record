@@ -8,6 +8,7 @@
   import PatientConsultation from "$lib/components/organisms/PatientConsultation.svelte";
   import {log} from "$lib/services/LoggerService";
   import STitle from "$lib/components/atoms/STitle.svelte";
+  import {goto} from "$app/navigation";
 
   dayjs.extend(relativeTime);
   dayjs.locale("es");
@@ -28,6 +29,7 @@
 
   let appointmentWrappers: { appointment: Appointment; date: string }[] = appointments
     .map(appointment => {
+      log.info("appointment", appointment);
       let date: string;
       if (now < appointment.date) {
         date = "dentro de " + appointment.date.from(now);
@@ -38,9 +40,14 @@
     });
 
   function onClick(appointment: Appointment, e: Event) {
+    log.info("appointment onClick", appointment);
+    if (e instanceof KeyboardEvent && e.key !== 'Enter') {
+      return;
+    }
     e.preventDefault();
     openPatientConsultation = !openPatientConsultation;
     selectedAppointment = appointment;
+    goto(`/history/${patient.id}/123/`, {state: appointment});
     log.debug("isOpen", openPatientConsultation);
   }
 </script>
@@ -56,8 +63,10 @@
       {#each appointmentWrappers as appointmentWrapper}
         <li>
           <a
+            role="cell" tabindex="0"
             class="flex justify-between gap-x-6 p-5 m-2 border rounded-lg border-transparent hover:border-blue-500 hover:bg-sky-100 hover:shadow-lg hover:cursor-pointer"
             onclick={e => onClick(appointmentWrapper.appointment, e)}
+            onkeydown={e => onClick(appointmentWrapper.appointment, e)}
           >
             <div class="flex gap-x-4">
               <div class="flex-col justify-center items-center rounded-lg bg-white overflow-hidden shadow-md w-20">
