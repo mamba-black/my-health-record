@@ -6,6 +6,8 @@
   import _ from "lodash";
   import MedicalConditions from "$lib/components/organisms/MedicalConditions.svelte";
   import STitle from "$lib/components/atoms/STitle.svelte";
+  import {goto} from "$app/navigation";
+  import {log} from "$lib/services/LoggerService";
 
   type PROPS = {
     patient: Patient,
@@ -20,6 +22,7 @@
   let readOnly = $state(true);
 
   function reset_handle() {
+    log.debug("reset/patientCache:", patientCache);
     _patient = _.cloneDeep(patientCache);
     readOnly = true;
     setEditing?.(!readOnly);
@@ -27,9 +30,16 @@
 
   function submit_handle(e: Event) {
     e.preventDefault();
+    // log.debug("submit_handle", _patient);
     readOnly = !readOnly;
     setEditing?.(!readOnly);
     patientCache = _.cloneDeep(_patient);
+
+    // if (readOnly) {
+    //   log.info("Guardar el estado", _patient);
+    //   const updatedPatient: Patient = { ..._patient };
+    //   goto(`/history/${_patient.id}`, { state: updatedPatient, replaceState: true });
+    // }
   }
 
   $effect(() => {
