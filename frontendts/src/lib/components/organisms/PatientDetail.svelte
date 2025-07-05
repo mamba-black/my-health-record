@@ -30,16 +30,16 @@
 
   function submit_handle(e: Event) {
     e.preventDefault();
-    // log.debug("submit_handle", _patient);
+    log.debug("submit_handle", _patient);
     readOnly = !readOnly;
     setEditing?.(!readOnly);
     patientCache = _.cloneDeep(_patient);
 
-    // if (readOnly) {
-    //   log.info("Guardar el estado", _patient);
-    //   const updatedPatient: Patient = { ..._patient };
-    //   goto(`/history/${_patient.id}`, { state: updatedPatient, replaceState: true });
-    // }
+    if (readOnly) {
+      log.info("Guardar el estado", _patient);
+      // const serializablePatient = JSON.parse(JSON.stringify(_patient));
+      goto(`/history/${_patient.id}`, { state: patientCache, replaceState: true });
+    }
   }
 
   $effect(() => {

@@ -47,8 +47,9 @@
          role="list"
          on:click|capture={(e:Event) => {
              if (isEditing) {
-               openModal = true;
+               e.preventDefault()
                e.stopPropagation();
+               openModal = true;
              }
            }}>
       <PatientConsultationList patient={patient} appointments={appointments}/>
