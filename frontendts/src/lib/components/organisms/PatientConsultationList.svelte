@@ -1,6 +1,6 @@
 <script lang="ts">
   import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
-  import Appointment, {State} from "$lib/domain/Appointment";
+  import Appointment from "$lib/domain/Appointment";
   import Patient from "$lib/domain/Patient";
   import dayjs from "dayjs";
   import relativeTime from "dayjs/plugin/relativeTime";
@@ -47,7 +47,7 @@
     e.preventDefault();
     openPatientConsultation = !openPatientConsultation;
     selectedAppointment = appointment;
-    goto(`/history/${patient.id}/123/`, {state: appointment});
+    goto(`/history/${patient.id}/123/`, {state: {appointment: appointment, patient: patient}});
     log.debug("isOpen", openPatientConsultation);
   }
 </script>
@@ -57,9 +57,6 @@
   <form>
     <div class="text-right"><SubmitButton label="Nueva consulta" /></div>
     <ul role="list" class="divide-y divide-gray-100">
-      <PatientConsultation bind:isOpen={openPatientConsultation}
-                           bind:appointment={selectedAppointment}
-                           patient={patient} />
       {#each appointmentWrappers as appointmentWrapper}
         <li>
           <a
