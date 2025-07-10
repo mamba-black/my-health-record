@@ -4,10 +4,11 @@
   import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
   import Patient from "$lib/domain/Patient";
   import _ from "lodash";
-  import MedicalConditions from "$lib/components/organisms/MedicalConditions.svelte";
+  import MedicalConditionsComponent from "$lib/components/organisms/MedicalConditions.svelte";
   import STitle from "$lib/components/atoms/STitle.svelte";
   import {goto} from "$app/navigation";
   import {log} from "$lib/services/LoggerService";
+  import type MedicalConditions from "$lib/domain/MedicalConditions";
 
   type PROPS = {
     patient: Patient,
@@ -15,29 +16,43 @@
     setEditing?: (readOnly: boolean) => void,
   };
 
+  const toPlainObject = (p: any) => JSON.parse(JSON.stringify(p));
+
   let {patient, reset = $bindable(false), setEditing}: PROPS = $props();
 
-  let patientCache = _.cloneDeep(patient);
-  let _patient = $state(patient);
+  // let patientCache = _.cloneDeep(patient);
+  let patientCache: Patient = toPlainObject(patient);
+  // let _patient_clone = _.cloneDeep(patient);
+  let _patient = $state<Patient>(toPlainObject(patientCache));
+  let _medicalConditions = $state<MedicalConditions>(toPlainObject(patientCache.medicalConditions));
   let readOnly = $state(true);
 
   function reset_handle() {
     log.debug("reset/patientCache:", patientCache);
-    _patient = _.cloneDeep(patientCache);
+    log.debug("reset/_patient:", $state.snapshot(_patient));
+    log.debug("reset/_medicalConditions:", $state.snapshot(_medicalConditions));
+    // _patient = _.cloneDeep(patientCache);
+    _patient = toPlainObject(patientCache);
+    _medicalConditions = toPlainObject(patientCache.medicalConditions)
     readOnly = true;
     setEditing?.(!readOnly);
   }
 
   function submit_handle(e: Event) {
     e.preventDefault();
-    log.debug("submit_handle", _patient);
     readOnly = !readOnly;
     setEditing?.(!readOnly);
-    patientCache = _.cloneDeep(_patient);
+    // patientCache = _.cloneDeep(_patient);
+    patientCache = toPlainObject(_patient);
+    log.debug("submit/_patient", $state.snapshot(_patient));
+    log.debug("submit/patientCache", patientCache);
+    log.debug("submit/_medicalConditions:", $state.snapshot(_medicalConditions));
 
     if (readOnly) {
-      log.info("Guardar el estado", _patient);
       // const serializablePatient = JSON.parse(JSON.stringify(_patient));
+      _patient.medicalConditions = $state.snapshot(_medicalConditions);
+      log.info("Guardar el estado", $state.snapshot(_patient));
+      patientCache = toPlainObject(_patient);
       goto(`/history/${_patient.id}`, { state: patientCache, replaceState: true });
     }
   }
@@ -76,7 +91,7 @@
     <!-- --------------------------------------------- -->
     <div />
     <div class="col-span-3">
-    <MedicalConditions medical_conditions={_patient.medicalConditions} readonly={readOnly}></MedicalConditions>
+    <MedicalConditionsComponent bind:medical_conditions={_medicalConditions} readonly={readOnly}></MedicalConditionsComponent>
     </div>
 
     <!-- --------------------------------------------- -->

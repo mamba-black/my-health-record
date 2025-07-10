@@ -10,10 +10,10 @@
     readonly: Boolean,
     medical_conditions: MedicalConditionsClass
   } = $props();
-  let _medical_conditions = $state(medical_conditions);
+  // let _medical_conditions = $state(medical_conditions);
   log.debug("readonly", readonly);
   log.debug("medical_conditions", medical_conditions);
-  log.debug("medical_conditions", _medical_conditions);
+  // log.debug("_medical_conditions", _medical_conditions);
 </script>
 
 <div class="mb-8">
@@ -25,18 +25,18 @@
     <Input id="allergy" name="Alergias" readonly={readonly} value={"allergies"} _class="col-span-3" />
 
     <!-- --------------------------------------------- -->
-    <Checkbox id="hepatitis" name="Hepatitis" bind:value={_medical_conditions.hepatitis} readonly={readonly}/>
-    <Checkbox id="diabetes" name="Diabetes" bind:value={_medical_conditions.diabetes} readonly={readonly}/>
-    <Checkbox id="hemorrhage" name="Hemorragia" bind:value={_medical_conditions.hemorrhage} readonly={readonly}/>
+    <Checkbox id="hepatitis" name="Hepatitis" bind:value={medical_conditions.hepatitis} readonly={readonly}/>
+    <Checkbox id="diabetes" name="Diabetes" bind:value={medical_conditions.diabetes} readonly={readonly}/>
+    <Checkbox id="hemorrhage" name="Hemorragia" bind:value={medical_conditions.hemorrhage} readonly={readonly}/>
     <Checkbox
       id="highPressure"
       name="Presion alta"
-      bind:value={_medical_conditions.highPressure}
+      bind:value={medical_conditions.highPressure}
       readonly={readonly}
     />
-    <Checkbox id="lowPressure" name="Presion baja" bind:value={_medical_conditions.lowPressure} readonly={readonly}/>
-    <Checkbox id="cholesterol" name="Colesterol" bind:value={_medical_conditions.cholesterol} readonly={readonly}/>
-    <Checkbox id="asthma" name="Asma" bind:value={_medical_conditions.asthma} readonly={readonly}/>
-    <Checkbox id="tbc" name="TBC" bind:value={_medical_conditions.tbc} readonly={readonly}/>
+    <Checkbox id="lowPressure" name="Presion baja" bind:value={medical_conditions.lowPressure} readonly={readonly}/>
+    <Checkbox id="cholesterol" name="Colesterol" bind:value={medical_conditions.cholesterol} readonly={readonly}/>
+    <Checkbox id="asthma" name="Asma" bind:value={medical_conditions.asthma} readonly={readonly}/>
+    <Checkbox id="tbc" name="TBC" bind:value={medical_conditions.tbc} readonly={readonly}/>
   </div>
 </div>

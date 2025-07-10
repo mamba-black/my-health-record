@@ -20,7 +20,7 @@
         new Patient("123321", "Jan", "Picard", 85, "miuler@gmail.com"),
         new Patient("456465", "Miuler", "Malpica", 45),
       ];
-    }, 2000);
+    }, 500);
   };
 </script>
 
