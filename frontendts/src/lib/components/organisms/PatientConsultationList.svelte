@@ -9,6 +9,7 @@
   import {log} from "$lib/services/LoggerService";
   import STitle from "$lib/components/atoms/STitle.svelte";
   import {goto} from "$app/navigation";
+  import {base} from "$app/paths";
 
   dayjs.extend(relativeTime);
   dayjs.locale("es");
@@ -47,7 +48,7 @@
     e.preventDefault();
     openPatientConsultation = !openPatientConsultation;
     selectedAppointment = appointment;
-    goto(`/history/${patient.id}/123/`, {state: {appointment: appointment, patient: patient}});
+    goto(`${base}/history/${patient.id}/123/`, {state: {appointment: appointment, patient: patient}});
     log.debug("isOpen", openPatientConsultation);
   }
 </script>
@@ -60,7 +61,7 @@
       {#each appointmentWrappers as appointmentWrapper}
         <li>
           <a
-            role="cell" tabindex="0" href={`/history/${patient.id}/123/`}
+            role="cell" tabindex="0" href={`${base}/history/${patient.id}/123/`}
             class="flex justify-between gap-x-6 p-5 m-2 border rounded-lg border-transparent hover:border-blue-500 hover:bg-sky-100 hover:shadow-lg hover:cursor-pointer"
             onclick={e => onClick(appointmentWrapper.appointment, e)}
             onkeydown={e => onClick(appointmentWrapper.appointment, e)}

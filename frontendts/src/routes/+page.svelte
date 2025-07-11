@@ -1,5 +1,6 @@
 <script lang="ts">
   import svelteLogo from "$lib/svelte.svg";
+  import {base} from "$app/paths";
 </script>
 
 <!-- =============================================================== -->
@@ -8,7 +9,7 @@
   <table>
     <tbody>
       <tr>
-        <td><a href="search"><img src="/vite.svg" class="logo" alt="Vite Logo" /></a></td>
+        <td><a href="{base}/search"><img src="{base}/vite.svg" class="logo" alt="Vite Logo" /></a></td>
         <td>
           <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
         </td>

@@ -53,7 +53,7 @@
       _patient.medicalConditions = $state.snapshot(_medicalConditions);
       log.info("Guardar el estado", $state.snapshot(_patient));
       patientCache = toPlainObject(_patient);
-      goto(`/history/${_patient.id}`, { state: patientCache, replaceState: true });
+      goto(`${base}/history/${_patient.id}`, { state: patientCache, replaceState: true });
     }
   }
 
