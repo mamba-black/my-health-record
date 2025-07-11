@@ -26,7 +26,7 @@
 
 </script>
 
-<div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6 md:p-8">
+<div>
   <header class="mb-8">
     <h1 class="flex-none text-3xl tracking-tight text-gray-900">Ficha del Paciente: <span class="font-bold">{full_name}</span></h1>
     <div class="hidden sm:flex sm:flex-col sm:items-end">
