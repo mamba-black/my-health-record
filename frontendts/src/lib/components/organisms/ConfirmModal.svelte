@@ -41,7 +41,7 @@
 
 {#if isOpen}
   <div
-    class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50"
+    class="fixed inset-0 bg-gray-400/50 overflow-y-auto h-full w-full flex items-center justify-center z-50"
     onclick={handleBackdropClick}
   >
     <div class="relative p-8 bg-white w-96 max-w-md mx-auto rounded-lg shadow-xl">

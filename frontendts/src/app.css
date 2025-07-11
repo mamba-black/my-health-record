@@ -24,7 +24,8 @@
       @apply block mb-2 text-sm;
     }
     input {
-      @apply font-bold w-full px-3 py-2 text-sm leading-tight rounded shadow appearance-none
+      @apply font-bold w-full px-3 py-2 text-sm leading-tight rounded shadow appearance-none border border-gray-300
+        disabled:bg-gray-50
         focus:outline-none focus:border-blue-800; /*focus:shadow-outline*/
     }
   }

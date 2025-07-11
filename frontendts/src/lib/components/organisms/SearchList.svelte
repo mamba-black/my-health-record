@@ -26,7 +26,7 @@
             <p class="text-sm font-semibold leading-6 text-gray-900">
               {patient.firstName}
               <span class="relative inline-block px-2 py-0 font-semibold text-green-900 leading-tight">
-                <span class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
+                <span class="absolute inset-0 bg-green-200/50 rounded-full"></span>
                 <span class="relative">Cita programada</span>
               </span>
             </p>

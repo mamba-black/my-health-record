@@ -90,7 +90,7 @@
                   Hector Miuler Malpcia Gallegos
 
                   <span class="relative inline-block px-2 py-0 font-semibold text-green-900 leading-tight">
-                    <span class="absolute inset-0 bg-orange-300 opacity-50 rounded-full"></span>
+                    <span class="absolute inset-0 bg-orange-300/50 rounded-full"></span>
                     {#if appointmentWrapper.appointment.date > now}
                       <span class="relative">Cita programada</span>
                     {:else}
@@ -100,7 +100,7 @@
                   <span> </span>
                   {#if appointmentWrapper.appointment.exams.length > 0}
                     <span class="relative inline-block px-2 py-0 font-semibold text-green-900 leading-tight">
-                      <span class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
+                      <span class="absolute inset-0 bg-green-200/50 rounded-full"></span>
                       <span class="relative"> Exemenes</span>
                     </span>
                   {:else}
