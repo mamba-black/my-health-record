@@ -13,7 +13,7 @@
 </script>
 
 {#if !readonly || value}
-<div class="history-checkbox flex items-center mb-4">
+<div class="history-checkbox flex items-center">
   <input
     id={id}
     disabled={readonly}

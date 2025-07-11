@@ -1,18 +1,18 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer components {
   .button-base {
     @apply h-9 text-white bottom-2.5 focus:ring-4 focus:outline-none font-medium rounded-lg text-sm px-4;
   }
   .button-submit {
-    @apply button-base bg-blue-700 hover:bg-blue-800 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700
-      dark:focus:ring-blue-800;
+    @apply bg-blue-700 hover:bg-blue-800 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700
+      dark:focus:ring-blue-800
+       h-9 text-white bottom-2.5 focus:ring-4 focus:outline-none font-medium rounded-lg text-sm px-4;
   }
   .button-reset {
-    @apply button-base bg-red-700 hover:bg-red-800 focus:ring-red-300 dark:bg-red-600 dark:hover:bg-red-700
-      dark:focus:ring-red-800;
+    @apply bg-red-700 hover:bg-red-800 focus:ring-red-300 dark:bg-red-600 dark:hover:bg-red-700
+      dark:focus:ring-red-800
+      h-9 text-white bottom-2.5 focus:ring-4 focus:outline-none font-medium rounded-lg text-sm px-4;
   }
   .history-checkbox {
     label {
@@ -24,7 +24,7 @@
       @apply block mb-2 text-sm;
     }
     input {
-      @apply font-bold w-full px-3 py-2 text-sm leading-tight border rounded shadow appearance-none
+      @apply font-bold w-full px-3 py-2 text-sm leading-tight rounded shadow appearance-none
         focus:outline-none focus:border-blue-800; /*focus:shadow-outline*/
     }
   }
