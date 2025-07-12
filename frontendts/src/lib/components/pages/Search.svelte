@@ -3,7 +3,8 @@
   import SearchInput from "$lib/components/organisms/SearchInput.svelte";
   import type Patient from "$lib/domain/Patient";
 
-  let {patients = $bindable()}: { patients: Patient[] } = $props();
+  // let {patients = $bindable()}: { patients: Patient[] } = $props();
+  let patients: Patient[] = $state([]);
 </script>
 
 <div>
