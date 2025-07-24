@@ -20,14 +20,6 @@
   let openPatientConsultation = $state(false);
   let selectedAppointment: Appointment | undefined = $state();
 
-  {
-    var march = dayjs("2017-03");
-    log.debug(march.format("MMMM")); // 'March'
-
-    march.locale("es");
-    log.debug(march.format("MMMM")); // 'Marzo'
-  }
-
   let appointmentWrappers: { appointment: Appointment; date: string }[] = appointments
     .map(appointment => {
       log.info("appointment", appointment);

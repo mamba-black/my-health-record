@@ -3,12 +3,12 @@
   import ResetButton from "$lib/components/atoms/ResetButton.svelte";
   import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
   import Patient from "$lib/domain/Patient";
-  import _ from "lodash";
   import MedicalConditionsComponent from "$lib/components/organisms/MedicalConditions.svelte";
   import STitle from "$lib/components/atoms/STitle.svelte";
   import {goto} from "$app/navigation";
   import {log} from "$lib/services/LoggerService";
   import type MedicalConditions from "$lib/domain/MedicalConditions";
+  import {base} from "$app/paths";
 
   type PROPS = {
     patient: Patient,
