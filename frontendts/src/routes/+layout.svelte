@@ -51,7 +51,7 @@
 
 <nav class="rounded-2xl bg-white border-gray-200 dark:bg-gray-900 borde">
   <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-3">
-    <a href="{base}" class="flex items-center space-x-3 rtl:space-x-reverse">
+    <a href="{base}/" class="flex items-center space-x-3 rtl:space-x-reverse">
       <img src="{base}/my_health_2.avif" class="h-8" alt="Flowbite Logo"/>
       <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">My Health Record</span>
     </a>
