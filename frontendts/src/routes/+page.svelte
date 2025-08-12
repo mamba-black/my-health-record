@@ -10,9 +10,7 @@
     <tbody>
       <tr>
         <td><a href="{base}/search"><img src="{base}/vite.svg" class="logo" alt="Vite Logo" /></a></td>
-        <td>
-          <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-        </td>
+        <td><a href="{base}/search"><img src={svelteLogo} class="logo svelte" alt="Svelte Logo" /></a></td>
       </tr>
     </tbody>
   </table>
