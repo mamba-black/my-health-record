@@ -1,8 +1,9 @@
 <script lang="ts">
   import {setAuthToken} from "$lib/services/AuthService";
 
-  const loginHandler = () => {
-    console.log('login');
+  const loginHandler = (event: Event) => {
+    event.preventDefault();
+
     setAuthToken("1234567890", "Miuler");
   }
 </script>

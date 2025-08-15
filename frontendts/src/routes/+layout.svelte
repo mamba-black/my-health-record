@@ -2,14 +2,14 @@
   import {base} from '$app/paths'; // Importa la variable 'base' aquí
   import "../app.css";
   import {onMount} from "svelte";
-  import {authStore, clearAuth} from '$lib/services/AuthService';
+  import {authStore} from '$lib/services/AuthService';
   import {goto} from '$app/navigation'; // Para redirecciones del lado del cliente
-  import {page} from '$app/stores';
-  import {log} from "$lib/services/LoggerService"; // Para acceder a la URL actual
+  import {page} from "$app/state";
+  import {log} from "$lib/services/LoggerService";
+  import Page from "$lib/domain/Page";
 
 
   let {children} = $props();
-
 
   // Rutas que no requieren autenticación
   const PUBLIC_ROUTES = [
@@ -20,24 +20,24 @@
   ];
 
   $effect(() => {
-    const currentPath = $page.url.pathname;
+    const currentPath = page.url.pathname;
     const isPublicRoute = PUBLIC_ROUTES.some(route => currentPath === route);
 
     if (!$authStore.isAuthenticated && !isPublicRoute) {
       log.info(`User not authenticated. Redirecting ${currentPath} to login.`);
-      goto(`${base}/login`);
+      goto(`${base}/login`, { state:  new Page(currentPath)});
     }
 
   });
 
   onMount(() => {
     const unsubscribe = authStore.subscribe(async ($auth) => {
-      const currentPath = $page.url.pathname;
+      const currentPath = page.url.pathname;
       const isPublicRoute = PUBLIC_ROUTES.some(route => currentPath === route);
 
       if (!$auth.isAuthenticated && !isPublicRoute) {
         log.info(`User not authenticated. Redirecting ${currentPath} to login.`);
-        await goto(`${base}/login`);
+        await goto(`${base}/login`, { state:  new Page(currentPath)});
       }
       // Opcional: si el token ha expirado (verificado por una API call a tu backend)
       // Puedes implementar una lógica de refresco o re-login aquí.
