@@ -4,14 +4,14 @@
 </script>
 
 <!-- =============================================================== -->
-<hr />
+<hr/>
 <center>
   <table>
     <tbody>
-      <tr>
-        <td><a href="{base}/search"><img src="{base}/vite.svg" class="logo" alt="Vite Logo" /></a></td>
-        <td><a href="{base}/search"><img src={svelteLogo} class="logo svelte" alt="Svelte Logo" /></a></td>
-      </tr>
+    <tr>
+      <td><a href="{base}/search"><img alt="Vite Logo" class="logo" src="{base}/vite.svg"/></a></td>
+      <td><a href="{base}/search"><img alt="Svelte Logo" class="logo svelte" src={svelteLogo}/></a></td>
+    </tr>
     </tbody>
   </table>
 </center>

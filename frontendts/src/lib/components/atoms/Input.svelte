@@ -29,6 +29,6 @@
   <label for={id}>
     {name}
   </label>
-  <input id={id} placeholder={name} bind:value={value} disabled={readonly} type={_type} required={required} />
+  <input bind:value={value} disabled={readonly} id={id} placeholder={name} required={required} type={_type}/>
   <!--on:input=on_input-->
 </div>

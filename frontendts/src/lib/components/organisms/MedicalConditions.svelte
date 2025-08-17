@@ -22,21 +22,21 @@
     class="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-md col-span-3 md:grid md:grid-cols-3 md:gap-4 space-y-5 md:space-y-0">
 
     <!-- --------------------------------------------- -->
-    <Input id="allergy" name="Alergias" readonly={readonly} value={"allergies"} _class="col-span-3" />
+    <Input _class="col-span-3" id="allergy" name="Alergias" readonly={readonly} value={"allergies"}/>
 
     <!-- --------------------------------------------- -->
-    <Checkbox id="hepatitis" name="Hepatitis" bind:value={medical_conditions.hepatitis} readonly={readonly}/>
-    <Checkbox id="diabetes" name="Diabetes" bind:value={medical_conditions.diabetes} readonly={readonly}/>
-    <Checkbox id="hemorrhage" name="Hemorragia" bind:value={medical_conditions.hemorrhage} readonly={readonly}/>
+    <Checkbox bind:value={medical_conditions.hepatitis} id="hepatitis" name="Hepatitis" readonly={readonly}/>
+    <Checkbox bind:value={medical_conditions.diabetes} id="diabetes" name="Diabetes" readonly={readonly}/>
+    <Checkbox bind:value={medical_conditions.hemorrhage} id="hemorrhage" name="Hemorragia" readonly={readonly}/>
     <Checkbox
+      bind:value={medical_conditions.highPressure}
       id="highPressure"
       name="Presion alta"
-      bind:value={medical_conditions.highPressure}
       readonly={readonly}
     />
-    <Checkbox id="lowPressure" name="Presion baja" bind:value={medical_conditions.lowPressure} readonly={readonly}/>
-    <Checkbox id="cholesterol" name="Colesterol" bind:value={medical_conditions.cholesterol} readonly={readonly}/>
-    <Checkbox id="asthma" name="Asma" bind:value={medical_conditions.asthma} readonly={readonly}/>
-    <Checkbox id="tbc" name="TBC" bind:value={medical_conditions.tbc} readonly={readonly}/>
+    <Checkbox bind:value={medical_conditions.lowPressure} id="lowPressure" name="Presion baja" readonly={readonly}/>
+    <Checkbox bind:value={medical_conditions.cholesterol} id="cholesterol" name="Colesterol" readonly={readonly}/>
+    <Checkbox bind:value={medical_conditions.asthma} id="asthma" name="Asma" readonly={readonly}/>
+    <Checkbox bind:value={medical_conditions.tbc} id="tbc" name="TBC" readonly={readonly}/>
   </div>
 </div>

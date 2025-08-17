@@ -7,7 +7,8 @@ export default class Appointment {
     public date = dayjs(),
     public state = State.Booked,
     public exams: string[] | null = null,
-  ) {}
+  ) {
+  }
 
 }
 

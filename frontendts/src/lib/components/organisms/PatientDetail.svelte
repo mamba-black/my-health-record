@@ -53,7 +53,7 @@
       _patient.medicalConditions = $state.snapshot(_medicalConditions);
       log.info("Guardar el estado", $state.snapshot(_patient));
       patientCache = toPlainObject(_patient);
-      goto(`${base}/history/${_patient.id}`, { state: patientCache, replaceState: true });
+      goto(`${base}/history/${_patient.id}`, {state: patientCache, replaceState: true});
     }
   }
 
@@ -69,29 +69,30 @@
   <div class="md:grid md:grid-cols-3 md:gap-4 space-y-5 md:space-y-0">
     <STitle>Datos del Paciente</STitle>
     <!-- --------------------------------------------- -->
-    <Input id="firstName" name="Nombre" bind:value={_patient.firstName} readonly={readOnly} required={true}/>
-    <Input id="lastName" name="Apellido Paterno" bind:value={_patient.lastName} readonly={readOnly} required={true}/>
-    <Input id="secondLastName" name="Apellido Materno" bind:value={_patient.secondLastName} readonly={readOnly}/>
+    <Input bind:value={_patient.firstName} id="firstName" name="Nombre" readonly={readOnly} required={true}/>
+    <Input bind:value={_patient.lastName} id="lastName" name="Apellido Paterno" readonly={readOnly} required={true}/>
+    <Input bind:value={_patient.secondLastName} id="secondLastName" name="Apellido Materno" readonly={readOnly}/>
 
     <!-- --------------------------------------------- -->
     <Input
+      _class="col-span-2"
+      bind:value={_patient.address.street}
       id="street"
       name="Dirección"
-      bind:value={_patient.address.street}
-      _class="col-span-2"
       readonly={readOnly}
     />
-    <Input id="district" name="Distrito" bind:value={_patient.address.district} readonly={readOnly}/>
+    <Input bind:value={_patient.address.district} id="district" name="Distrito" readonly={readOnly}/>
 
     <!-- --------------------------------------------- -->
-    <Input id="phone" name="Telefono" readonly={readOnly} bind:value={_patient.phone} _type="tel"/>
-    <Input id="email" name="Correo electronico" readonly={readOnly} bind:value={_patient.email} _type="email"/>
-    <Input id="birthday" name="Fecha de cumpleaños" readonly={readOnly} value={"birthday"} _type="date"/>
+    <Input _type="tel" bind:value={_patient.phone} id="phone" name="Telefono" readonly={readOnly}/>
+    <Input _type="email" bind:value={_patient.email} id="email" name="Correo electronico" readonly={readOnly}/>
+    <Input _type="date" id="birthday" name="Fecha de cumpleaños" readonly={readOnly} value={"birthday"}/>
 
     <!-- --------------------------------------------- -->
-    <div />
+    <div/>
     <div class="col-span-3">
-    <MedicalConditionsComponent bind:medical_conditions={_medicalConditions} readonly={readOnly}></MedicalConditionsComponent>
+      <MedicalConditionsComponent bind:medical_conditions={_medicalConditions}
+                                  readonly={readOnly}></MedicalConditionsComponent>
     </div>
 
     <!-- --------------------------------------------- -->

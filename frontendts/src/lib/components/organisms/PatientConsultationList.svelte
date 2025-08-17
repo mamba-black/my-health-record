@@ -5,7 +5,6 @@
   import dayjs from "dayjs";
   import relativeTime from "dayjs/plugin/relativeTime";
   import "dayjs/locale/es";
-  import PatientConsultation from "$lib/components/organisms/PatientConsultation.svelte";
   import {log} from "$lib/services/LoggerService";
   import STitle from "$lib/components/atoms/STitle.svelte";
   import {goto} from "$app/navigation";
@@ -14,7 +13,7 @@
   dayjs.extend(relativeTime);
   dayjs.locale("es");
 
-  let { patient, appointments }: { patient: Patient, appointments: Appointment[] } = $props();
+  let {patient, appointments}: { patient: Patient, appointments: Appointment[] } = $props();
 
   let now = dayjs();
   let openPatientConsultation = $state(false);
@@ -29,7 +28,7 @@
       } else {
         date = appointment.date.from(now);
       }
-      return { appointment, date };
+      return {appointment, date};
     });
 
   function onClick(appointment: Appointment, e: Event) {
@@ -48,8 +47,10 @@
 <div class="">
   <STitle>Atenciones</STitle>
   <form>
-    <div class="text-right"><SubmitButton label="Nueva consulta" /></div>
-    <ul role="list" class="divide-y divide-gray-100">
+    <div class="text-right">
+      <SubmitButton label="Nueva consulta"/>
+    </div>
+    <ul class="divide-y divide-gray-100" role="list">
       {#each appointmentWrappers as appointmentWrapper}
         <li>
           <a

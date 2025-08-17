@@ -47,18 +47,18 @@
     <div class="relative p-8 bg-white w-96 max-w-md mx-auto rounded-lg shadow-xl">
       <!-- Título y mensaje -->
       <p class="text-lg leading-6 font-medium text-gray-900 mb-4">{message}</p>
-<!--      <div class="mt-2 mb-6">-->
-<!--        <p class="text-sm text-gray-500">-->
-<!--          {message}-->
-<!--        </p>-->
-<!--      </div>-->
+      <!--      <div class="mt-2 mb-6">-->
+      <!--        <p class="text-sm text-gray-500">-->
+      <!--          {message}-->
+      <!--        </p>-->
+      <!--      </div>-->
 
       <!-- Botones de acción -->
       <div class="flex justify-end gap-x-4">
         <button
           type="button"
           onclick={handleConfirm}
-          class = "button-reset"
+          class="button-reset"
         >
           Continuar Editando
         </button>

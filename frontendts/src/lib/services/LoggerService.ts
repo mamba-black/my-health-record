@@ -1,5 +1,5 @@
-import { default as logInstance } from 'loglevel';
-import { dev } from '$app/environment';
+import {default as logInstance} from 'loglevel';
+import {dev} from '$app/environment';
 
 if (dev) {
   logInstance.setLevel('debug');

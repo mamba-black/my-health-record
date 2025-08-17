@@ -28,7 +28,8 @@
 
 <div>
   <header class="mb-8">
-    <h1 class="flex-none text-3xl tracking-tight text-gray-900">Ficha del Paciente: <span class="font-bold">{full_name}</span></h1>
+    <h1 class="flex-none text-3xl tracking-tight text-gray-900">Ficha del Paciente: <span
+      class="font-bold">{full_name}</span></h1>
     <div class="hidden sm:flex sm:flex-col sm:items-end">
       <!--        <img class="h-12 w-12 rounded-full bg-gray-50" src={&patient.clone().avatar.unwrap_or("".to_string())} alt="" />-->
     </div>
@@ -39,20 +40,20 @@
       callback={(confirm) => {if(!confirm) reset = true;}}/>
     <div class="mb-8">
       <PatientDetail
-        patient={patient}
         bind:reset={reset}
+        patient={patient}
         setEditing={ (editing) => isEditing = editing }/>
     </div>
     <div class="mb-8"
-         role="list"
          on:click|capture={(e:Event) => {
              if (isEditing) {
                e.preventDefault()
                e.stopPropagation();
                openModal = true;
              }
-           }}>
-      <PatientConsultationList patient={patient} appointments={appointments}/>
+           }}
+         role="list">
+      <PatientConsultationList appointments={appointments} patient={patient}/>
     </div>
   </main>
 </div>

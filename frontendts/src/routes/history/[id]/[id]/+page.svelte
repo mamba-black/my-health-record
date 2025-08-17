@@ -6,14 +6,17 @@
   import type Patient from "$lib/domain/Patient";
 
 
-  let {appointment, patient}: {appointment: Appointment, patient: Patient} = page.state as {appointment: Appointment, patient: Patient};
+  let {appointment, patient}: { appointment: Appointment, patient: Patient } = page.state as {
+    appointment: Appointment,
+    patient: Patient
+  };
 
   log.info("appointment", appointment);
   log.info("appointment.date", appointment.date);
 </script>
 
 <div>
-  <PatientConsultation isOpen={true}
-                       bind:appointment={appointment}
-                       patient={patient} />
+  <PatientConsultation bind:appointment={appointment}
+                       isOpen={true}
+                       patient={patient}/>
 </div>

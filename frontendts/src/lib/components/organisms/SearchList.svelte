@@ -1,17 +1,17 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
+  import {goto} from "$app/navigation";
   import type Patient from "$lib/domain/Patient";
   import {base} from "$app/paths";
 
-  let { patients = $bindable() }: { patients: Patient[] } = $props();
+  let {patients = $bindable()}: { patients: Patient[] } = $props();
 
   let gotoPatient = (e: Event, patient: Patient) => {
     e.preventDefault();
-    goto(`${base}/history/${patient.id}`, { state: patient });
+    goto(`${base}/history/${patient.id}`, {state: patient});
   };
 </script>
 
-<ul role="list" class="divide-y divide-gray-100">
+<ul class="divide-y divide-gray-100" role="list">
   {#each patients as patient}
     <li>
       <!--      onclick={patient_onclick(e, &patient1)}-->
@@ -45,7 +45,8 @@
           </div>
           <!-- </>})} else {Either::Right(view!{<>-->
           <p class="mt-1 text-xs leading-5 text-gray-500">
-            "Last seen "<time datetime="2023-01-23T13:23Z">3h ago</time>
+            "Last seen "
+            <time datetime="2023-01-23T13:23Z">3h ago</time>
           </p>
           <!-- </>})}-->
         </div>

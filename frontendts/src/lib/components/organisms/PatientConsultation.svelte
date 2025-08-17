@@ -21,7 +21,7 @@
 
 {#if isOpen}
   <div>
-<!--  <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4/5 max-w-[800px] bg-white p-6 rounded-lg shadow-lg border-gray-400 p-1"> -->
+    <!--  <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4/5 max-w-[800px] bg-white p-6 rounded-lg shadow-lg border-gray-400 p-1"> -->
 
     <h1 id="current-appointment-title" class="text-3xl font-bold text-gray-800 text-center mb-6">Detalle de la Atención
       ({appointment.date})</h1>
@@ -44,7 +44,8 @@
 
     <div class="mb-8">
       <STitle>Tratamiento</STitle>
-      <textarea class="[field-sizing:content] w-full bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-md">- Paracetamos
+      <textarea
+        class="[field-sizing:content] w-full bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-md">- Paracetamos
         - Ibuprofeno
       </textarea>
     </div>
