@@ -1,11 +1,30 @@
+<meta content="937186309482-kmain19anvo9rjljci5c7d6iiibuhvlu.apps.googleusercontent.com" name="google-signin-client_id"/>
 <script lang="ts">
-  import {setAuthToken} from "$lib/services/AuthService";
+import { onMount } from "svelte";
+import { setAuthToken } from "$lib/services/AuthService";
 
-  const loginHandler = (event: Event) => {
-    event.preventDefault();
+onMount(() => {
+	const script = document.createElement("script");
+	script.src = "https://apis.google.com/js/platform.js";
+	script.async = true;
+	script.defer = true;
+	script.onload = () => {
+		gapi.load("auth2", () => {
+			gapi.auth2.init({
+				client_id:
+					"937186309482-kmain19anvo9rjljci5c7d6iiibuhvlu.apps.googleusercontent.com",
+				scope: "profile email",
+			});
+		});
+	};
+	document.head.appendChild(script);
+});
 
-    setAuthToken("1234567890", "Miuler");
-  }
+const loginHandler = (event: Event) => {
+	event.preventDefault();
+
+	setAuthToken("1234567890", "Miuler");
+};
 </script>
 
 <div class="py-6 flex flex-col justify-center sm:py-12">

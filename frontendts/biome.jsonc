@@ -1,0 +1,15 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"formatter": {
+		"enabled": true,
+		"includes": ["src/**/*.{svelte,ts,js,json,css,html}"]
+	},
+	"linter": {
+		"enabled": true,
+		"includes": ["src"]
+	},
+	"assist": {
+		"enabled": true
+	},
+	"files": {}
+}

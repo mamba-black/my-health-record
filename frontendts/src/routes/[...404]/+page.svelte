@@ -1,6 +1,6 @@
 <script lang="ts">
-  import svelteLogo from "$lib/svelte.svg";
-  import {base} from "$app/paths";
+import { base } from "$app/paths";
+import svelteLogo from "$lib/svelte.svg";
 </script>
 
 <!-- =============================================================== -->

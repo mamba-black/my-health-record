@@ -1,68 +1,73 @@
 <script lang="ts">
-  import Input from "$lib/components/atoms/Input.svelte";
-  import ResetButton from "$lib/components/atoms/ResetButton.svelte";
-  import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
-  import Patient from "$lib/domain/Patient";
-  import MedicalConditionsComponent from "$lib/components/organisms/MedicalConditions.svelte";
-  import STitle from "$lib/components/atoms/STitle.svelte";
-  import {goto} from "$app/navigation";
-  import {log} from "$lib/services/LoggerService";
-  import type MedicalConditions from "$lib/domain/MedicalConditions";
-  import {base} from "$app/paths";
+import { goto } from "$app/navigation";
+import { base } from "$app/paths";
+import Input from "$lib/components/atoms/Input.svelte";
+import ResetButton from "$lib/components/atoms/ResetButton.svelte";
+import STitle from "$lib/components/atoms/STitle.svelte";
+import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
+import MedicalConditionsComponent from "$lib/components/organisms/MedicalConditions.svelte";
+import type MedicalConditions from "$lib/domain/MedicalConditions";
+import Patient from "$lib/domain/Patient";
+import { log } from "$lib/services/LoggerService";
 
-  type PROPS = {
-    patient: Patient,
-    reset: boolean,
-    setEditing?: (readOnly: boolean) => void,
-  };
+type PROPS = {
+	patient: Patient;
+	reset: boolean;
+	setEditing?: (readOnly: boolean) => void;
+};
 
-  const toPlainObject = (p: any) => JSON.parse(JSON.stringify(p));
+const toPlainObject = (p: any) => JSON.parse(JSON.stringify(p));
 
-  let {patient, reset = $bindable(false), setEditing}: PROPS = $props();
+let { patient, reset = $bindable(false), setEditing }: PROPS = $props();
 
-  // let patientCache = _.cloneDeep(patient);
-  let patientCache: Patient = toPlainObject(patient);
-  // let _patient_clone = _.cloneDeep(patient);
-  let _patient = $state<Patient>(toPlainObject(patientCache));
-  let _medicalConditions = $state<MedicalConditions>(toPlainObject(patientCache.medicalConditions));
-  let readOnly = $state(true);
+// let patientCache = _.cloneDeep(patient);
+let patientCache: Patient = toPlainObject(patient);
+// let _patient_clone = _.cloneDeep(patient);
+let _patient = $state<Patient>(toPlainObject(patientCache));
+let _medicalConditions = $state<MedicalConditions>(
+	toPlainObject(patientCache.medicalConditions),
+);
+let readOnly = $state(true);
 
-  function reset_handle() {
-    log.debug("reset/patientCache:", patientCache);
-    log.debug("reset/_patient:", $state.snapshot(_patient));
-    log.debug("reset/_medicalConditions:", $state.snapshot(_medicalConditions));
-    // _patient = _.cloneDeep(patientCache);
-    _patient = toPlainObject(patientCache);
-    _medicalConditions = toPlainObject(patientCache.medicalConditions)
-    readOnly = true;
-    setEditing?.(!readOnly);
-  }
+function reset_handle() {
+	log.debug("reset/patientCache:", patientCache);
+	log.debug("reset/_patient:", $state.snapshot(_patient));
+	log.debug("reset/_medicalConditions:", $state.snapshot(_medicalConditions));
+	// _patient = _.cloneDeep(patientCache);
+	_patient = toPlainObject(patientCache);
+	_medicalConditions = toPlainObject(patientCache.medicalConditions);
+	readOnly = true;
+	setEditing?.(!readOnly);
+}
 
-  function submit_handle(e: Event) {
-    e.preventDefault();
-    readOnly = !readOnly;
-    setEditing?.(!readOnly);
-    // patientCache = _.cloneDeep(_patient);
-    patientCache = toPlainObject(_patient);
-    log.debug("submit/_patient", $state.snapshot(_patient));
-    log.debug("submit/patientCache", patientCache);
-    log.debug("submit/_medicalConditions:", $state.snapshot(_medicalConditions));
+function submit_handle(e: Event) {
+	e.preventDefault();
+	readOnly = !readOnly;
+	setEditing?.(!readOnly);
+	// patientCache = _.cloneDeep(_patient);
+	patientCache = toPlainObject(_patient);
+	log.debug("submit/_patient", $state.snapshot(_patient));
+	log.debug("submit/patientCache", patientCache);
+	log.debug("submit/_medicalConditions:", $state.snapshot(_medicalConditions));
 
-    if (readOnly) {
-      // const serializablePatient = JSON.parse(JSON.stringify(_patient));
-      _patient.medicalConditions = $state.snapshot(_medicalConditions);
-      log.info("Guardar el estado", $state.snapshot(_patient));
-      patientCache = toPlainObject(_patient);
-      goto(`${base}/history/${_patient.id}`, {state: patientCache, replaceState: true});
-    }
-  }
+	if (readOnly) {
+		// const serializablePatient = JSON.parse(JSON.stringify(_patient));
+		_patient.medicalConditions = $state.snapshot(_medicalConditions);
+		log.info("Guardar el estado", $state.snapshot(_patient));
+		patientCache = toPlainObject(_patient);
+		goto(`${base}/history/${_patient.id}`, {
+			state: patientCache,
+			replaceState: true,
+		});
+	}
+}
 
-  $effect(() => {
-    if (reset) {
-      reset_handle();
-      reset = false;
-    }
-  });
+$effect(() => {
+	if (reset) {
+		reset_handle();
+		reset = false;
+	}
+});
 </script>
 
 <form onsubmit={submit_handle}>

@@ -1,10 +1,10 @@
 <script lang="ts">
-  import SearchList from "$lib/components/organisms/SearchList.svelte";
-  import SearchInput from "$lib/components/organisms/SearchInput.svelte";
-  import type Patient from "$lib/domain/Patient";
+import SearchInput from "$lib/components/organisms/SearchInput.svelte";
+import SearchList from "$lib/components/organisms/SearchList.svelte";
+import type Patient from "$lib/domain/Patient";
 
-  // let {patients = $bindable()}: { patients: Patient[] } = $props();
-  let patients: Patient[] = $state([]);
+// let {patients = $bindable()}: { patients: Patient[] } = $props();
+let patients: Patient[] = $state([]);
 </script>
 
 <div>

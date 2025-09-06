@@ -1,29 +1,40 @@
 <script lang="ts">
-  import {page} from "$app/state";
-  import PatientConsultationList from "$lib/components/organisms/PatientConsultationList.svelte";
-  import PatientDetail from "$lib/components/organisms/PatientDetail.svelte";
-  import Patient from "$lib/domain/Patient";
-  import {log} from "$lib/services/LoggerService";
-  import ConfirmModal from "$lib/components/organisms/ConfirmModal.svelte";
-  import MedicalConditions from "$lib/domain/MedicalConditions";
-  import dayjs from "dayjs";
-  import Appointment, {State} from "$lib/domain/Appointment";
+import dayjs from "dayjs";
+import { page } from "$app/state";
+import ConfirmModal from "$lib/components/organisms/ConfirmModal.svelte";
+import PatientConsultationList from "$lib/components/organisms/PatientConsultationList.svelte";
+import PatientDetail from "$lib/components/organisms/PatientDetail.svelte";
+import Appointment, { State } from "$lib/domain/Appointment";
+import MedicalConditions from "$lib/domain/MedicalConditions";
+import Patient from "$lib/domain/Patient";
+import { log } from "$lib/services/LoggerService";
 
-  let patient: Patient = Object.keys(page.state).length === 0
-    ? new Patient("13", "Hector", "Malpica", 0, "Gallegos", undefined, undefined, undefined, new MedicalConditions(true))
-    : page.state as Patient;
-  log.debug("patient in page state:", patient);
-  let appointments = [dayjs("2025-01-01T23:35:01"), dayjs("2025-03-01T23:35:01")]
-    .map(d => new Appointment(0, d, State.Booked, []));
+let patient: Patient =
+	Object.keys(page.state).length === 0
+		? new Patient(
+				"13",
+				"Hector",
+				"Malpica",
+				0,
+				"Gallegos",
+				undefined,
+				undefined,
+				undefined,
+				new MedicalConditions(true),
+			)
+		: (page.state as Patient);
+log.debug("patient in page state:", patient);
+let appointments = [
+	dayjs("2025-01-01T23:35:01"),
+	dayjs("2025-03-01T23:35:01"),
+].map((d) => new Appointment(0, d, State.Booked, []));
 
-  let reset = $state(false);
-  let isEditing = $state(false);
-  let openModal = $state(false);
+let reset = $state(false);
+let isEditing = $state(false);
+let openModal = $state(false);
 
-
-  let full_name = patient.firstName;
-  log.log("patient in page, full_name: ", JSON.stringify(patient));
-
+let full_name = patient.firstName;
+log.log("patient in page, full_name: ", JSON.stringify(patient));
 </script>
 
 <div>

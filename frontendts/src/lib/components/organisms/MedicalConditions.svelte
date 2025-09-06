@@ -1,19 +1,23 @@
 <script lang="ts">
-  import Checkbox from "$lib/components/atoms/Checkbox.svelte";
-  import Input from "$lib/components/atoms/Input.svelte";
-  import MedicalConditionsClass from "$lib/domain/MedicalConditions";
-  import {log} from "$lib/services/LoggerService";
-  import STitle from "$lib/components/atoms/STitle.svelte";
-  // import _ from "lodash";
+import Checkbox from "$lib/components/atoms/Checkbox.svelte";
+import Input from "$lib/components/atoms/Input.svelte";
+import STitle from "$lib/components/atoms/STitle.svelte";
+import MedicalConditionsClass from "$lib/domain/MedicalConditions";
+import { log } from "$lib/services/LoggerService";
 
-  let {readonly, medical_conditions = $bindable()}: {
-    readonly: Boolean,
-    medical_conditions: MedicalConditionsClass
-  } = $props();
-  // let _medical_conditions = $state(medical_conditions);
-  log.debug("readonly", readonly);
-  log.debug("medical_conditions", medical_conditions);
-  // log.debug("_medical_conditions", _medical_conditions);
+// import _ from "lodash";
+
+let {
+	readonly,
+	medical_conditions = $bindable(),
+}: {
+	readonly: Boolean;
+	medical_conditions: MedicalConditionsClass;
+} = $props();
+// let _medical_conditions = $state(medical_conditions);
+log.debug("readonly", readonly);
+log.debug("medical_conditions", medical_conditions);
+// log.debug("_medical_conditions", _medical_conditions);
 </script>
 
 <div class="mb-8">

@@ -1,14 +1,14 @@
 <script lang="ts">
-  import {goto} from "$app/navigation";
-  import type Patient from "$lib/domain/Patient";
-  import {base} from "$app/paths";
+import { goto } from "$app/navigation";
+import { base } from "$app/paths";
+import type Patient from "$lib/domain/Patient";
 
-  let {patients = $bindable()}: { patients: Patient[] } = $props();
+let { patients = $bindable() }: { patients: Patient[] } = $props();
 
-  let gotoPatient = (e: Event, patient: Patient) => {
-    e.preventDefault();
-    goto(`${base}/history/${patient.id}`, {state: patient});
-  };
+let gotoPatient = (e: Event, patient: Patient) => {
+	e.preventDefault();
+	goto(`${base}/history/${patient.id}`, { state: patient });
+};
 </script>
 
 <ul class="divide-y divide-gray-100" role="list">

@@ -1,47 +1,52 @@
 <script lang="ts">
-  import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
-  import Appointment from "$lib/domain/Appointment";
-  import Patient from "$lib/domain/Patient";
-  import dayjs from "dayjs";
-  import relativeTime from "dayjs/plugin/relativeTime";
-  import "dayjs/locale/es";
-  import {log} from "$lib/services/LoggerService";
-  import STitle from "$lib/components/atoms/STitle.svelte";
-  import {goto} from "$app/navigation";
-  import {base} from "$app/paths";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import SubmitButton from "$lib/components/atoms/SubmitButton.svelte";
+import Appointment from "$lib/domain/Appointment";
+import Patient from "$lib/domain/Patient";
+import "dayjs/locale/es";
+import { goto } from "$app/navigation";
+import { base } from "$app/paths";
+import STitle from "$lib/components/atoms/STitle.svelte";
+import { log } from "$lib/services/LoggerService";
 
-  dayjs.extend(relativeTime);
-  dayjs.locale("es");
+dayjs.extend(relativeTime);
+dayjs.locale("es");
 
-  let {patient, appointments}: { patient: Patient, appointments: Appointment[] } = $props();
+let {
+	patient,
+	appointments,
+}: { patient: Patient; appointments: Appointment[] } = $props();
 
-  let now = dayjs();
-  let openPatientConsultation = $state(false);
-  let selectedAppointment: Appointment | undefined = $state();
+let now = dayjs();
+let openPatientConsultation = $state(false);
+let selectedAppointment: Appointment | undefined = $state();
 
-  let appointmentWrappers: { appointment: Appointment; date: string }[] = appointments
-    .map(appointment => {
-      log.info("appointment", appointment);
-      let date: string;
-      if (now < appointment.date) {
-        date = "dentro de " + appointment.date.from(now);
-      } else {
-        date = appointment.date.from(now);
-      }
-      return {appointment, date};
-    });
+let appointmentWrappers: { appointment: Appointment; date: string }[] =
+	appointments.map((appointment) => {
+		log.info("appointment", appointment);
+		let date: string;
+		if (now < appointment.date) {
+			date = "dentro de " + appointment.date.from(now);
+		} else {
+			date = appointment.date.from(now);
+		}
+		return { appointment, date };
+	});
 
-  function onClick(appointment: Appointment, e: Event) {
-    log.info("appointment onClick", appointment);
-    if (e instanceof KeyboardEvent && e.key !== 'Enter') {
-      return;
-    }
-    e.preventDefault();
-    openPatientConsultation = !openPatientConsultation;
-    selectedAppointment = appointment;
-    goto(`${base}/history/${patient.id}/123/`, {state: {appointment: appointment, patient: patient}});
-    log.debug("isOpen", openPatientConsultation);
-  }
+function onClick(appointment: Appointment, e: Event) {
+	log.info("appointment onClick", appointment);
+	if (e instanceof KeyboardEvent && e.key !== "Enter") {
+		return;
+	}
+	e.preventDefault();
+	openPatientConsultation = !openPatientConsultation;
+	selectedAppointment = appointment;
+	goto(`${base}/history/${patient.id}/123/`, {
+		state: { appointment: appointment, patient: patient },
+	});
+	log.debug("isOpen", openPatientConsultation);
+}
 </script>
 
 <div class="">

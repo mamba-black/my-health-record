@@ -1,22 +1,27 @@
 <script lang="ts" xmlns="http://www.w3.org/1999/html">
-  import MedicalConditions from "$lib/components/organisms/MedicalConditions.svelte";
-  import {log} from "$lib/services/LoggerService";
-  import type Patient from "$lib/domain/Patient";
-  import type Appointment from "$lib/domain/Appointment";
-  import STitle from "$lib/components/atoms/STitle.svelte";
-  // import {Edra} from "$lib/components/edra/headless";
+import STitle from "$lib/components/atoms/STitle.svelte";
+import MedicalConditions from "$lib/components/organisms/MedicalConditions.svelte";
+import type Appointment from "$lib/domain/Appointment";
+import type Patient from "$lib/domain/Patient";
+import { log } from "$lib/services/LoggerService";
 
-  let {isOpen = $bindable(), patient, appointment}: {
-    isOpen: boolean,
-    patient: Patient,
-    appointment: Appointment
-  } = $props();
+// import {Edra} from "$lib/components/edra/headless";
 
-  function onClick(e: Event) {
-    e.preventDefault();
-    isOpen = !isOpen;
-    log.debug("isOpen", isOpen);
-  }
+let {
+	isOpen = $bindable(),
+	patient,
+	appointment,
+}: {
+	isOpen: boolean;
+	patient: Patient;
+	appointment: Appointment;
+} = $props();
+
+function onClick(e: Event) {
+	e.preventDefault();
+	isOpen = !isOpen;
+	log.debug("isOpen", isOpen);
+}
 </script>
 
 {#if isOpen}
