@@ -8,19 +8,19 @@ import { log } from "$lib/services/LoggerService";
 // import {Edra} from "$lib/components/edra/headless";
 
 let {
-	isOpen = $bindable(),
-	patient,
-	appointment,
+  isOpen = $bindable(),
+  patient,
+  appointment,
 }: {
-	isOpen: boolean;
-	patient: Patient;
-	appointment: Appointment;
+  isOpen: boolean;
+  patient: Patient;
+  appointment: Appointment;
 } = $props();
 
 function onClick(e: Event) {
-	e.preventDefault();
-	isOpen = !isOpen;
-	log.debug("isOpen", isOpen);
+  e.preventDefault();
+  isOpen = !isOpen;
+  log.debug("isOpen", isOpen);
 }
 </script>
 

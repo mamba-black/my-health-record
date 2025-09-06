@@ -1,10 +1,10 @@
-import {default as logInstance} from 'loglevel';
-import {dev} from '$app/environment';
+import { default as logInstance } from "loglevel";
+import { dev } from "$app/environment";
 
 if (dev) {
-  logInstance.setLevel('debug');
+  logInstance.setLevel("debug");
 } else {
-  logInstance.setLevel('warn');
+  logInstance.setLevel("warn");
 }
 
 // Personaliza cómo loglevel mapea sus métodos a los métodos de consola nativos
@@ -16,13 +16,13 @@ logInstance.methodFactory = (methodName, logLevel, loggerName) => {
 
   // Si el método de consola nativo existe y no es 'log' (para evitar que debug, info caigan en log por defecto)
   // o si el methodName es 'debug' y console.debug existe
-  if (methodName === 'debug' && typeof console.debug === 'function') {
+  if (methodName === "debug" && typeof console.debug === "function") {
     return console.debug.bind(console); // Mapea logInstance.debug() a console.debug()
-  } else if (typeof rawMethod === 'function') {
+  } else if (typeof rawMethod === "function") {
     // Para otros métodos como 'info', 'warn', 'error', usa sus métodos nativos correspondientes.
     // loglevel ya hace esto para warn y error, pero para info por defecto usa log.
     // Aquí puedes decidir si quieres que info use console.info si existe, o seguir usando console.log
-    if (methodName === 'info' && typeof console.info === 'function') {
+    if (methodName === "info" && typeof console.info === "function") {
       return console.info.bind(console);
     }
     return rawMethod.bind(console);
@@ -35,6 +35,5 @@ logInstance.methodFactory = (methodName, logLevel, loggerName) => {
 // Vuelve a aplicar los métodos después de cambiar methodFactory
 // Esto es importante para que los cambios en methodFactory tengan efecto en las llamadas de log existentes.
 logInstance.enableAll(); // O loggerInstance.setLevel(loggerInstance.getLevel());
-
 
 export const log = logInstance;

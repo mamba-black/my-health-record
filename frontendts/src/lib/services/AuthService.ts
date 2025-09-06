@@ -1,10 +1,10 @@
-import {writable} from 'svelte/store';
-import {browser} from '$app/environment';
-import {page} from "$app/state";
+import { writable } from "svelte/store";
+import { browser } from "$app/environment";
+import { page } from "$app/state";
 import type Page from "$lib/domain/Page";
-import {log} from "$lib/services/LoggerService";
-import {goto} from "$app/navigation";
-import {base} from "$app/paths";
+import { log } from "$lib/services/LoggerService";
+import { goto } from "$app/navigation";
+import { base } from "$app/paths";
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -20,7 +20,7 @@ const initialAuth: AuthState = {
 
 // Intenta cargar el estado desde localStorage al inicio
 if (browser) {
-  const storedToken = localStorage.getItem('auth_token');
+  const storedToken = localStorage.getItem("auth_token");
   if (storedToken) {
     initialAuth.isAuthenticated = true;
     initialAuth.token = storedToken;
@@ -34,9 +34,9 @@ export const authStore = writable<AuthState>(initialAuth);
 // Funciones para actualizar el store
 export const setAuthToken = (token: string, user: any = null) => {
   if (browser) {
-    localStorage.setItem('auth_token', token);
+    localStorage.setItem("auth_token", token);
   }
-  authStore.set({isAuthenticated: true, token, user});
+  authStore.set({ isAuthenticated: true, token, user });
 
   const previousPage = page.state as Page;
   log.debug(`AuthService: previus path ${previousPage.path}`);
@@ -49,9 +49,9 @@ export const setAuthToken = (token: string, user: any = null) => {
 
 export const clearAuth = () => {
   if (browser) {
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem("auth_token");
   }
-  authStore.set({isAuthenticated: false, token: null, user: null});
+  authStore.set({ isAuthenticated: false, token: null, user: null });
 };
 
 // Función de ejemplo para parsear un JWT (para mostrar info del usuario si lo necesitas)

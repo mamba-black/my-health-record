@@ -14,8 +14,8 @@ dayjs.extend(relativeTime);
 dayjs.locale("es");
 
 let {
-	patient,
-	appointments,
+  patient,
+  appointments,
 }: { patient: Patient; appointments: Appointment[] } = $props();
 
 let now = dayjs();
@@ -23,29 +23,29 @@ let openPatientConsultation = $state(false);
 let selectedAppointment: Appointment | undefined = $state();
 
 let appointmentWrappers: { appointment: Appointment; date: string }[] =
-	appointments.map((appointment) => {
-		log.info("appointment", appointment);
-		let date: string;
-		if (now < appointment.date) {
-			date = "dentro de " + appointment.date.from(now);
-		} else {
-			date = appointment.date.from(now);
-		}
-		return { appointment, date };
-	});
+  appointments.map((appointment) => {
+    log.info("appointment", appointment);
+    let date: string;
+    if (now < appointment.date) {
+      date = "dentro de " + appointment.date.from(now);
+    } else {
+      date = appointment.date.from(now);
+    }
+    return { appointment, date };
+  });
 
 function onClick(appointment: Appointment, e: Event) {
-	log.info("appointment onClick", appointment);
-	if (e instanceof KeyboardEvent && e.key !== "Enter") {
-		return;
-	}
-	e.preventDefault();
-	openPatientConsultation = !openPatientConsultation;
-	selectedAppointment = appointment;
-	goto(`${base}/history/${patient.id}/123/`, {
-		state: { appointment: appointment, patient: patient },
-	});
-	log.debug("isOpen", openPatientConsultation);
+  log.info("appointment onClick", appointment);
+  if (e instanceof KeyboardEvent && e.key !== "Enter") {
+    return;
+  }
+  e.preventDefault();
+  openPatientConsultation = !openPatientConsultation;
+  selectedAppointment = appointment;
+  goto(`${base}/history/${patient.id}/123/`, {
+    state: { appointment: appointment, patient: patient },
+  });
+  log.debug("isOpen", openPatientConsultation);
 }
 </script>
 

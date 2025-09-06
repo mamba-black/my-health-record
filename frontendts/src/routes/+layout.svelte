@@ -12,36 +12,36 @@ let { children } = $props();
 
 // Rutas que no requieren autenticación
 const PUBLIC_ROUTES = [
-	`${base}/`, // Tu página de inicio puede ser pública
-	`${base}/login`,
-	`${base}/auth/google/callback`, // El callback de Google es crucial que sea público
-	// Agrega aquí cualquier otra ruta que deba ser accesible sin login
+  `${base}/`, // Tu página de inicio puede ser pública
+  `${base}/login`,
+  `${base}/auth/google/callback`, // El callback de Google es crucial que sea público
+  // Agrega aquí cualquier otra ruta que deba ser accesible sin login
 ];
 
 $effect(() => {
-	const currentPath = page.url.pathname;
-	const isPublicRoute = PUBLIC_ROUTES.some((route) => currentPath === route);
+  const currentPath = page.url.pathname;
+  const isPublicRoute = PUBLIC_ROUTES.some((route) => currentPath === route);
 
-	if (!$authStore.isAuthenticated && !isPublicRoute) {
-		log.info(`User not authenticated. Redirecting ${currentPath} to login.`);
-		goto(`${base}/login`, { state: new Page(currentPath) });
-	}
+  if (!$authStore.isAuthenticated && !isPublicRoute) {
+    log.info(`User not authenticated. Redirecting ${currentPath} to login.`);
+    goto(`${base}/login`, { state: new Page(currentPath) });
+  }
 });
 
 onMount(() => {
-	const unsubscribe = authStore.subscribe(async ($auth) => {
-		const currentPath = page.url.pathname;
-		const isPublicRoute = PUBLIC_ROUTES.some((route) => currentPath === route);
+  const unsubscribe = authStore.subscribe(async ($auth) => {
+    const currentPath = page.url.pathname;
+    const isPublicRoute = PUBLIC_ROUTES.some((route) => currentPath === route);
 
-		if (!$auth.isAuthenticated && !isPublicRoute) {
-			log.info(`User not authenticated. Redirecting ${currentPath} to login.`);
-			await goto(`${base}/login`, { state: new Page(currentPath) });
-		}
-		// Opcional: si el token ha expirado (verificado por una API call a tu backend)
-		// Puedes implementar una lógica de refresco o re-login aquí.
-	});
+    if (!$auth.isAuthenticated && !isPublicRoute) {
+      log.info(`User not authenticated. Redirecting ${currentPath} to login.`);
+      await goto(`${base}/login`, { state: new Page(currentPath) });
+    }
+    // Opcional: si el token ha expirado (verificado por una API call a tu backend)
+    // Puedes implementar una lógica de refresco o re-login aquí.
+  });
 
-	return unsubscribe; // Limpia la suscripción cuando el componente se destruye
+  return unsubscribe; // Limpia la suscripción cuando el componente se destruye
 });
 </script>
 

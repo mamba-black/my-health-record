@@ -11,9 +11,9 @@ import Patient from "$lib/domain/Patient";
 import { log } from "$lib/services/LoggerService";
 
 type PROPS = {
-	patient: Patient;
-	reset: boolean;
-	setEditing?: (readOnly: boolean) => void;
+  patient: Patient;
+  reset: boolean;
+  setEditing?: (readOnly: boolean) => void;
 };
 
 const toPlainObject = (p: any) => JSON.parse(JSON.stringify(p));
@@ -25,48 +25,48 @@ let patientCache: Patient = toPlainObject(patient);
 // let _patient_clone = _.cloneDeep(patient);
 let _patient = $state<Patient>(toPlainObject(patientCache));
 let _medicalConditions = $state<MedicalConditions>(
-	toPlainObject(patientCache.medicalConditions),
+  toPlainObject(patientCache.medicalConditions),
 );
 let readOnly = $state(true);
 
 function reset_handle() {
-	log.debug("reset/patientCache:", patientCache);
-	log.debug("reset/_patient:", $state.snapshot(_patient));
-	log.debug("reset/_medicalConditions:", $state.snapshot(_medicalConditions));
-	// _patient = _.cloneDeep(patientCache);
-	_patient = toPlainObject(patientCache);
-	_medicalConditions = toPlainObject(patientCache.medicalConditions);
-	readOnly = true;
-	setEditing?.(!readOnly);
+  log.debug("reset/patientCache:", patientCache);
+  log.debug("reset/_patient:", $state.snapshot(_patient));
+  log.debug("reset/_medicalConditions:", $state.snapshot(_medicalConditions));
+  // _patient = _.cloneDeep(patientCache);
+  _patient = toPlainObject(patientCache);
+  _medicalConditions = toPlainObject(patientCache.medicalConditions);
+  readOnly = true;
+  setEditing?.(!readOnly);
 }
 
 function submit_handle(e: Event) {
-	e.preventDefault();
-	readOnly = !readOnly;
-	setEditing?.(!readOnly);
-	// patientCache = _.cloneDeep(_patient);
-	patientCache = toPlainObject(_patient);
-	log.debug("submit/_patient", $state.snapshot(_patient));
-	log.debug("submit/patientCache", patientCache);
-	log.debug("submit/_medicalConditions:", $state.snapshot(_medicalConditions));
+  e.preventDefault();
+  readOnly = !readOnly;
+  setEditing?.(!readOnly);
+  // patientCache = _.cloneDeep(_patient);
+  patientCache = toPlainObject(_patient);
+  log.debug("submit/_patient", $state.snapshot(_patient));
+  log.debug("submit/patientCache", patientCache);
+  log.debug("submit/_medicalConditions:", $state.snapshot(_medicalConditions));
 
-	if (readOnly) {
-		// const serializablePatient = JSON.parse(JSON.stringify(_patient));
-		_patient.medicalConditions = $state.snapshot(_medicalConditions);
-		log.info("Guardar el estado", $state.snapshot(_patient));
-		patientCache = toPlainObject(_patient);
-		goto(`${base}/history/${_patient.id}`, {
-			state: patientCache,
-			replaceState: true,
-		});
-	}
+  if (readOnly) {
+    // const serializablePatient = JSON.parse(JSON.stringify(_patient));
+    _patient.medicalConditions = $state.snapshot(_medicalConditions);
+    log.info("Guardar el estado", $state.snapshot(_patient));
+    patientCache = toPlainObject(_patient);
+    goto(`${base}/history/${_patient.id}`, {
+      state: patientCache,
+      replaceState: true,
+    });
+  }
 }
 
 $effect(() => {
-	if (reset) {
-		reset_handle();
-		reset = false;
-	}
+  if (reset) {
+    reset_handle();
+    reset = false;
+  }
 });
 </script>
 

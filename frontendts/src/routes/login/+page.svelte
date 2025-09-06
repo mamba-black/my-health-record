@@ -1,29 +1,73 @@
 <meta content="937186309482-kmain19anvo9rjljci5c7d6iiibuhvlu.apps.googleusercontent.com" name="google-signin-client_id"/>
 <script lang="ts">
 import { onMount } from "svelte";
-import { setAuthToken } from "$lib/services/AuthService";
+import { clearAuth, setAuthToken } from "$lib/services/AuthService";
+import { log } from "$lib/services/LoggerService";
 
 onMount(() => {
-	const script = document.createElement("script");
-	script.src = "https://apis.google.com/js/platform.js";
-	script.async = true;
-	script.defer = true;
-	script.onload = () => {
-		gapi.load("auth2", () => {
-			gapi.auth2.init({
-				client_id:
-					"937186309482-kmain19anvo9rjljci5c7d6iiibuhvlu.apps.googleusercontent.com",
-				scope: "profile email",
-			});
-		});
-	};
-	document.head.appendChild(script);
+  const script = document.createElement("script");
+  script.src = "https://apis.google.com/js/platform.js";
+  script.async = true;
+  script.defer = true;
+  script.onload = () => {
+    gapi.load("auth2", () => {
+      gapi.auth2
+        .init({
+          client_id:
+            "937186309482-kmain19anvo9rjljci5c7d6iiibuhvlu.apps.googleusercontent.com",
+          scope: "profile email",
+        })
+        .then(() => {
+          log.info("Google Auth initialized successfully");
+          (window as any).onSignIn = onSignIn;
+          (window as any).onFailure = onFailure;
+        })
+        .catch(onFailure);
+    });
+  };
+  document.head.appendChild(script);
 });
 
-const loginHandler = (event: Event) => {
-	event.preventDefault();
+const onSignIn = (googleUser: gapi.auth2.GoogleUser) => {
+  // const auth2 = gapi.auth2.getAuthInstance();
+  // auth2
+  // 	.signIn()
+  // 	.then((googleUser) => {
+  const profile = googleUser.getBasicProfile();
+  log.info("ID: " + profile.getId());
+  log.info("Name: " + profile.getName());
+  log.info("Image URL: " + profile.getImageUrl());
+  log.info("Email: " + profile.getEmail());
 
-	setAuthToken("1234567890", "Miuler");
+  const id_token = googleUser.getAuthResponse().id_token;
+  log.info("ID Token: " + id_token);
+
+  // Ejemplo de uso: establecer el token de autenticación
+  setAuthToken(id_token, profile.getName());
+  // })
+  // .catch((error) => {
+  // 	log.info(error);
+  // });
+};
+
+const onSingOut = (event: MouseEvent) => {
+  const auth2 = gapi.auth2.getAuthInstance();
+  if (auth2) {
+    auth2.signOut().then(() => {
+      log.info("Usuario desconectado de Google");
+      clearAuth();
+    });
+  }
+};
+
+const onFailure = (error: any) => {
+  log.error("Error de inicio de sesion de Google: ", error);
+};
+
+const loginHandler = (event: Event) => {
+  event.preventDefault();
+
+  setAuthToken("1234567890", "Miuler");
 };
 </script>
 
@@ -62,6 +106,22 @@ const loginHandler = (event: Event) => {
             </div>
           </form>
         </div>
+      </div>
+
+
+      <div class="w-full flex justify-center mt-4">
+        <!-- Botón de Google Sign-In -->
+        <div
+          class="g-signin2"
+          data-onsuccess="onSignIn"
+          data-longtitle="true"
+          data-theme="dark"></div>
+      </div>
+      <div class="w-full flex justify-center mt-4">
+        <button onclick={onSingOut}
+                class="flex items-center bg-gray-200 border border-gray-300 rounded-lg shadow-md px-6 py-2 text-sm font-medium text-gray-800 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+          Cerrar Sesión de Google
+        </button>
       </div>
 
       <div class="w-full flex justify-center">

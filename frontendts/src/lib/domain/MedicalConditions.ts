@@ -8,6 +8,5 @@ export default class MedicalConditions {
     public cholesterol = false,
     public asthma = false,
     public tbc = false,
-  ) {
-  }
+  ) {}
 }

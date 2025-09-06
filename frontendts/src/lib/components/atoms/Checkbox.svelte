@@ -1,15 +1,15 @@
 <script lang="ts">
-  let {
-    id,
-    name,
-    readonly,
-    value = $bindable(),
-  }: {
-    id: string;
-    name: string;
-    value: boolean;
-    readonly: boolean;
-  } = $props();
+let {
+  id,
+  name,
+  readonly,
+  value = $bindable(),
+}: {
+  id: string;
+  name: string;
+  value: boolean;
+  readonly: boolean;
+} = $props();
 </script>
 
 {#if !readonly || value}

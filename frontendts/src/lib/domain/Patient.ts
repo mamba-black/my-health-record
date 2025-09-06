@@ -12,6 +12,5 @@ export default class Patient {
     public email?: string,
     public address: Address = new Address(),
     public medicalConditions: MedicalConditions = new MedicalConditions(),
-  ) {
-  }
+  ) {}
 }

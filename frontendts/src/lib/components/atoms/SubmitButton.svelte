@@ -1,5 +1,5 @@
 <script lang="ts">
-  let {label = ""} = $props();
+let { label = "" } = $props();
 </script>
 
 <button class="button-submit" type="submit">

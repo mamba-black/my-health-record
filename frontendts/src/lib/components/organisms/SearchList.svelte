@@ -6,8 +6,8 @@ import type Patient from "$lib/domain/Patient";
 let { patients = $bindable() }: { patients: Patient[] } = $props();
 
 let gotoPatient = (e: Event, patient: Patient) => {
-	e.preventDefault();
-	goto(`${base}/history/${patient.id}`, { state: patient });
+  e.preventDefault();
+  goto(`${base}/history/${patient.id}`, { state: patient });
 };
 </script>
 

@@ -6,10 +6,10 @@ import type Patient from "$lib/domain/Patient";
 import { log } from "$lib/services/LoggerService";
 
 let { appointment, patient }: { appointment: Appointment; patient: Patient } =
-	page.state as {
-		appointment: Appointment;
-		patient: Patient;
-	};
+  page.state as {
+    appointment: Appointment;
+    patient: Patient;
+  };
 
 log.info("appointment", appointment);
 log.info("appointment.date", appointment.date);

@@ -8,11 +8,11 @@ import { log } from "$lib/services/LoggerService";
 // import _ from "lodash";
 
 let {
-	readonly,
-	medical_conditions = $bindable(),
+  readonly,
+  medical_conditions = $bindable(),
 }: {
-	readonly: Boolean;
-	medical_conditions: MedicalConditionsClass;
+  readonly: Boolean;
+  medical_conditions: MedicalConditionsClass;
 } = $props();
 // let _medical_conditions = $state(medical_conditions);
 log.debug("readonly", readonly);

@@ -10,23 +10,23 @@ import Patient from "$lib/domain/Patient";
 import { log } from "$lib/services/LoggerService";
 
 let patient: Patient =
-	Object.keys(page.state).length === 0
-		? new Patient(
-				"13",
-				"Hector",
-				"Malpica",
-				0,
-				"Gallegos",
-				undefined,
-				undefined,
-				undefined,
-				new MedicalConditions(true),
-			)
-		: (page.state as Patient);
+  Object.keys(page.state).length === 0
+    ? new Patient(
+        "13",
+        "Hector",
+        "Malpica",
+        0,
+        "Gallegos",
+        undefined,
+        undefined,
+        undefined,
+        new MedicalConditions(true),
+      )
+    : (page.state as Patient);
 log.debug("patient in page state:", patient);
 let appointments = [
-	dayjs("2025-01-01T23:35:01"),
-	dayjs("2025-03-01T23:35:01"),
+  dayjs("2025-01-01T23:35:01"),
+  dayjs("2025-03-01T23:35:01"),
 ].map((d) => new Appointment(0, d, State.Booked, []));
 
 let reset = $state(false);

@@ -11,16 +11,16 @@ let { patients = $bindable() }: { patients: Patient[] } = $props();
 let name: string = $state("");
 
 const findPatient = (event: Event) => {
-	event.preventDefault();
-	name = name.toUpperCase();
+  event.preventDefault();
+  name = name.toUpperCase();
 
-	// Simular la llamada externa
-	setTimeout(() => {
-		patients = [
-			new Patient("123321", "Jan", "Picard", 85, "miuler@gmail.com"),
-			new Patient("456465", "Miuler", "Malpica", 45),
-		];
-	}, 500);
+  // Simular la llamada externa
+  setTimeout(() => {
+    patients = [
+      new Patient("123321", "Jan", "Picard", 85, "miuler@gmail.com"),
+      new Patient("456465", "Miuler", "Malpica", 45),
+    ];
+  }, 500);
 };
 </script>
 
