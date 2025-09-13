@@ -11,18 +11,20 @@ onMount(() => {
   script.defer = true;
   script.onload = () => {
     gapi.load("auth2", () => {
-      gapi.auth2
-        .init({
-          client_id:
-            "937186309482-kmain19anvo9rjljci5c7d6iiibuhvlu.apps.googleusercontent.com",
-          scope: "profile email",
-        })
-        .then(() => {
-          log.info("Google Auth initialized successfully");
-          (window as any).onSignIn = onSignIn;
-          (window as any).onFailure = onFailure;
-        })
-        .catch(onFailure);
+      if (!gapi.auth2.getAuthInstance()) {
+        gapi.auth2
+          .init({
+            client_id:
+              "937186309482-kmain19anvo9rjljci5c7d6iiibuhvlu.apps.googleusercontent.com",
+            scope: "profile email",
+          })
+          .then(() => {
+            log.info("Google Auth initialized successfully");
+            (window as any).onSignIn = onSignIn;
+            (window as any).onFailure = onFailure;
+          })
+          .catch(onFailure);
+      }
     });
   };
   document.head.appendChild(script);
