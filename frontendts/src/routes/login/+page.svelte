@@ -4,72 +4,55 @@ import { onMount } from "svelte";
 import { clearAuth, setAuthToken } from "$lib/services/AuthService";
 import { log } from "$lib/services/LoggerService";
 
-onMount(() => {
-  const script = document.createElement("script");
-  script.src = "https://apis.google.com/js/platform.js";
-  script.async = true;
-  script.defer = true;
-  script.onload = () => {
-    gapi.load("auth2", () => {
-      if (!gapi.auth2.getAuthInstance()) {
-        gapi.auth2
-          .init({
-            client_id:
-              "937186309482-kmain19anvo9rjljci5c7d6iiibuhvlu.apps.googleusercontent.com",
-            scope: "profile email",
-          })
-          .then(() => {
-            log.info("Google Auth initialized successfully");
-            (window as any).onSignIn = onSignIn;
-            (window as any).onFailure = onFailure;
-          })
-          .catch(onFailure);
-      }
+const GOOGLE_CLIENT_URL = "https://accounts.google.com/gsi/fedcm.json";
+// const GOOGLE_CLIENT_ID = "937186309482-kmain19anvo9rjljci5c7d6iiibuhvlu.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID =
+  "937186309482-kmain19anvo9rjljci5c7d6iiibuhvlu.apps.googleusercontent.com";
+
+const handleGoogleFedCMLogin = async () => {
+  try {
+    if (!navigator.credentials || !navigator.credentials.get) {
+      log.error("Credentials API not supported");
+      return;
+    }
+
+    const credential = await navigator.credentials.get({
+      identity: {
+        providers: [
+          {
+            configURL: GOOGLE_CLIENT_URL,
+            clientId: GOOGLE_CLIENT_ID,
+            nonce: crypto.randomUUID(),
+          },
+        ],
+      },
     });
-  };
-  document.head.appendChild(script);
-});
 
-const onSignIn = (googleUser: gapi.auth2.GoogleUser) => {
-  // const auth2 = gapi.auth2.getAuthInstance();
-  // auth2
-  // 	.signIn()
-  // 	.then((googleUser) => {
-  const profile = googleUser.getBasicProfile();
-  log.info("ID: " + profile.getId());
-  log.info("Name: " + profile.getName());
-  log.info("Image URL: " + profile.getImageUrl());
-  log.info("Email: " + profile.getEmail());
-
-  const id_token = googleUser.getAuthResponse().id_token;
-  log.info("ID Token: " + id_token);
-
-  // Ejemplo de uso: establecer el token de autenticación
-  setAuthToken(id_token, profile.getName());
-  // })
-  // .catch((error) => {
-  // 	log.info(error);
-  // });
-};
-
-const onSingOut = (event: MouseEvent) => {
-  const auth2 = gapi.auth2.getAuthInstance();
-  if (auth2) {
-    auth2.signOut().then(() => {
-      log.info("Usuario desconectado de Google");
-      clearAuth();
-    });
+    if (credential && credential.type == "federated") {
+      log.info("Federated credential found:", credential);
+      const token = credential.id;
+      // BACKEND
+    } else {
+      log.error("No federated credential found", credential);
+    }
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "NotAllowedError") {
+      log.error("User denied Google FedCM login");
+    } else {
+      log.error("Error handling Google FedCM login:", error);
+    }
   }
 };
 
-const onFailure = (error: any) => {
-  log.error("Error de inicio de sesion de Google: ", error);
+const onSingOut = (event: MouseEvent) => {
+  log.info("Usuario desconectado de Google");
+  clearAuth();
 };
 
 const loginHandler = (event: Event) => {
   event.preventDefault();
 
-  setAuthToken("1234567890", "Miuler");
+  //setAuthToken("1234567890", "Miuler");
 };
 </script>
 
@@ -110,24 +93,9 @@ const loginHandler = (event: Event) => {
         </div>
       </div>
 
-
-      <div class="w-full flex justify-center mt-4">
-        <!-- Botón de Google Sign-In -->
-        <div
-          class="g-signin2"
-          data-onsuccess="onSignIn"
-          data-longtitle="true"
-          data-theme="dark"></div>
-      </div>
-      <div class="w-full flex justify-center mt-4">
-        <button onclick={onSingOut}
-                class="flex items-center bg-gray-200 border border-gray-300 rounded-lg shadow-md px-6 py-2 text-sm font-medium text-gray-800 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-          Cerrar Sesión de Google
-        </button>
-      </div>
-
       <div class="w-full flex justify-center">
         <button
+          onclick={handleGoogleFedCMLogin}
           class="flex items-center bg-white border border-gray-300 rounded-lg shadow-md px-6 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
           <svg class="h-6 w-6 mr-2" height="800px" version="1.1"
                viewBox="-0.5 0 48 48" width="800px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><title>Google-color</title>
@@ -155,6 +123,14 @@ const loginHandler = (event: Event) => {
           <span>Continue with Google</span>
         </button>
       </div>
+
+      <div class="w-full flex justify-center mt-4">
+        <button onclick={onSingOut}
+                class="flex items-center bg-gray-200 border border-gray-300 rounded-lg shadow-md px-6 py-2 text-sm font-medium text-gray-800 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+          Cerrar Sesión Local
+        </button>
+      </div>
+
 
     </div>
   </div>

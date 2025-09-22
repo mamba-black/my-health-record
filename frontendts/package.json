@@ -15,8 +15,6 @@
     "@sveltejs/kit": "^2.42.1",
     "@sveltejs/vite-plugin-svelte": "^6.2.0",
     "@tsconfig/svelte": "^5.0.5",
-    "@types/gapi": "^0.0.47",
-    "@types/gapi.auth2": "^0.0.61",
     "@types/lodash": "^4.17.20",
     "@typescript/native-preview": "^7.0.0-dev.20250916.1",
     "autoprefixer": "^10.4.21",
