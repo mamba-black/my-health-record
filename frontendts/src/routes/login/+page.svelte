@@ -11,11 +11,13 @@ const GOOGLE_CLIENT_ID =
 
 const handleGoogleFedCMLogin = async () => {
   try {
+    log.debug("Google FedCM login initiated");
     if (!navigator.credentials || !navigator.credentials.get) {
       log.error("Credentials API not supported");
       return;
     }
 
+    log.debug("Login with Google FedCM");
     const credential = await navigator.credentials.get({
       identity: {
         providers: [
@@ -28,9 +30,10 @@ const handleGoogleFedCMLogin = async () => {
       },
     });
 
-    if (credential && credential.type == "federated") {
+    if (credential && credential.type == "identity") {
       log.info("Federated credential found:", credential);
       const token = credential.id;
+      setAuthToken(token, "Google");
       // BACKEND
     } else {
       log.error("No federated credential found", credential);

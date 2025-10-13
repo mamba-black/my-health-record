@@ -1,5 +1,5 @@
 <script lang="ts">
-import { base } from "$app/paths"; // Importa la variable 'base' aquí
+import { base, resolve } from "$app/paths"; // Importa la variable 'base' aquí
 import "../app.css";
 import { onMount } from "svelte";
 import { goto } from "$app/navigation"; // Para redirecciones del lado del cliente
@@ -7,14 +7,15 @@ import { page } from "$app/state";
 import Page from "$lib/domain/Page";
 import { authStore } from "$lib/services/AuthService";
 import { log } from "$lib/services/LoggerService";
+import { CALLBACK, LOGIN, ROOT, SEARCH } from "./paths";
 
 let { children } = $props();
 
 // Rutas que no requieren autenticación
 const PUBLIC_ROUTES = [
-  `${base}/`, // Tu página de inicio puede ser pública
-  `${base}/login`,
-  `${base}/auth/google/callback`, // El callback de Google es crucial que sea público
+  ROOT, // Tu página de inicio puede ser pública
+  LOGIN,
+  CALLBACK, // El callback de Google es crucial que sea público
   // Agrega aquí cualquier otra ruta que deba ser accesible sin login
 ];
 
@@ -24,7 +25,7 @@ $effect(() => {
 
   if (!$authStore.isAuthenticated && !isPublicRoute) {
     log.info(`User not authenticated. Redirecting ${currentPath} to login.`);
-    goto(`${base}/login`, { state: new Page(currentPath) });
+    goto(LOGIN, { state: new Page(currentPath) });
   }
 });
 
@@ -35,7 +36,7 @@ onMount(() => {
 
     if (!$auth.isAuthenticated && !isPublicRoute) {
       log.info(`User not authenticated. Redirecting ${currentPath} to login.`);
-      await goto(`${base}/login`, { state: new Page(currentPath) });
+      await goto(LOGIN, { state: new Page(currentPath) });
     }
     // Opcional: si el token ha expirado (verificado por una API call a tu backend)
     // Puedes implementar una lógica de refresco o re-login aquí.
@@ -47,8 +48,8 @@ onMount(() => {
 
 <nav class="rounded-2xl bg-white border-gray-200 dark:bg-gray-900 borde">
   <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-3">
-    <a class="flex items-center space-x-3 rtl:space-x-reverse" href="{base}/">
-      <img alt="Flowbite Logo" class="h-8" src="{base}/my_health_2.avif"/>
+    <a class="flex items-center space-x-3 rtl:space-x-reverse" href="{ROOT}">
+      <img alt="Flowbite Logo" class="h-8" src="{ROOT}my_health_2.avif"/>
       <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">My Health Record</span>
     </a>
     <button aria-controls="navbar-default" aria-expanded="false"
@@ -66,12 +67,12 @@ onMount(() => {
         <li>
           <a aria-current="page"
              class="block py-2 px-3 text-white bg-blue-700 rounded-sm md:bg-transparent md:text-blue-700 md:p-0 dark:text-white md:dark:text-blue-500"
-             href="{base}/">Home</a>
+             href="{ROOT}">Home</a>
         </li>
         <li>
           <a
             class="block py-2 px-3 text-gray-900 rounded-sm hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent"
-            href="{base}/search">Busqueda</a>
+            href="{SEARCH}">Busqueda</a>
         </li>
         <li>
           <a
