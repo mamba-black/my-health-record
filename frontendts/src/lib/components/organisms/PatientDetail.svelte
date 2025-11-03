@@ -1,6 +1,5 @@
 <script lang="ts">
 import { goto } from "$app/navigation";
-import { base } from "$app/paths";
 import Input from "$lib/components/atoms/Input.svelte";
 import ResetButton from "$lib/components/atoms/ResetButton.svelte";
 import STitle from "$lib/components/atoms/STitle.svelte";
@@ -9,6 +8,7 @@ import MedicalConditionsComponent from "$lib/components/organisms/MedicalConditi
 import type MedicalConditions from "$lib/domain/MedicalConditions";
 import Patient from "$lib/domain/Patient";
 import { log } from "$lib/services/LoggerService";
+import { HISTORY } from "../../../routes/paths";
 
 type PROPS = {
   patient: Patient;
@@ -55,7 +55,7 @@ function submit_handle(e: Event) {
     _patient.medicalConditions = $state.snapshot(_medicalConditions);
     log.info("Guardar el estado", $state.snapshot(_patient));
     patientCache = toPlainObject(_patient);
-    goto(`${base}/history/${_patient.id}`, {
+    goto(`${HISTORY}/${_patient.id}`, {
       state: patientCache,
       replaceState: true,
     });

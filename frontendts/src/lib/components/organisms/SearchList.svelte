@@ -1,13 +1,13 @@
 <script lang="ts">
 import { goto } from "$app/navigation";
-import { base } from "$app/paths";
 import type Patient from "$lib/domain/Patient";
+import { HISTORY } from "../../../routes/paths";
 
 let { patients = $bindable() }: { patients: Patient[] } = $props();
 
 let gotoPatient = (e: Event, patient: Patient) => {
   e.preventDefault();
-  goto(`${base}/history/${patient.id}`, { state: patient });
+  goto(`${HISTORY}/${patient.id}`, { state: patient });
 };
 </script>
 
@@ -16,7 +16,7 @@ let gotoPatient = (e: Event, patient: Patient) => {
     <li>
       <!--      onclick={patient_onclick(e, &patient1)}-->
       <a
-        href="{base}/history/{patient.id}"
+        href="{HISTORY}/{patient.id}"
         onclick={(e) => gotoPatient(e, patient)}
         class="flex justify-between gap-x-6 p-5 m-2 border rounded-lg border-transparent hover:border-blue-500 hover:bg-sky-100 hover:shadow-lg hover:cursor-pointer"
       >
