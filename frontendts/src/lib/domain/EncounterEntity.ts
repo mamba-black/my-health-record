@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 
-export default class Appointment {
+export default class EncounterEntity {
   constructor(
     public patientId = 0,
     public date = dayjs(),

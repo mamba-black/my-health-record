@@ -1,7 +1,7 @@
 <script lang="ts" xmlns="http://www.w3.org/1999/html">
 import STitle from "$lib/components/atoms/STitle.svelte";
 import MedicalConditions from "$lib/components/organisms/MedicalConditions.svelte";
-import type Appointment from "$lib/domain/Appointment";
+import type EncounterEntity from "$lib/domain/EncounterEntity";
 import type Patient from "$lib/domain/Patient";
 import { log } from "$lib/services/LoggerService";
 
@@ -10,11 +10,11 @@ import { log } from "$lib/services/LoggerService";
 let {
   isOpen = $bindable(),
   patient,
-  appointment,
+  encounterEntity = $bindable(),
 }: {
   isOpen: boolean;
   patient: Patient;
-  appointment: Appointment;
+  encounterEntity: EncounterEntity;
 } = $props();
 
 function onClick(e: Event) {
@@ -28,8 +28,8 @@ function onClick(e: Event) {
   <div>
     <!--  <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4/5 max-w-[800px] bg-white p-6 rounded-lg shadow-lg border-gray-400 p-1"> -->
 
-    <h1 id="current-appointment-title" class="text-3xl font-bold text-gray-800 text-center mb-6">Detalle de la Atención
-      ({appointment.date})</h1>
+    <h1 id="current-encounter-title" class="text-3xl font-bold text-gray-800 text-center mb-6">Detalle de la Atención
+      ({encounterEntity.date})</h1>
 
     <MedicalConditions medical_conditions={patient.medicalConditions} readonly=true></MedicalConditions>
 
