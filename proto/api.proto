@@ -34,3 +34,6 @@ service PatientService {
     rpc GetPatientById (PatientIdRequest) returns (PatientInformation) {}
     rpc Save (PatientInformation) returns (PatientInformation) {}
 }
+
+service ClinicService {
+}

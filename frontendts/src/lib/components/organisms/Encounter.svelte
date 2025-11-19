@@ -1,9 +1,11 @@
 <script lang="ts" xmlns="http://www.w3.org/1999/html">
+import { goto } from "$app/navigation";
 import STitle from "$lib/components/atoms/STitle.svelte";
 import MedicalConditions from "$lib/components/organisms/MedicalConditions.svelte";
 import type EncounterEntity from "$lib/domain/EncounterEntity";
 import type Patient from "$lib/domain/Patient";
 import { log } from "$lib/services/LoggerService";
+import { HISTORY } from "../../../routes/paths";
 
 // import {Edra} from "$lib/components/edra/headless";
 
@@ -21,6 +23,8 @@ function onClick(e: Event) {
   e.preventDefault();
   isOpen = !isOpen;
   log.debug("isOpen", isOpen);
+  // GRABAR EN EL BACKEND
+  goto(`${HISTORY}/${patient.id}/`, { state: patient });
 }
 </script>
 

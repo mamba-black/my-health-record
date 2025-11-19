@@ -55,7 +55,10 @@ function onClick(encounterEntity: EncounterEntity, e: Event) {
   <STitle>Atenciones</STitle>
   <form>
     <div class="text-right">
-      <SubmitButton label="Nueva consulta"/>
+      <!-- <SubmitButton label="Nueva consulta"/> -->
+      <button onclick={e => onClick(new EncounterEntity(), e)}
+              onkeydown={e => onClick(new EncounterEntity(), e)}
+              class="button-submit">Nueva consulta</button>
     </div>
     <ul class="divide-y divide-gray-100" role="list">
       {#each encounterEntityWrappers as encounterEntityWrapper}
