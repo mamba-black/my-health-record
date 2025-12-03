@@ -2,10 +2,11 @@ use tonic::transport::Server;
 use tonic_web::GrpcWebLayer;
 use crate::infrastructure::api::FILE_DESCRIPTOR_SET;
 use crate::infrastructure::api::patient_service_server::PatientServiceServer;
-use crate::infrastructure::server::ClickCareImpl;
+use crate::infrastructure::patient_service::ClickCareImpl;
 
 pub mod log;
-mod server;
+pub mod patient_service;
+mod user_service;
 
 pub mod api {
     tonic::include_proto!("api");

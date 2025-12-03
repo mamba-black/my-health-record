@@ -35,5 +35,13 @@ service PatientService {
     rpc Save (PatientInformation) returns (PatientInformation) {}
 }
 
-service ClinicService {
+
+message User {
+}
+
+message UserCreated {
+}
+
+service UserService {
+    rpc CreateUser (User) returns (UserCreated) {}
 }

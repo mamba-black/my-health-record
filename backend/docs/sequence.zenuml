@@ -1,0 +1,15 @@
+Client -> clickcare.login
+Client -> Google
+
+Client->clickcare.login(token) {
+  user = User.findUser(token.id)
+  if (user != null) {
+
+  } else {
+    user = User.createUser(token)
+    Clinic.createClinic(user) {
+      createClinic()
+      createUser()
+    }
+  }
+}
