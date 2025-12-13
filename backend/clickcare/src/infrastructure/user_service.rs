@@ -1,19 +1,13 @@
-use core::str;
-
-use fake::Fake;
-use fake::faker::chrono::raw::*;
-use fake::faker::internet::raw::*;
-use fake::faker::name::raw::*;
-use fake::faker::phone_number::raw::PhoneNumber;
-use fake::locales::EN;
-use tonic::*;
-use ulid::Ulid;
-use crate::infrastructure::api::patient_service_server::*;
+use crate::infrastructure::api::user_service_server::UserService;
 use crate::infrastructure::api::*;
+use tonic::*;
 
 #[derive(Default)]
 pub struct UserServiceImpl {}
 
+#[async_trait]
 impl UserService for UserServiceImpl {
-
+    async fn create_user(&self, request: Request<CreateUserRequest>) -> std::result::Result<Response<CreateUserResponse>, Status> {
+        todo!()
+    }
 }

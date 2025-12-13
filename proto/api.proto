@@ -9,39 +9,139 @@ message PatientIdRequest {
     optional string id = 1;
 }
 
-message PatientInformation {
-    string id = 1;
-    string firstName = 2;
-    string lastName = 3;
-    string birthdate = 9;
-    optional string secondLastName = 4;
-    optional string email = 5;
-    optional string phoneNumber = 6;
-    optional string icon = 7;
-    optional string note = 8;
-}
-
 message SearchPatientResponse {
-    optional string firstName = 1;
-    optional string lastName = 2;
-    optional string secondLastName = 3;
+    optional string first_name = 1;
+    optional string last_name = 2;
+    optional string second_last_name = 3;
     optional string email = 4;
-    repeated PatientInformation patients = 5;
+    repeated Patient patients = 5;
 }
 
 service PatientService {
     rpc SearchPatient (SearchPatientRequest) returns (SearchPatientResponse) {}
-    rpc GetPatientById (PatientIdRequest) returns (PatientInformation) {}
-    rpc Save (PatientInformation) returns (PatientInformation) {}
+    rpc GetPatientById (PatientIdRequest) returns (Patient) {}
+    rpc Save (Patient) returns (Patient) {}
 }
 
-
-message User {
+message CreateUserRequest {
+    string user_id = 1;
+    string email = 2;
 }
 
-message UserCreated {
+message CreateUserResponse {
 }
 
 service UserService {
-    rpc CreateUser (User) returns (UserCreated) {}
+    rpc CreateUser (CreateUserRequest) returns (CreateUserResponse) {}
+}
+
+
+
+
+
+
+// ----------------------------------------------------------------------
+// TIPOS DE DATOS CLAVE (DATA TYPES)
+// ----------------------------------------------------------------------
+
+// Represents a unique identification as used in FHIR
+message Identifier {
+  string system = 1;  // URL del sistema emisor (ej. https://fhir.org/id/dni)
+  string value = 2;   // Valor del identificador (ej. "45987321")
+  string use = 3;     // Propósito (ej. "usual", "official")
+}
+
+// Represents a human's name (apellido, nombres de pila, etc.)
+message HumanName {
+  string use = 1;     // Uso (ej. "legal", "usual")
+  repeated string family = 2; // Apellidos (puede haber más de uno)
+  repeated string given = 3;  // Nombres de pila
+  // Otros campos (prefix, suffix, period) omitidos por simplicidad
+}
+
+// Represents contact details (phone, email, etc.)
+message ContactPoint {
+  enum System {
+    SYSTEM_UNSPECIFIED = 0;
+    PHONE = 1;
+    FAX = 2;
+    EMAIL = 3;
+    SMS = 4;
+    URL = 5;
+  }
+  enum Use {
+    USE_UNSPECIFIED = 0;
+    HOME = 1;
+    WORK = 2;
+    MOBILE = 3;
+    TEMP = 4;
+    OLD = 5;
+  }
+  System system = 1;
+  string value = 2;   // El valor real (ej. "juan.perez@email.com")
+  Use use = 3;
+}
+
+// FHIR R4: https://hl7.org/fhir/R4/datatypes.html#Attachment
+message Attachment {
+  // Tipo MIME (p.ej. "image/jpeg", "image/png")
+  string content_type = 1;
+
+  // URL donde está el contenido (si aplica)
+  string url = 2;
+
+  // Contenido embebido (equivalente al base64Binary de FHIR)
+  bytes data = 3;
+
+  // Título/leyenda opcional
+  string title = 4;
+
+  // Fecha/hora de creación (dateTime en FHIR). Simplificado como string ISO-8601.
+  string creation = 5;
+}
+
+// ----------------------------------------------------------------------
+// RECURSO PRINCIPAL (RESOURCE)
+// ----------------------------------------------------------------------
+
+// https://hl7.org/fhir/R4/patient.html
+message Patient {
+  // Campos del Metadato Básico de un Recurso FHIR
+  string id = 1;       // Identificador único del recurso
+
+  // 1. Identificación
+  repeated Identifier identifier = 2; // Uno o más identificadores
+
+  // 2. Estado
+  bool active = 3;                  // Si el paciente/usuario está activo
+
+  // 3. Demografía
+  repeated HumanName name = 4;      // Nombres (ej. legal y usual)
+  repeated ContactPoint telecom = 5; // Información de contacto (email, teléfono)
+
+  enum Gender {
+    GENDER_UNSPECIFIED = 0;
+    MALE = 1;
+    FEMALE = 2;
+    OTHER = 3;
+    UNKNOWN = 4;
+  }
+  Gender gender = 6;
+  string birth_date = 7;           // Fecha de nacimiento (string en formato YYYY-MM-DD)
+
+  // 4. Otros
+  // El campo `deceased[x]` se modela con un 'oneof' para manejar tipos
+  // boolean o dateTime, aunque aquí lo simplificamos a una fecha.
+  oneof deceased_status {
+    bool is_deceased_boolean = 8;
+    string deceased_date_time = 9; // Fecha y hora del fallecimiento
+  }
+
+  // 5. Gestión
+  // Reference es un tipo de dato clave en FHIR para enlazar recursos
+  // Aquí usamos un string simple que contendría la referencia (ej. "Organization/123")
+  string managing_organization_reference = 10;
+
+  // 6. Multimedia (FHIR: Patient.photo 0..*)
+  repeated Attachment photo = 11;
 }
