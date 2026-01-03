@@ -23,16 +23,22 @@ service PatientService {
     rpc Save (Patient) returns (Patient) {}
 }
 
-message CreateUserRequest {
+message SignUpRequest {
     string user_id = 1;
     string email = 2;
+    string document_type = 3;
+    string document_id = 4;
 }
 
-message CreateUserResponse {
+message SignUpResponse {
 }
+
+message SignInRequest {}
+message SignInResponse {}
 
 service UserService {
-    rpc CreateUser (CreateUserRequest) returns (CreateUserResponse) {}
+    rpc SignUp (SignUpRequest) returns (SignUpResponse) {}
+    rpc SignIn (SignInRequest) returns (SignInResponse) {}
 }
 
 

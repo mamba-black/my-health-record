@@ -1,10 +1,11 @@
+#![feature(fn_traits)]
+#![feature(unboxed_closures)]
+
+mod application;
+mod domain;
 mod infrastructure;
 
 use log::{debug, error, info, warn};
-use tonic::transport::Server;
-use tonic_web::GrpcWebLayer;
-use crate::infrastructure::api::*;
-use crate::infrastructure::api::patient_service_server::*;
 use crate::infrastructure::log::init_logger;
 use crate::infrastructure::start_server;
 
