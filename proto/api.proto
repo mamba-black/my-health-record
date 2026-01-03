@@ -28,6 +28,7 @@ message SignUpRequest {
     string email = 2;
     string document_type = 3;
     string document_id = 4;
+    bool create_clinic = 5;
 }
 
 message SignUpResponse {

@@ -25,13 +25,15 @@ impl UserService for UserServiceImpl {
             password: "123".to_string(),
             document_id: create_user_request.document_id,
             document_type: create_user_request.document_type,
+            create_clinic: create_user_request.create_clinic,
         };
 
         self.create_user_use_case
             .execute(command)
-            .map(|_| Response::new(SignUpResponse {}))
+            .map(|a| Response::new(SignUpResponse {}))
             .map_err(|err| match err {
                 CrueateUserError::UserAlreadyExists(e) => Status::already_exists(e.message),
+                CrueateUserError::UnknownError(e) => Status::unknown(e.message),
             })
     }
 
@@ -60,6 +62,7 @@ mod test {
             email: "miuler@gmail.com".to_string(),
             document_id: "40404040".to_string(),
             document_type: DocumentType::DNI.to_string(),
+            create_clinic: true,
         });
 
         let result = user_service_server.sign_up(request).await;

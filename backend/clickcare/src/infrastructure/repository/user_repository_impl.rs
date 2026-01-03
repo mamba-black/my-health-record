@@ -12,7 +12,7 @@ impl UserRepository for UserRepositoryImpl {
         None
     }
 
-    fn save_user(&self, user: User) -> Result<(), ClickCareError> {
+    fn save_user(&self, user: &User) -> Result<(), ClickCareError> {
         // Aquí iría la lógica para guardar un usuario en la base de datos
         Ok(())
     }
