@@ -11,8 +11,9 @@ impl PatientService for ClickCareImpl {
         &self,
         request: Request<SearchPatientRequest>,
     ) -> Result<Response<SearchPatientResponse>, Status> {
+        let search_patient_request = request.into_inner();
         let search_patient_response = SearchPatientResponse {
-            first_name: Some("Hector Miuler".to_string()),
+            first_name: search_patient_request.name,
             last_name: Some("Malpica".to_string()),
             second_last_name: Some("Gallegos".to_string()),
             email: Some("miuler@gmail.com".to_string()),

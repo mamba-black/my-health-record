@@ -39,7 +39,7 @@ impl UseCase for CreateUserUseCase {
         if user.create_clinic {
             self.clinic_repository
                 .create_clinic_for_user(&user)
-                .map_err(|e| UnknownError(ClickCareError {message: "FIXME".to_string()}))?;
+                .map_err(|e| UnknownError(ClickCareError {message: e}))?;
         }
 
         Ok(CreateUserResponse {})
