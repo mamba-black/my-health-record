@@ -70,5 +70,7 @@ mod test {
 
         let sign_up_response = *(result.unwrap()).get_ref();
         assert_eq!(sign_up_response, SignUpResponse {});
+
+
     }
 }
