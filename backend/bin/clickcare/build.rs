@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build_server(true)
         .build_client(true)
         .file_descriptor_set_path(out_dir.join("api_descriptor.bin"))
-        .compile_protos(&["api.proto"], &["../proto/"])?;
+        .compile_protos(&["api.proto"], &["../../proto/"])?;
 
     Ok(())
 }
