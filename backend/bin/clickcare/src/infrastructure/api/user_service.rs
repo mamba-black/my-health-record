@@ -3,7 +3,8 @@ use crate::infrastructure::api::SignUpRequest;
 use crate::infrastructure::api::*;
 use app_core::application::UseCase;
 use tonic::*;
-use user::application::create_user_usecase::{CreateUserCommand, CreateUserUseCase, CrueateUserError};
+use user::application::CreateUserUseCase;
+use user::application::dto::{CreateUserCommand, CrueateUserError};
 
 #[derive(Default)]
 pub struct UserServiceImpl {

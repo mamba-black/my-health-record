@@ -1,10 +1,31 @@
-use crate::application::create_user_usecase::CrueateUserError::{UnknownError, UserAlreadyExists};
 use crate::domain::repository::clinic_repository::ClinicRepository;
 use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::DocumentType::DNI;
 use crate::domain::user::User;
 use app_core::application::UseCase;
 use app_core::domain::error::ClickCareError;
+use crate::application::create_user_usecase::dto::{CreateUserCommand, CreateUserResponse, CrueateUserError};
+use crate::application::create_user_usecase::dto::CrueateUserError::{UnknownError, UserAlreadyExists};
+
+pub mod dto {
+    use app_core::domain::error::ClickCareError;
+
+    pub struct CreateUserCommand {
+        pub username: String,
+        pub email: String,
+        pub password: String,
+        pub document_id: String,
+        pub document_type: String,
+        pub create_clinic: bool,
+    }
+
+    pub struct CreateUserResponse {}
+
+    pub enum CrueateUserError {
+        UserAlreadyExists(ClickCareError),
+        UnknownError(ClickCareError),
+    }
+}
 
 pub struct CreateUserUseCase {
     pub(crate) user_repository: Box<dyn UserRepository + Send + Sync>,
@@ -44,23 +65,6 @@ impl UseCase for CreateUserUseCase {
 
         Ok(CreateUserResponse {})
     }
-}
-
-
-pub struct CreateUserCommand {
-    pub username: String,
-    pub email: String,
-    pub password: String,
-    pub document_id: String,
-    pub document_type: String,
-    pub create_clinic: bool,
-}
-
-pub struct CreateUserResponse {}
-
-pub enum CrueateUserError {
-    UserAlreadyExists(ClickCareError),
-    UnknownError(ClickCareError),
 }
 
 

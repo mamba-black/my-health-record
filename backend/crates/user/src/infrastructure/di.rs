@@ -1,4 +1,4 @@
-use crate::application::create_user_usecase::CreateUserUseCase;
+use crate::application::CreateUserUseCase;
 use crate::domain::user::User;
 use crate::infrastructure::repository::clinic_repository_impl::ClinicRepositoryImpl;
 use crate::infrastructure::repository::emitter_impl::EmitterImpl;
