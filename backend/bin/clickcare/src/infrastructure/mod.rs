@@ -6,7 +6,6 @@ use crate::infrastructure::api::FILE_DESCRIPTOR_SET;
 use tonic::transport::Server;
 use tonic_web::GrpcWebLayer;
 
-mod dto;
 pub(crate) mod log;
 pub(crate) mod api;
 
