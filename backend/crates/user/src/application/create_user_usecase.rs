@@ -50,14 +50,14 @@ impl UseCase for CreateUserUseCase {
             name: command.username,
             document_type: DNI,
             document_number: command.document_id,
-            create_clinic: command.create_clinic,
+            is_owner: command.create_clinic,
         };
 
         self.user_repository
             .save_user(&user)
             .map_err(|e| UnknownError(e))?;
 
-        if user.create_clinic {
+        if user.is_owner {
             self.clinic_repository
                 .create_clinic_for_user(&user)
                 .map_err(|e| UnknownError(ClickCareError {message: e}))?;
