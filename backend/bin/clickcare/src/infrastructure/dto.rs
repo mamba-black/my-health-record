@@ -1,12 +1,12 @@
-use fake::Fake;
+use crate::infrastructure::api::{ContactPoint, HumanName, Identifier, Patient};
 use fake::faker::chrono::raw::Date;
 use fake::faker::internet::raw::FreeEmail;
 use fake::faker::name::raw::{FirstName, LastName};
 use fake::faker::phone_number::raw::PhoneNumber;
 use fake::locales::EN;
 use fake::rand::rngs::ThreadRng;
+use fake::Fake;
 use ulid::Ulid;
-use crate::infrastructure::api::{ContactPoint, HumanName, Identifier, Patient};
 
 impl Patient {
     fn default() -> Self {

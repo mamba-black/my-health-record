@@ -1,16 +1,14 @@
-use tonic::transport::Server;
-use tonic_web::GrpcWebLayer;
-use crate::infrastructure::api::FILE_DESCRIPTOR_SET;
 use crate::infrastructure::api::patient_service::ClickCareImpl;
 use crate::infrastructure::api::patient_service_server::PatientServiceServer;
 use crate::infrastructure::api::user_service::UserServiceImpl;
 use crate::infrastructure::api::user_service_server::UserServiceServer;
+use crate::infrastructure::api::FILE_DESCRIPTOR_SET;
+use tonic::transport::Server;
+use tonic_web::GrpcWebLayer;
 
 mod dto;
 pub(crate) mod log;
 pub(crate) mod api;
-pub(crate) mod di;
-pub(crate) mod repository;
 
 pub async fn start_server() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50051".parse().unwrap();

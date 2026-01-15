@@ -1,5 +1,5 @@
-use tracing_subscriber::EnvFilter;
 use tracing_subscriber::fmt::format::FmtSpan;
+use tracing_subscriber::EnvFilter;
 
 pub fn init_logger() {
 

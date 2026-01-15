@@ -1,0 +1,11 @@
+[package]
+name = "user"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+app_core.workspace = true
+strum.workspace = true
+strum_macros.workspace = true
+tokio.workspace = true

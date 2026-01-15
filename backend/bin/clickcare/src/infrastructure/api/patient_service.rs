@@ -1,6 +1,6 @@
-use tonic::*;
 use crate::infrastructure::api::patient_service_server::*;
 use crate::infrastructure::api::*;
+use tonic::*;
 
 #[derive(Default)]
 pub struct ClickCareImpl;
@@ -33,7 +33,7 @@ impl PatientService for ClickCareImpl {
 
     async fn get_patient_by_id(
         &self,
-        request: Request<PatientIdRequest>,
+        _request: Request<PatientIdRequest>,
     ) -> Result<Response<Patient>, Status> {
         let patient_information = Patient::default();
         Ok(Response::new(patient_information))

@@ -1,11 +1,9 @@
-use crate::application::UseCase;
-use crate::application::create_user_usecase::{
-    CreateUserCommand, CreateUserUseCase, CrueateUserError,
-};
-use crate::infrastructure::api::SignUpRequest;
 use crate::infrastructure::api::user_service_server::UserService;
+use crate::infrastructure::api::SignUpRequest;
 use crate::infrastructure::api::*;
+use app_core::application::UseCase;
 use tonic::*;
+use user::application::create_user_usecase::{CreateUserCommand, CreateUserUseCase, CrueateUserError};
 
 #[derive(Default)]
 pub struct UserServiceImpl {
@@ -30,7 +28,7 @@ impl UserService for UserServiceImpl {
 
         self.create_user_use_case
             .execute(command)
-            .map(|a| Response::new(SignUpResponse {}))
+            .map(|_a| Response::new(SignUpResponse {}))
             .map_err(|err| match err {
                 CrueateUserError::UserAlreadyExists(e) => Status::already_exists(e.message),
                 CrueateUserError::UnknownError(e) => Status::unknown(e.message),
@@ -39,7 +37,7 @@ impl UserService for UserServiceImpl {
 
     async fn sign_in(
         &self,
-        request: Request<SignInRequest>,
+        _request: Request<SignInRequest>,
     ) -> Result<Response<SignInResponse>, Status> {
         todo!()
     }
@@ -47,11 +45,11 @@ impl UserService for UserServiceImpl {
 
 #[cfg(test)]
 mod test {
-    use crate::domain::user::DocumentType;
     use crate::infrastructure::api::user_service::UserServiceImpl;
     use crate::infrastructure::api::user_service_server::UserService;
     use crate::infrastructure::api::{SignUpRequest, SignUpResponse};
     use tonic::Request;
+    use user::domain::user::DocumentType;
 
     #[tokio::test]
     async fn user_service_server_tests() {

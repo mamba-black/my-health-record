@@ -11,6 +11,8 @@ version = "0.1.0"
 authors = ["Hector Miuler Malpica Gallegos <miuler@gmail.com>"]
 
 [workspace.dependencies]
+app_core = { path = "crates/core", package = "core" }
+user = { path = "crates/user" }
 clinic = { path = "crates/clinic" }
 clinic_admin = { path = "crates/clinic_admin" }
 patient = { path = "crates/patient" }
@@ -20,6 +22,9 @@ serde_json = "1.0.124"
 ulid = "1.2.1"
 uuidv7 = "0.1.7"
 uuid = { version = "1.19.0", features = ["v4", "v7"] }
+
+strum = "0.27.2"
+strum_macros = "0.27.2"
 
 ## =============================
 ## Dependencies for gRPC server
