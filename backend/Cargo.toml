@@ -1,9 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["clickcare",
-    "clinic",
-    "clinic_admin",
-    "patient"
+    "crates/*"
 ]
 
 [workspace.package]
@@ -12,6 +10,10 @@ version = "0.1.0"
 authors = ["Hector Miuler Malpica Gallegos <miuler@gmail.com>"]
 
 [workspace.dependencies]
+clinic = { path = "crates/clinic" }
+clinic_admin = { path = "crates/clinic_admin" }
+patient = { path = "crates/patient" }
+
 chrono = "0.4.38"
 serde_json = "1.0.124"
 ulid = "1.2.1"

@@ -5,9 +5,9 @@ edition.workspace = true
 authors.workspace = true
 
 [dependencies]
-clinic = { path = "../clinic" }
-clinic_admin = { path = "../clinic_admin" }
-patient = { path = "../patient" }
+clinic.workspace = true
+clinic_admin.workspace = true
+patient.workspace = true
 
 chrono.workspace = true
 ulid.workspace = true
