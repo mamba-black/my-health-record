@@ -1,13 +1,12 @@
-use std::env::var;
 use crate::application::CreateUserUseCase;
 use crate::domain::user::User;
 use crate::infrastructure::repository::clinic_repository_impl::ClinicRepositoryImpl;
 use crate::infrastructure::repository::emitter_impl::EmitterImpl;
 use crate::infrastructure::repository::user_repository_impl::UserRepositoryImpl;
-use sqlx::PgPool;
-use tokio::sync::broadcast::channel;
 use app_core::domain::error::ClickCareError;
-use app_core::domain::error::ClickCareError::GenericError;
+use sqlx::PgPool;
+use std::env::var;
+use tokio::sync::broadcast::channel;
 
 impl CreateUserUseCase {
     pub async fn new() -> Result<Self, ClickCareError> {

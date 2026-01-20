@@ -1,9 +1,8 @@
-use async_trait::async_trait;
 use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::User;
 use app_core::domain::error::ClickCareError;
+use async_trait::async_trait;
 use sqlx::postgres::PgPool;
-use sqlx::query_as;
 
 pub(crate) struct UserRepositoryImpl {
     pub(crate) pool: PgPool,

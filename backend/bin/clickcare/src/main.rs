@@ -3,9 +3,9 @@
 
 mod infrastructure;
 
-use dotenvy::dotenv;
 use crate::infrastructure::log::init_logger;
 use crate::infrastructure::start_server;
+use dotenvy::dotenv;
 use log::{debug, error, info, warn};
 
 #[tokio::main]

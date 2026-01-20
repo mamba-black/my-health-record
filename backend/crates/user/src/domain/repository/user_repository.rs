@@ -1,6 +1,6 @@
-use async_trait::async_trait;
 use crate::domain::user::User;
 use app_core::domain::error::ClickCareError;
+use async_trait::async_trait;
 
 #[async_trait]
 pub trait UserRepository: Send + Sync {

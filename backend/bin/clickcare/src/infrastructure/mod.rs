@@ -3,10 +3,9 @@ use crate::infrastructure::api::patient_service_server::PatientServiceServer;
 use crate::infrastructure::api::user_service::UserServiceImpl;
 use crate::infrastructure::api::user_service_server::UserServiceServer;
 use crate::infrastructure::api::FILE_DESCRIPTOR_SET;
+use app_core::domain::error::ClickCareError;
 use tonic::transport::Server;
 use tonic_web::GrpcWebLayer;
-use app_core::domain::error::ClickCareError;
-use app_core::domain::error::ClickCareError::GenericError;
 
 pub(crate) mod log;
 pub(crate) mod api;

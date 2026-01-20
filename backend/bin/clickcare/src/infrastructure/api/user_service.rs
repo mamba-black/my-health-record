@@ -2,10 +2,10 @@ use crate::infrastructure::api::user_service_server::UserService;
 use crate::infrastructure::api::SignUpRequest;
 use crate::infrastructure::api::*;
 use app_core::application::UseCase;
-use tonic::*;
 use app_core::domain::error::ClickCareError;
-use user::application::CreateUserUseCase;
+use tonic::*;
 use user::application::dto::{CreateUserCommand, CrueateUserError};
+use user::application::CreateUserUseCase;
 
 impl UserServiceImpl {
     pub async fn new() -> Result<UserServiceImpl, ClickCareError> {
@@ -57,8 +57,8 @@ mod test {
     use crate::infrastructure::api::user_service::UserServiceImpl;
     use crate::infrastructure::api::user_service_server::UserService;
     use crate::infrastructure::api::{SignUpRequest, SignUpResponse};
-    use tonic::Request;
     use app_core::domain::error::ClickCareError;
+    use tonic::Request;
     use user::domain::user::DocumentType;
 
     #[tokio::test]

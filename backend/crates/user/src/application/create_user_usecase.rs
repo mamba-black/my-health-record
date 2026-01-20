@@ -1,13 +1,12 @@
-use async_trait::async_trait;
+use crate::application::create_user_usecase::dto::CrueateUserError::{UnknownError, UserAlreadyExists};
+use crate::application::create_user_usecase::dto::{CreateUserCommand, CreateUserResponse, CrueateUserError};
 use crate::domain::repository::clinic_repository::ClinicRepository;
 use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::DocumentType::DNI;
 use crate::domain::user::User;
 use app_core::application::UseCase;
 use app_core::domain::error::ClickCareError;
-use app_core::domain::error::ClickCareError::GenericError;
-use crate::application::create_user_usecase::dto::{CreateUserCommand, CreateUserResponse, CrueateUserError};
-use crate::application::create_user_usecase::dto::CrueateUserError::{UnknownError, UserAlreadyExists};
+use async_trait::async_trait;
 
 pub mod dto {
     use app_core::domain::error::ClickCareError;
