@@ -5,12 +5,16 @@ use crate::infrastructure::api::user_service_server::UserServiceServer;
 use crate::infrastructure::api::FILE_DESCRIPTOR_SET;
 use tonic::transport::Server;
 use tonic_web::GrpcWebLayer;
+use app_core::domain::error::ClickCareError;
+use app_core::domain::error::ClickCareError::GenericError;
 
 pub(crate) mod log;
 pub(crate) mod api;
 
-pub async fn start_server() -> Result<(), Box<dyn std::error::Error>> {
-    let addr = "[::1]:50051".parse().unwrap();
+pub async fn start_server() -> Result<(), ClickCareError> {
+    let addr = "[::1]:50051"
+        .parse()
+        .map_err(|e| ClickCareError::generic(format!("Error al parsear la direccion del servidor: {}", e)))?;
 
     let reflection_server = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
@@ -18,7 +22,7 @@ pub async fn start_server() -> Result<(), Box<dyn std::error::Error>> {
         .expect("Could not build server");
 
     let patient_service_server = PatientServiceServer::new(ClickCareImpl::default());
-    let user_service_server = UserServiceServer::new(UserServiceImpl::default());
+    let user_service_server = UserServiceServer::new(UserServiceImpl::new().await?);
 
     Server::builder()
         .layer(GrpcWebLayer::new())
@@ -27,7 +31,8 @@ pub async fn start_server() -> Result<(), Box<dyn std::error::Error>> {
         .add_service(user_service_server)
         .add_service(reflection_server)
         .serve(addr)
-        .await?;
+        .await
+        .map_err(|e| ClickCareError::generic(format!("Error al iniciar el servidor: {}", e)))?;
 
     Ok(())
 }

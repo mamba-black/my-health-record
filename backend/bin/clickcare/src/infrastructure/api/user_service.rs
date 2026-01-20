@@ -3,10 +3,17 @@ use crate::infrastructure::api::SignUpRequest;
 use crate::infrastructure::api::*;
 use app_core::application::UseCase;
 use tonic::*;
+use app_core::domain::error::ClickCareError;
 use user::application::CreateUserUseCase;
 use user::application::dto::{CreateUserCommand, CrueateUserError};
 
-#[derive(Default)]
+impl UserServiceImpl {
+    pub async fn new() -> Result<UserServiceImpl, ClickCareError> {
+        let create_user_use_case = CreateUserUseCase::new().await?;
+        Ok(Self { create_user_use_case })
+    }
+}
+
 pub struct UserServiceImpl {
     create_user_use_case: CreateUserUseCase,
 }
@@ -29,10 +36,11 @@ impl UserService for UserServiceImpl {
 
         self.create_user_use_case
             .execute(command)
+            .await
             .map(|_a| Response::new(SignUpResponse {}))
             .map_err(|err| match err {
-                CrueateUserError::UserAlreadyExists(e) => Status::already_exists(e.message),
-                CrueateUserError::UnknownError(e) => Status::unknown(e.message),
+                CrueateUserError::UserAlreadyExists(e) => Status::already_exists(e.to_string()),
+                CrueateUserError::UnknownError(e) => Status::unknown(e.to_string()),
             })
     }
 
@@ -50,11 +58,12 @@ mod test {
     use crate::infrastructure::api::user_service_server::UserService;
     use crate::infrastructure::api::{SignUpRequest, SignUpResponse};
     use tonic::Request;
+    use app_core::domain::error::ClickCareError;
     use user::domain::user::DocumentType;
 
     #[tokio::test]
-    async fn user_service_server_tests() {
-        let user_service_server = UserServiceImpl::default();
+    async fn user_service_server_tests() -> Result<(), ClickCareError> {
+        let user_service_server = UserServiceImpl::new().await?;
 
         let request = Request::new(SignUpRequest {
             user_id: "xxxx".to_string(),
@@ -70,6 +79,6 @@ mod test {
         let sign_up_response = *(result.unwrap()).get_ref();
         assert_eq!(sign_up_response, SignUpResponse {});
 
-
+        Ok(())
     }
 }

@@ -3,6 +3,7 @@
 
 mod infrastructure;
 
+use dotenvy::dotenv;
 use crate::infrastructure::log::init_logger;
 use crate::infrastructure::start_server;
 use log::{debug, error, info, warn};
@@ -10,6 +11,7 @@ use log::{debug, error, info, warn};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_logger();
+    dotenv().ok();
 
     start_server().await?;
 

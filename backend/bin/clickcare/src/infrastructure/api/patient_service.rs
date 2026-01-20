@@ -3,7 +3,8 @@ use crate::infrastructure::api::*;
 use tonic::*;
 
 #[derive(Default)]
-pub struct ClickCareImpl;
+pub struct ClickCareImpl {
+}
 
 #[async_trait]
 impl PatientService for ClickCareImpl {

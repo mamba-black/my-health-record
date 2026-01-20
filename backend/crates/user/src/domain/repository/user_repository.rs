@@ -1,7 +1,9 @@
+use async_trait::async_trait;
 use crate::domain::user::User;
 use app_core::domain::error::ClickCareError;
 
-pub trait UserRepository {
-    fn find_user_by_id(&self, user_id: &str) -> Option<User>;
-    fn save_user(&self, user: &User) -> Result<(), ClickCareError>;
+#[async_trait]
+pub trait UserRepository: Send + Sync {
+    async fn find_user_by_id(&self, user_id: &str) -> Result<User, ClickCareError>;
+    async fn save_user(&self, user: &User) -> Result<(), ClickCareError>;
 }

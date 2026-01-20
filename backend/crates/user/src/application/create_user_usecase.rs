@@ -1,9 +1,11 @@
+use async_trait::async_trait;
 use crate::domain::repository::clinic_repository::ClinicRepository;
 use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::DocumentType::DNI;
 use crate::domain::user::User;
 use app_core::application::UseCase;
 use app_core::domain::error::ClickCareError;
+use app_core::domain::error::ClickCareError::GenericError;
 use crate::application::create_user_usecase::dto::{CreateUserCommand, CreateUserResponse, CrueateUserError};
 use crate::application::create_user_usecase::dto::CrueateUserError::{UnknownError, UserAlreadyExists};
 
@@ -32,19 +34,16 @@ pub struct CreateUserUseCase {
     pub(crate) clinic_repository: Box<dyn ClinicRepository + Send + Sync>,
 }
 
+#[async_trait]
 impl UseCase for CreateUserUseCase {
     type Command = CreateUserCommand;
     type Response = CreateUserResponse;
     type Error = CrueateUserError;
 
-    fn execute(&self, command: Self::Command) -> Result<Self::Response, Self::Error> {
-        let user = self.user_repository.find_user_by_id(command.document_id.as_str());
-
-        if user.is_some() {
-            return Err(UserAlreadyExists(ClickCareError{
-                message: format!("User with document ID {} already exists", command.document_id),
-            }));
-        }
+    async fn execute(&self, command: Self::Command) -> Result<Self::Response, Self::Error> {
+        let user = self.user_repository.find_user_by_id(command.document_id.as_str())
+            .await
+            .map_err(|e| UserAlreadyExists(ClickCareError::generic(format!("User with document ID {} already exists", command.document_id))))?;
 
         let user = User {
             name: command.username,
@@ -55,12 +54,13 @@ impl UseCase for CreateUserUseCase {
 
         self.user_repository
             .save_user(&user)
-            .map_err(|e| UnknownError(e))?;
+            .await
+            .map_err(UnknownError)?;
 
         if user.is_owner {
             self.clinic_repository
                 .create_clinic_for_user(&user)
-                .map_err(|e| UnknownError(ClickCareError {message: e}))?;
+                .map_err(|e| UnknownError(ClickCareError::generic(format!("Error en creoar la clinica para el usuario ({})", e))))?;
         }
 
         Ok(CreateUserResponse {})
