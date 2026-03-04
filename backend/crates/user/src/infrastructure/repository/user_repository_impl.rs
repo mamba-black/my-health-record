@@ -10,6 +10,10 @@ pub(crate) struct UserRepositoryImpl {
 
 #[async_trait]
 impl UserRepository for UserRepositoryImpl {
+    async fn exist_user(&self, user_id: &str) -> Result<bool, ClickCareError> {
+        // FIXME: Agregar la consulta sql
+        Ok(false)
+    }
     async fn find_user_by_id(&self, user_id: &str) -> Result<User, ClickCareError> {
         // Aquí iría la lógica para buscar un usuario en la base de datos
         // let a = query_as!(User, "SELECT * FROM user WHERE id = $1", user_id)

@@ -12,3 +12,4 @@ strum_macros.workspace = true
 tokio.workspace = true
 async-trait.workspace = true
 sqlx.workspace = true
+log = "0.4.29"

@@ -1,5 +1,7 @@
+use async_trait::async_trait;
 use crate::domain::user::User;
 
+#[async_trait]
 pub(crate) trait ClinicRepository {
-    fn create_clinic_for_user(&self, user: &User,) -> Result<(), String>;
+    async fn create_clinic_for_user(&self, user: &User,) -> Result<(), String>;
 }

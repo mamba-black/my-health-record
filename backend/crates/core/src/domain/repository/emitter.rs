@@ -1,3 +1,6 @@
+use async_trait::async_trait;
+
+#[async_trait]
 pub trait Emitter<T: Clone> {
-    fn emit(&self, event: &T) -> Result<(), String>;
+    async fn emit(&self, event: &T) -> Result<(), String>;
 }

@@ -7,6 +7,7 @@ use crate::domain::user::User;
 use app_core::application::UseCase;
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;
+use log::error;
 
 pub mod dto {
     use app_core::domain::error::ClickCareError;
@@ -40,9 +41,15 @@ impl UseCase for CreateUserUseCase {
     type Error = CrueateUserError;
 
     async fn execute(&self, command: Self::Command) -> Result<Self::Response, Self::Error> {
-        let user = self.user_repository.find_user_by_id(command.document_id.as_str())
+
+        let exist_user = self.user_repository
+            .exist_user(command.document_id.as_str())
             .await
-            .map_err(|e| UserAlreadyExists(ClickCareError::generic(format!("User with document ID {} already exists", command.document_id))))?;
+            .map_err(|e| UnknownError(ClickCareError::generic(format!("User with document ID {}", command.document_id))))?;
+        if  exist_user {
+            error!("User with document ID {} already exists", command.document_id);
+            return Err(UserAlreadyExists(ClickCareError::generic(format!("User with document ID {} already exists", command.document_id))))
+        }
 
         let user = User {
             name: command.username,
@@ -59,6 +66,7 @@ impl UseCase for CreateUserUseCase {
         if user.is_owner {
             self.clinic_repository
                 .create_clinic_for_user(&user)
+                .await
                 .map_err(|e| UnknownError(ClickCareError::generic(format!("Error en creoar la clinica para el usuario ({})", e))))?;
         }
 

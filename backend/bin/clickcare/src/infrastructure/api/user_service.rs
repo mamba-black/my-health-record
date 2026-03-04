@@ -54,6 +54,7 @@ impl UserService for UserServiceImpl {
 
 #[cfg(test)]
 mod test {
+    use dotenvy::dotenv;
     use crate::infrastructure::api::user_service::UserServiceImpl;
     use crate::infrastructure::api::user_service_server::UserService;
     use crate::infrastructure::api::{SignUpRequest, SignUpResponse};
@@ -63,6 +64,8 @@ mod test {
 
     #[tokio::test]
     async fn user_service_server_tests() -> Result<(), ClickCareError> {
+        dotenv().ok();
+
         let user_service_server = UserServiceImpl::new().await?;
 
         let request = Request::new(SignUpRequest {
