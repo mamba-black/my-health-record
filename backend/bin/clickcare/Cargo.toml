@@ -40,3 +40,6 @@ regex.workspace = true
 [build-dependencies]
 tonic-prost-build.workspace = true
 
+[dev-dependencies]
+rstest.workspace = true
+

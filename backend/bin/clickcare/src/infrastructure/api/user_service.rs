@@ -54,7 +54,9 @@ impl UserService for UserServiceImpl {
 
 #[cfg(test)]
 mod test {
+    use app_core::domain::error::ClickCareError::GenericError;
     use dotenvy::dotenv;
+    use rstest::{fixture, rstest};
     use crate::infrastructure::api::user_service::UserServiceImpl;
     use crate::infrastructure::api::user_service_server::UserService;
     use crate::infrastructure::api::{SignUpRequest, SignUpResponse};
@@ -62,9 +64,21 @@ mod test {
     use tonic::Request;
     use user::domain::user::DocumentType;
 
+    #[fixture]
+    async fn user_service_impl() -> UserServiceImpl {
+        dotenv().ok();
+        UserServiceImpl::new().await.unwrap()
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_sign_up_uuid_error(#[future] user_service_impl: UserServiceImpl) -> Result<(), ClickCareError> {
+
+        Err(ClickCareError::generic("test"))
+    }
+
     #[tokio::test]
     async fn user_service_server_tests() -> Result<(), ClickCareError> {
-        dotenv().ok();
 
         let user_service_server = UserServiceImpl::new().await?;
 

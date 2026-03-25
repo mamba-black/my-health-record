@@ -15,11 +15,12 @@ impl ClickCareError {
 
     #[track_caller]
     pub fn generic<M: Into<String>>(msg: M) -> Self {
-        let loc = Location::caller();
+        let location = Location::caller();
+
         ClickCareError::GenericError {
             message: msg.into(),
-            file: loc.file(),
-            line: loc.line(),
+            file: location.file(),
+            line: location.line(),
         }
     }
 }
