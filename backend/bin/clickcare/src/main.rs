@@ -1,6 +1,3 @@
-#![feature(fn_traits)]
-#![feature(unboxed_closures)]
-
 mod infrastructure;
 
 use crate::infrastructure::log::init_logger;

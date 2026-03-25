@@ -45,7 +45,7 @@ impl UseCase for CreateUserUseCase {
         let exist_user = self.user_repository
             .exist_user(command.document_id.as_str())
             .await
-            .map_err(|e| UnknownError(ClickCareError::generic(format!("User with document ID {}", command.document_id))))?;
+            .map_err(|_| UnknownError(ClickCareError::generic(format!("User with document ID {}", command.document_id))))?;
         if  exist_user {
             error!("User with document ID {} already exists", command.document_id);
             return Err(UserAlreadyExists(ClickCareError::generic(format!("User with document ID {} already exists", command.document_id))))

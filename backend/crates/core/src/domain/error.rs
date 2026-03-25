@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
+use std::panic::Location;
 
 #[derive(Debug)]
 pub enum ClickCareError {
@@ -11,11 +12,14 @@ pub enum ClickCareError {
 }
 
 impl ClickCareError {
+
+    #[track_caller]
     pub fn generic<M: Into<String>>(msg: M) -> Self {
+        let loc = Location::caller();
         ClickCareError::GenericError {
             message: msg.into(),
-            file: file!(),
-            line: line!(),
+            file: loc.file(),
+            line: loc.line(),
         }
     }
 }
@@ -33,4 +37,3 @@ impl Display for ClickCareError {
 impl Error for ClickCareError {
 
 }
-
