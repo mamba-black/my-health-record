@@ -38,3 +38,14 @@ impl Display for ClickCareError {
 impl Error for ClickCareError {
 
 }
+
+
+#[cfg(test)]
+mod test {
+    use crate::domain::error::ClickCareError;
+
+    #[test]
+    fn test_sign_up_uuid_error() -> Result<(), ClickCareError> {
+        Err(ClickCareError::generic("test"))
+    }
+}
