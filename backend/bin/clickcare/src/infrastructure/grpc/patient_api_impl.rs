@@ -1,13 +1,13 @@
-use crate::infrastructure::api::patient_service_server::*;
-use crate::infrastructure::api::*;
+use crate::infrastructure::grpc::patient_api_server::*;
+use crate::infrastructure::grpc::*;
 use tonic::*;
 
 #[derive(Default)]
-pub struct ClickCareImpl {
+pub struct PatientApiImpl {
 }
 
 #[async_trait]
-impl PatientService for ClickCareImpl {
+impl PatientApi for PatientApiImpl {
     async fn search_patient(
         &self,
         request: Request<SearchPatientRequest>,

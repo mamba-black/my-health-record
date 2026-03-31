@@ -1,4 +1,4 @@
-use crate::application::CreateUserUseCase;
+use crate::application::{CreateUserUseCase, CreateUserUseCaseImpl};
 use crate::domain::user::User;
 use crate::infrastructure::repository::clinic_repository_impl::ClinicRepositoryImpl;
 use crate::infrastructure::repository::emitter_impl::EmitterImpl;
@@ -8,22 +8,20 @@ use sqlx::PgPool;
 use std::env::var;
 use tokio::sync::broadcast::channel;
 
-impl CreateUserUseCase {
-    pub async fn new() -> Result<Self, ClickCareError> {
-        let (sender, _receiver) = channel::<User>(100);
+pub async fn new() -> Result<Box<dyn CreateUserUseCase>, ClickCareError> {
+    let (sender, _receiver) = channel::<User>(100);
 
-        let url = var("PG_URL")
-            .unwrap_or("postgres://user:password@localhost:5432".to_string());
-        let pool = PgPool::connect(url.as_str())
-            .await
-            .map_err(|e| ClickCareError::generic(format!("Error en la conexion a la DB [{}] ({})", url, e)))?;
+    let url = var("PG_URL").unwrap_or("postgres://user:password@localhost:5432".to_string());
+    let pool = PgPool::connect(url.as_str()).await.map_err(|e| {
+        ClickCareError::generic(format!("Error en la conexion a la DB [{}] ({})", url, e))
+    })?;
 
-        Ok(Self {
-            user_repository: Box::new(UserRepositoryImpl{ pool }),
-            clinic_repository: Box::new(ClinicRepositoryImpl {
-                user_emitter: Box::new(EmitterImpl { sender }),
-            }),
-        })
-    }
+    let create_user_use_case = CreateUserUseCaseImpl {
+        user_repository: Box::new(UserRepositoryImpl { pool }),
+        clinic_repository: Box::new(ClinicRepositoryImpl {
+            user_emitter: Box::new(EmitterImpl { sender }),
+        }),
+    };
+
+    Ok(Box::new(create_user_use_case))
 }
-

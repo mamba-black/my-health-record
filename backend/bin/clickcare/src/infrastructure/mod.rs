@@ -1,14 +1,14 @@
-use crate::infrastructure::api::patient_service::ClickCareImpl;
-use crate::infrastructure::api::patient_service_server::PatientServiceServer;
-use crate::infrastructure::api::user_service::UserServiceImpl;
-use crate::infrastructure::api::user_service_server::UserServiceServer;
-use crate::infrastructure::api::FILE_DESCRIPTOR_SET;
+use crate::infrastructure::grpc::patient_api_impl::PatientApiImpl;
+use crate::infrastructure::grpc::patient_api_server::PatientApiServer;
+use crate::infrastructure::grpc::user_api_impl::UserApiImpl;
+use crate::infrastructure::grpc::user_api_server::UserApiServer;
+use crate::infrastructure::grpc::FILE_DESCRIPTOR_SET;
 use app_core::domain::error::ClickCareError;
 use tonic::transport::Server;
 use tonic_web::GrpcWebLayer;
 
 pub(crate) mod log;
-pub(crate) mod api;
+pub(crate) mod grpc;
 
 pub async fn start_server() -> Result<(), ClickCareError> {
     let addr = "[::1]:50051"
@@ -20,8 +20,8 @@ pub async fn start_server() -> Result<(), ClickCareError> {
         .build_v1alpha()
         .expect("Could not build server");
 
-    let patient_service_server = PatientServiceServer::new(ClickCareImpl::default());
-    let user_service_server = UserServiceServer::new(UserServiceImpl::new().await?);
+    let patient_service_server = PatientApiServer::new(PatientApiImpl::default());
+    let user_service_server = UserApiServer::new(UserApiImpl::new().await?);
 
     Server::builder()
         .layer(GrpcWebLayer::new())

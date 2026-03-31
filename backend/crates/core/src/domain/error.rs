@@ -2,7 +2,6 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::panic::Location;
 
-#[derive(Debug)]
 pub enum ClickCareError {
    GenericError {
        message: String,
@@ -32,6 +31,12 @@ impl Display for ClickCareError {
                 write!(f, "ClickCareError: {} (en {}:{})", message, file, line)
             }
         }
+    }
+}
+
+impl Debug for ClickCareError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(self, f)
     }
 }
 

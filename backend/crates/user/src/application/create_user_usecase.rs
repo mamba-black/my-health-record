@@ -29,13 +29,21 @@ pub mod dto {
     }
 }
 
-pub struct CreateUserUseCase {
+pub(crate) struct CreateUserUseCaseImpl {
     pub(crate) user_repository: Box<dyn UserRepository + Send + Sync>,
     pub(crate) clinic_repository: Box<dyn ClinicRepository + Send + Sync>,
 }
 
+pub trait CreateUserUseCase: UseCase<
+    Command = CreateUserCommand,
+    Response = CreateUserResponse,
+    Error = CrueateUserError,
+> {}
+
+impl CreateUserUseCase for CreateUserUseCaseImpl {}
+
 #[async_trait]
-impl UseCase for CreateUserUseCase {
+impl UseCase for CreateUserUseCaseImpl {
     type Command = CreateUserCommand;
     type Response = CreateUserResponse;
     type Error = CrueateUserError;

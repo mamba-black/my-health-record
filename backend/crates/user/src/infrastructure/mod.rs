@@ -1,2 +1,2 @@
-mod di;
+pub mod di;
 mod repository;
