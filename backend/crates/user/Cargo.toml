@@ -13,3 +13,4 @@ tokio.workspace = true
 async-trait.workspace = true
 sqlx.workspace = true
 log = "0.4.29"
+uuid.workspace = true

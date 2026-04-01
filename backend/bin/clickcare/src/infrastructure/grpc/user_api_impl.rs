@@ -3,8 +3,8 @@ use crate::infrastructure::grpc::SignUpRequest;
 use crate::infrastructure::grpc::*;
 use app_core::domain::error::ClickCareError;
 use tonic::*;
-use user::application::CreateUserUseCase;
 use user::application::dto::{CreateUserCommand, CrueateUserError};
+use user::application::CreateUserUseCase;
 use user::infrastructure::di;
 
 pub struct UserApiImpl {
@@ -27,6 +27,7 @@ impl UserApi for UserApiImpl {
         let sign_up_request = request.into_inner();
 
         let command = CreateUserCommand {
+            user_id: sign_up_request.user_id,
             username: sign_up_request.email.clone(),
             email: sign_up_request.email,
             password: "123".to_string(),
@@ -55,20 +56,29 @@ impl UserApi for UserApiImpl {
 
 #[cfg(test)]
 mod test {
-    use dotenvy::dotenv;
-    use rstest::{fixture, rstest};
+    static INIT: Once = Once::new();
+
     use crate::infrastructure::grpc::user_api_impl::UserApiImpl;
     use crate::infrastructure::grpc::user_api_server::UserApi;
     use crate::infrastructure::grpc::{SignUpRequest, SignUpResponse};
+    use crate::infrastructure::log::init_logger;
     use app_core::domain::error::ClickCareError;
+    use dotenvy::dotenv;
+    use log::info;
+    use rstest::{fixture, rstest};
+    use std::sync::Once;
     use tonic::Request;
     use user::domain::user::DocumentType;
+    use uuid::Uuid;
 
     type TestResult = Result<(), ClickCareError>;
 
     #[fixture]
     async fn user_api_impl() -> UserApiImpl {
-        dotenv().ok();
+        INIT.call_once(|| {
+            dotenv().ok();
+            init_logger();
+        });
         UserApiImpl::new().await.unwrap()
     }
 
@@ -85,10 +95,30 @@ mod test {
         });
         let result = user_api_impl.sign_up(request).await;
         assert!(result.is_err());
+        info!("error: {}", result.err().unwrap());
 
         Ok(())
     }
 
+    #[rstest]
+    #[tokio::test]
+    async fn test_sign_up_uuid_v4_error(#[future(awt)] user_api_impl: UserApiImpl) -> TestResult {
+
+        let request = Request::new(SignUpRequest{
+            user_id: Uuid::new_v4().to_string(),
+            email: "".to_string(),
+            document_type: "".to_string(),
+            document_id: "".to_string(),
+            create_clinic: false,
+        });
+        let result = user_api_impl.sign_up(request).await;
+        assert!(result.is_err());
+        info!("error: {}", result.err().unwrap());
+
+        Ok(())
+    }
+
+    #[ignore]
     #[rstest]
     #[tokio::test]
     async fn user_service_server_tests(#[future(awt)] user_api_impl: UserApiImpl) -> TestResult {

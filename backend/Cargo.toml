@@ -27,8 +27,8 @@ uuidv7 = "0.1.7"
 uuid = { version = "1.19.0", features = ["v4", "v7"] }
 dotenvy = "0.15.7"
 
-strum = "0.27.2"
-strum_macros = "0.27.2"
+strum = "0.28.0"
+strum_macros = "0.28.0"
 
 sqlx = { version = "0.8.6", features = ["json", "postgres", "runtime-tokio", "tls-rustls"] }
 

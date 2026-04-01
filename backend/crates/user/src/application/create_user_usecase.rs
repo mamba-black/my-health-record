@@ -11,8 +11,10 @@ use log::error;
 
 pub mod dto {
     use app_core::domain::error::ClickCareError;
+    use crate::application::dto::CrueateUserError::UnknownError;
 
     pub struct CreateUserCommand {
+        pub user_id: String,
         pub username: String,
         pub email: String,
         pub password: String,
@@ -26,6 +28,12 @@ pub mod dto {
     pub enum CrueateUserError {
         UserAlreadyExists(ClickCareError),
         UnknownError(ClickCareError),
+    }
+
+    impl From<ClickCareError> for CrueateUserError {
+        fn from(value: ClickCareError) -> Self {
+            UnknownError(value)
+        }
     }
 }
 
@@ -59,17 +67,17 @@ impl UseCase for CreateUserUseCaseImpl {
             return Err(UserAlreadyExists(ClickCareError::generic(format!("User with document ID {} already exists", command.document_id))))
         }
 
-        let user = User {
-            name: command.username,
-            document_type: DNI,
-            document_number: command.document_id,
-            is_owner: command.create_clinic,
-        };
+        let user = User::new(
+            command.user_id,
+            command.username,
+            DNI,
+            command.document_id,
+            command.create_clinic,
+        )?;
 
         self.user_repository
             .save_user(&user)
-            .await
-            .map_err(UnknownError)?;
+            .await?;
 
         if user.is_owner {
             self.clinic_repository
