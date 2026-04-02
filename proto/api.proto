@@ -24,17 +24,31 @@ service PatientApi {
 }
 
 message SignUpRequest {
-    string user_id = 1;
-    string email = 2;
-    string document_type = 3;
-    string document_id = 4;
-    bool create_clinic = 5;
+    string id_token = 1;
+    string user_id = 2;
+    string provider_id = 3;
+    string provider_name = 4;
+    optional string provider_avatar_url = 5;
+    string email = 6;
+    string document_type = 7;
+    string document_id = 8;
+    string first_name = 9;
+    string last_name = 10;
+    optional string second_last_name = 11;
+    string phone = 12;
+    string address = 13;
+    string birthdate = 14;
+    optional string display_name = 15;
+    bool create_clinic = 16;
 }
 
 message SignUpResponse {
 }
 
-message SignInRequest {}
+message SignInRequest {
+    string id_token = 1;
+    string provider_id = 2;
+}
 message SignInResponse {}
 
 service UserApi {
