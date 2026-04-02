@@ -17,14 +17,14 @@ clinic = { path = "crates/clinic" }
 clinic_admin = { path = "crates/clinic_admin" }
 patient = { path = "crates/patient" }
 
-chrono = "0.4.43"
-regex = "1.12.2"
+chrono = "0.4.44"
+regex = "1.12.3"
 serde_json = "1.0.149"
 ulid = "1.2.1"
-thiserror = "2.0.17"
+thiserror = "2.0.18"
 async-trait = "0.1.89"
 uuidv7 = "0.1.7"
-uuid = { version = "1.19.0", features = ["v4", "v7"] }
+uuid = { version = "1.23.0", features = ["v4", "v7"] }
 dotenvy = "0.15.7"
 
 strum = "0.28.0"
@@ -36,12 +36,12 @@ sqlx = { version = "0.8.6", features = ["json", "postgres", "runtime-tokio", "tl
 ## =============================
 ## Dependencies for gRPC server
 axum = "0.8.8"
-tokio = { version = "1.49.0", features = ["tokio-macros", "rt-multi-thread"] }
-tonic = { version = "0.14.2" }
-tonic-reflection = "0.14.2"
-tonic-web = "0.14.2"
-tonic-prost = "0.14.2"
-tonic-prost-build = "0.14.2"
+tokio = { version = "1.50.0", features = ["tokio-macros", "rt-multi-thread"] }
+tonic = { version = "0.14.5" }
+tonic-reflection = "0.14.5"
+tonic-web = "0.14.5"
+tonic-prost = "0.14.5"
+tonic-prost-build = "0.14.5"
 prost = "0.14.3"
 prost-types = "0.14.3"
 
@@ -49,10 +49,10 @@ prost-types = "0.14.3"
 ## Observability
 log = "0.4.29"
 tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
 ## =============================
 ## Test
-fake = { version = "4.4.0", features = ["chrono"] }
+fake = { version = "5.1.0", features = ["chrono"] }
 rstest = "0.26.1"
 
