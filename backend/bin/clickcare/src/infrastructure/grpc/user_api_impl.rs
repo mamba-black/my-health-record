@@ -87,10 +87,21 @@ mod test {
     async fn test_sign_up_uuid_error(#[future(awt)] user_api_impl: UserApiImpl) -> TestResult {
 
         let request = Request::new(SignUpRequest{
+            id_token: "".to_string(),
             user_id: "".to_string(),
+            provider_id: "".to_string(),
+            provider_name: "".to_string(),
+            provider_avatar_url: None,
             email: "".to_string(),
             document_type: "".to_string(),
             document_id: "".to_string(),
+            first_name: "".to_string(),
+            last_name: "".to_string(),
+            second_last_name: None,
+            phone: "".to_string(),
+            address: "".to_string(),
+            birthdate: "".to_string(),
+            display_name: None,
             create_clinic: false,
         });
         let result = user_api_impl.sign_up(request).await;
@@ -105,10 +116,21 @@ mod test {
     async fn test_sign_up_uuid_v4_error(#[future(awt)] user_api_impl: UserApiImpl) -> TestResult {
 
         let request = Request::new(SignUpRequest{
+            id_token: "".to_string(),
             user_id: Uuid::new_v4().to_string(),
+            provider_id: "".to_string(),
+            provider_name: "".to_string(),
+            provider_avatar_url: None,
             email: "".to_string(),
             document_type: "".to_string(),
             document_id: "".to_string(),
+            first_name: "".to_string(),
+            last_name: "".to_string(),
+            second_last_name: None,
+            phone: "".to_string(),
+            address: "".to_string(),
+            birthdate: "".to_string(),
+            display_name: None,
             create_clinic: false,
         });
         let result = user_api_impl.sign_up(request).await;
@@ -124,11 +146,22 @@ mod test {
     async fn user_service_server_tests(#[future(awt)] user_api_impl: UserApiImpl) -> TestResult {
 
         let request = Request::new(SignUpRequest {
+            id_token: "".to_string(),
             user_id: "xxxx".to_string(),
+            provider_id: "".to_string(),
+            provider_name: "".to_string(),
+            provider_avatar_url: None,
             email: "miuler@gmail.com".to_string(),
             document_id: "40404040".to_string(),
+            first_name: "".to_string(),
+            last_name: "".to_string(),
+            second_last_name: None,
+            phone: "".to_string(),
+            address: "".to_string(),
+            birthdate: "".to_string(),
             document_type: DocumentType::DNI.to_string(),
             create_clinic: true,
+            display_name: None,
         });
 
         let result = user_api_impl.sign_up(request).await;
