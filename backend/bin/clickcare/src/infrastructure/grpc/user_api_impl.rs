@@ -126,27 +126,22 @@ mod test {
     }
 
     #[rstest]
+    #[case::empty_user_id("", "El ID de usuario está vacío")]
+    #[case::uuid_v4(Uuid::new_v4().to_string(), "Se está usando un UUID v4 inválido")]
     #[tokio::test]
-    async fn test_sign_up_uuid_error(#[future(awt)] user_api_impl: &UserApiImpl) -> TestResult {
-        let request = Request::new(SIGN_UP_REQUEST.clone());
-        let result = user_api_impl.sign_up(request).await;
-        assert!(result.is_err());
-        info!("error: {}", result.err().unwrap());
-
-        Ok(())
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn test_sign_up_uuid_v4_error(#[future(awt)] user_api_impl: &UserApiImpl) -> TestResult {
-
-        let request = Request::new(SignUpRequest{
-            user_id: Uuid::new_v4().to_string(),
+    async fn sign_up_fails_with_invalid_user_id(
+        #[future(awt)] user_api_impl: &UserApiImpl,
+        #[case] user_id: String,
+        #[case] case_message: &str,
+    ) -> TestResult {
+        info!("Probando caso: {}", case_message);
+        let request = Request::new(SignUpRequest {
+            user_id,
             ..SIGN_UP_REQUEST.clone()
         });
         let result = user_api_impl.sign_up(request).await;
-        assert!(result.is_err());
-        info!("error: {}", result.err().unwrap());
+        assert!(result.is_err(), "Se esperaba un error para: {}", case_message);
+        info!("Error detectado para '{}': {}", case_message, result.err().unwrap());
 
         Ok(())
     }
