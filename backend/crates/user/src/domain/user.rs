@@ -10,6 +10,9 @@ pub struct User {
     pub(crate) document_type: DocumentType,
     pub(crate) document_number: String,
     pub(crate) is_owner: bool,
+    pub(crate) email: String,
+    pub(crate) first_name: String,
+    pub(crate) last_name: String,
 }
 
 #[derive(Debug, Clone, Display)]
@@ -24,6 +27,9 @@ impl User {
         document_type: DocumentType,
         document_number: String,
         is_owner: bool,
+        email: String,
+        first_name: String,
+        last_name: String,
     ) -> Result<Self, ClickCareError> {
 
         match Uuid::from_str(id.as_str()) {
@@ -34,6 +40,9 @@ impl User {
                     document_type,
                     document_number,
                     is_owner,
+                    email,
+                    first_name,
+                    last_name,
                 })
             }
             Ok(id) => {

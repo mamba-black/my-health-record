@@ -14,13 +14,24 @@ pub mod dto {
     use crate::application::dto::CrueateUserError::UnknownError;
 
     pub struct CreateUserCommand {
+        pub id_token: String,
         pub user_id: String,
-        pub username: String,
+        pub provider_id: String,
+        pub provider_name: String,
+        pub provider_avatar_url: Option<String>,
         pub email: String,
-        pub password: String,
-        pub document_id: String,
         pub document_type: String,
+        pub document_id: String,
+        pub first_name: String,
+        pub last_name: String,
+        pub second_last_name: Option<String>,
+        pub phone: String,
+        pub address: String,
+        pub birthdate: String,
+        pub display_name: Option<String>,
         pub create_clinic: bool,
+        pub username: String,
+        pub password: String,
     }
 
     pub struct CreateUserResponse {}
@@ -73,6 +84,9 @@ impl UseCase for CreateUserUseCaseImpl {
             DNI,
             command.document_id,
             command.create_clinic,
+            command.email,
+            command.first_name,
+            command.last_name,
         )?;
 
         self.user_repository

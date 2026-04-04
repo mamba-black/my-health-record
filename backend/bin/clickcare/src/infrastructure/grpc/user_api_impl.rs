@@ -28,13 +28,24 @@ impl UserApi for UserApiImpl {
         let sign_up_request = sign_up_request.into_inner();
 
         let command = CreateUserCommand {
+            id_token: sign_up_request.id_token,
             user_id: sign_up_request.user_id,
-            username: sign_up_request.email.clone(),
-            email: sign_up_request.email,
-            password: "123".to_string(),
-            document_id: sign_up_request.document_id,
+            provider_id: sign_up_request.provider_id,
+            provider_name: sign_up_request.provider_name,
+            provider_avatar_url: sign_up_request.provider_avatar_url,
+            email: sign_up_request.email.clone(),
             document_type: sign_up_request.document_type,
+            document_id: sign_up_request.document_id,
+            first_name: sign_up_request.first_name,
+            last_name: sign_up_request.last_name,
+            second_last_name: sign_up_request.second_last_name,
+            phone: sign_up_request.phone,
+            address: sign_up_request.address,
+            birthdate: sign_up_request.birthdate,
+            display_name: sign_up_request.display_name,
             create_clinic: sign_up_request.create_clinic,
+            username: sign_up_request.email,
+            password: "123".to_string(),
         };
 
         self.create_user_use_case
