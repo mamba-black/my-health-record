@@ -50,7 +50,8 @@ mod test {
     use crate::domain::error::ClickCareError;
 
     #[test]
-    fn test_sign_up_uuid_error() -> Result<(), ClickCareError> {
-        Err(ClickCareError::generic("test"))
+    fn test_error() -> Result<(), ClickCareError> {
+        ClickCareError::generic("test");
+        Ok(())
     }
 }

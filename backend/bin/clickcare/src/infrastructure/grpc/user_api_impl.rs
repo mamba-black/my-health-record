@@ -68,9 +68,6 @@ impl UserApi for UserApiImpl {
 
 #[cfg(test)]
 mod test {
-    static INIT: Once = Once::new();
-    static USER_API_INSTANCE: OnceCell<UserApiImpl> = OnceCell::const_new();
-
     use crate::infrastructure::grpc::user_api_impl::UserApiImpl;
     use crate::infrastructure::grpc::user_api_server::UserApi;
     use crate::infrastructure::grpc::{SignUpRequest, SignUpResponse};
@@ -79,13 +76,36 @@ mod test {
     use dotenvy::dotenv;
     use log::info;
     use rstest::{fixture, rstest};
-    use std::sync::Once;
+    use std::sync::{LazyLock, Once};
     use tokio::sync::OnceCell;
-    use tonic::Request;
+    use tonic::{Request, Response, Status};
     use user::domain::user::DocumentType;
     use user::infrastructure::di;
     use user::infrastructure::di::DBType;
     use uuid::Uuid;
+
+    static INIT: Once = Once::new();
+    static USER_API_INSTANCE: OnceCell<UserApiImpl> = OnceCell::const_new();
+    static SIGN_UP_REQUEST: LazyLock<SignUpRequest> = LazyLock::new(|| SignUpRequest {
+        id_token: "".to_string(),
+        user_id: "".to_string(),
+        provider_id: "".to_string(),
+        provider_name: "".to_string(),
+        provider_avatar_url: None,
+        email: "".to_string(),
+        document_type: "".to_string(),
+        document_id: "".to_string(),
+        first_name: "".to_string(),
+        last_name: "".to_string(),
+        second_last_name: None,
+        phone: "".to_string(),
+        address: "".to_string(),
+        birthdate: "".to_string(),
+        display_name: None,
+        create_clinic: false,
+    });
+
+
 
     type TestResult = Result<(), ClickCareError>;
 
@@ -108,25 +128,7 @@ mod test {
     #[rstest]
     #[tokio::test]
     async fn test_sign_up_uuid_error(#[future(awt)] user_api_impl: &UserApiImpl) -> TestResult {
-
-        let request = Request::new(SignUpRequest{
-            id_token: "".to_string(),
-            user_id: "".to_string(),
-            provider_id: "".to_string(),
-            provider_name: "".to_string(),
-            provider_avatar_url: None,
-            email: "".to_string(),
-            document_type: "".to_string(),
-            document_id: "".to_string(),
-            first_name: "".to_string(),
-            last_name: "".to_string(),
-            second_last_name: None,
-            phone: "".to_string(),
-            address: "".to_string(),
-            birthdate: "".to_string(),
-            display_name: None,
-            create_clinic: false,
-        });
+        let request = Request::new(SIGN_UP_REQUEST.clone());
         let result = user_api_impl.sign_up(request).await;
         assert!(result.is_err());
         info!("error: {}", result.err().unwrap());
@@ -139,22 +141,8 @@ mod test {
     async fn test_sign_up_uuid_v4_error(#[future(awt)] user_api_impl: &UserApiImpl) -> TestResult {
 
         let request = Request::new(SignUpRequest{
-            id_token: "".to_string(),
             user_id: Uuid::new_v4().to_string(),
-            provider_id: "".to_string(),
-            provider_name: "".to_string(),
-            provider_avatar_url: None,
-            email: "".to_string(),
-            document_type: "".to_string(),
-            document_id: "".to_string(),
-            first_name: "".to_string(),
-            last_name: "".to_string(),
-            second_last_name: None,
-            phone: "".to_string(),
-            address: "".to_string(),
-            birthdate: "".to_string(),
-            display_name: None,
-            create_clinic: false,
+            ..SIGN_UP_REQUEST.clone()
         });
         let result = user_api_impl.sign_up(request).await;
         assert!(result.is_err());
@@ -163,35 +151,30 @@ mod test {
         Ok(())
     }
 
-    #[ignore]
     #[rstest]
     #[tokio::test]
     async fn user_service_server_tests(#[future(awt)] user_api_impl: &UserApiImpl) -> TestResult {
 
         let request = Request::new(SignUpRequest {
-            id_token: "".to_string(),
-            user_id: "xxxx".to_string(),
-            provider_id: "".to_string(),
-            provider_name: "".to_string(),
-            provider_avatar_url: None,
+            user_id: Uuid::now_v7().to_string(),
             email: "miuler@gmail.com".to_string(),
             document_id: "40404040".to_string(),
-            first_name: "".to_string(),
-            last_name: "".to_string(),
-            second_last_name: None,
-            phone: "".to_string(),
-            address: "".to_string(),
-            birthdate: "".to_string(),
             document_type: DocumentType::DNI.to_string(),
-            create_clinic: true,
-            display_name: None,
+            ..SIGN_UP_REQUEST.clone()
         });
 
         let result = user_api_impl.sign_up(request).await;
-        assert!(result.is_ok());
 
-        let sign_up_response = *(result.unwrap()).get_ref();
-        assert_eq!(sign_up_response, SignUpResponse {});
+        match result {
+            Ok(response) => {
+                let sign_up_response = *(response).get_ref();
+                assert_eq!(sign_up_response, SignUpResponse {});
+            }
+            Err(e) => {
+                info!("error: {}", e);
+                assert!(false, "Error inesperado: {}", e);
+            }
+        }
 
         Ok(())
     }
