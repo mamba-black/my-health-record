@@ -6,6 +6,7 @@ use tonic::*;
 use user::application::dto::{CreateUserCommand, CrueateUserError};
 use user::application::CreateUserUseCase;
 use user::infrastructure::di;
+use user::infrastructure::di::DBType;
 
 pub struct UserApiImpl {
     create_user_use_case: Box<dyn CreateUserUseCase>,
@@ -13,7 +14,7 @@ pub struct UserApiImpl {
 
 impl UserApiImpl {
     pub async fn new() -> Result<UserApiImpl, ClickCareError> {
-        let create_user_use_case = di::new().await?;
+        let create_user_use_case = di::new(DBType::Postgres).await?;
         Ok(Self { create_user_use_case })
     }
 }
@@ -70,6 +71,8 @@ mod test {
     use tonic::Request;
     use user::domain::user::DocumentType;
     use uuid::Uuid;
+    use user::infrastructure::di;
+    use user::infrastructure::di::DBType;
 
     type TestResult = Result<(), ClickCareError>;
 
@@ -79,7 +82,10 @@ mod test {
             dotenv().ok();
             init_logger();
         });
-        UserApiImpl::new().await.unwrap()
+        let create_user_use_case = di::new(DBType::Mock)
+            .await
+            .expect("Error al crear el UserApiImpl");
+        UserApiImpl { create_user_use_case }
     }
 
     #[rstest]
