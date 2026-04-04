@@ -69,6 +69,7 @@ impl UserApi for UserApiImpl {
 #[cfg(test)]
 mod test {
     static INIT: Once = Once::new();
+    static USER_API_INSTANCE: OnceCell<UserApiImpl> = OnceCell::const_new();
 
     use crate::infrastructure::grpc::user_api_impl::UserApiImpl;
     use crate::infrastructure::grpc::user_api_server::UserApi;
@@ -79,29 +80,34 @@ mod test {
     use log::info;
     use rstest::{fixture, rstest};
     use std::sync::Once;
+    use tokio::sync::OnceCell;
     use tonic::Request;
     use user::domain::user::DocumentType;
-    use uuid::Uuid;
     use user::infrastructure::di;
     use user::infrastructure::di::DBType;
+    use uuid::Uuid;
 
     type TestResult = Result<(), ClickCareError>;
 
     #[fixture]
-    async fn user_api_impl() -> UserApiImpl {
+    async fn user_api_impl() -> &'static UserApiImpl {
         INIT.call_once(|| {
             dotenv().ok();
             init_logger();
         });
-        let create_user_use_case = di::new(DBType::Mock)
-            .await
-            .expect("Error al crear el UserApiImpl");
-        UserApiImpl { create_user_use_case }
+
+        // Obtén o inicializa la instancia de UserApiImpl
+        USER_API_INSTANCE.get_or_init(|| async {
+            let create_user_use_case = di::new(DBType::Mock)
+                .await
+                .expect("Error al crear el UserApiImpl");
+            UserApiImpl { create_user_use_case }
+        }).await
     }
 
     #[rstest]
     #[tokio::test]
-    async fn test_sign_up_uuid_error(#[future(awt)] user_api_impl: UserApiImpl) -> TestResult {
+    async fn test_sign_up_uuid_error(#[future(awt)] user_api_impl: &UserApiImpl) -> TestResult {
 
         let request = Request::new(SignUpRequest{
             id_token: "".to_string(),
@@ -130,7 +136,7 @@ mod test {
 
     #[rstest]
     #[tokio::test]
-    async fn test_sign_up_uuid_v4_error(#[future(awt)] user_api_impl: UserApiImpl) -> TestResult {
+    async fn test_sign_up_uuid_v4_error(#[future(awt)] user_api_impl: &UserApiImpl) -> TestResult {
 
         let request = Request::new(SignUpRequest{
             id_token: "".to_string(),
@@ -160,7 +166,7 @@ mod test {
     #[ignore]
     #[rstest]
     #[tokio::test]
-    async fn user_service_server_tests(#[future(awt)] user_api_impl: UserApiImpl) -> TestResult {
+    async fn user_service_server_tests(#[future(awt)] user_api_impl: &UserApiImpl) -> TestResult {
 
         let request = Request::new(SignUpRequest {
             id_token: "".to_string(),
