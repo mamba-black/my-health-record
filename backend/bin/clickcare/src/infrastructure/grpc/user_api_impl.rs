@@ -23,9 +23,9 @@ impl UserApiImpl {
 impl UserApi for UserApiImpl {
     async fn sign_up(
         &self,
-        request: Request<SignUpRequest>,
+        sign_up_request: Request<SignUpRequest>,
     ) -> Result<Response<SignUpResponse>, Status> {
-        let sign_up_request = request.into_inner();
+        let sign_up_request = sign_up_request.into_inner();
 
         let command = CreateUserCommand {
             user_id: sign_up_request.user_id,

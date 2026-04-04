@@ -13,7 +13,7 @@ use crate::domain::repository::user_repository::UserRepository;
 pub async fn new(dbtype: DBType) -> Result<Box<dyn CreateUserUseCase>, ClickCareError> {
     let (sender, _receiver) = channel::<User>(100);
 
-    let user_repository: Box<(dyn UserRepository + Send + Sync)> = match dbtype {
+    let user_repository: Box<dyn UserRepository + Send + Sync> = match dbtype {
         DBType::Postgres => {
             let url = var("PG_URL").unwrap_or("postgres://user:password@localhost:5432".to_string());
             let pool = PgPool::connect(url.as_str()).await.map_err(|e| {

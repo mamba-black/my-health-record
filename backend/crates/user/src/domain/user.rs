@@ -37,10 +37,10 @@ impl User {
                 })
             }
             Ok(id) => {
-                Err(ClickCareError::generic("El id no es un UUID V7"))
+                Err(ClickCareError::generic(format!("El id no es un UUID V, id: {}", id)))
             }
             Err(e) => {
-                Err(ClickCareError::generic("El id no es un UUID"))
+                Err(ClickCareError::generic(format!("El id no es un UUID, error: {}", e)))
             }
         }
 
