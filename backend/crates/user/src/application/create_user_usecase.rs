@@ -48,16 +48,16 @@ pub mod dto {
     }
 }
 
-pub(crate) struct CreateUserUseCaseImpl {
-    pub(crate) user_repository: Box<dyn UserRepository + Send + Sync>,
-    pub(crate) clinic_repository: Box<dyn ClinicRepository + Send + Sync>,
-}
-
 pub trait CreateUserUseCase: UseCase<
     Command = CreateUserCommand,
     Response = CreateUserResponse,
     Error = CrueateUserError,
 > {}
+
+pub(crate) struct CreateUserUseCaseImpl {
+    pub(crate) user_repository: Box<dyn UserRepository + Send + Sync>,
+    pub(crate) clinic_repository: Box<dyn ClinicRepository + Send + Sync>,
+}
 
 impl CreateUserUseCase for CreateUserUseCaseImpl {}
 
