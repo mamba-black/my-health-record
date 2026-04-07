@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use crate::application::create_user_usecase::dto::CrueateUserError::{UnknownError, UserAlreadyExists};
 use crate::application::create_user_usecase::dto::{CreateUserCommand, CreateUserResponse, CrueateUserError};
 use crate::domain::repository::clinic_repository::ClinicRepository;
@@ -54,15 +55,15 @@ pub trait CreateUserUseCase: UseCase<
     Error = CrueateUserError,
 > {}
 
-pub(crate) struct CreateUserUseCaseImpl<UR: UserRepository, CR: ClinicRepository> {
-    pub(crate) user_repository: UR,
-    pub(crate) clinic_repository: CR,
+pub(crate) struct CreateUserUseCaseImpl {
+    pub(crate) user_repository: Arc<dyn UserRepository>,
+    pub(crate) clinic_repository: Arc<dyn ClinicRepository>,
 }
 
-impl<UR: UserRepository, CR: ClinicRepository> CreateUserUseCase for CreateUserUseCaseImpl<UR, CR> {}
+impl CreateUserUseCase for CreateUserUseCaseImpl {}
 
 #[async_trait]
-impl<UR: UserRepository, CR: ClinicRepository> UseCase for CreateUserUseCaseImpl<UR, CR> {
+impl UseCase for CreateUserUseCaseImpl {
     type Command = CreateUserCommand;
     type Response = CreateUserResponse;
     type Error = CrueateUserError;

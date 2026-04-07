@@ -5,14 +5,14 @@ use uuid::{Uuid, Version};
 
 #[derive(Debug, Clone)]
 pub struct User {
-    pub(crate) id: Uuid,
-    pub(crate) name: String,
-    pub(crate) document_type: DocumentType,
-    pub(crate) document_number: String,
-    pub(crate) is_owner: bool,
-    pub(crate) email: String,
-    pub(crate) first_name: String,
-    pub(crate) last_name: String,
+    pub id: Uuid,
+    pub name: String,
+    pub document_type: DocumentType,
+    pub document_number: String,
+    pub is_owner: bool,
+    pub email: String,
+    pub first_name: String,
+    pub last_name: String,
 }
 
 #[derive(Debug, Clone, Display)]

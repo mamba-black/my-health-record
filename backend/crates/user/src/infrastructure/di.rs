@@ -1,52 +1,116 @@
 use crate::application::{CreateUserUseCase, CreateUserUseCaseImpl};
+use crate::domain::repository::clinic_repository::ClinicRepository;
+use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::User;
 use crate::infrastructure::repository::clinic_repository_impl::ClinicRepositoryImpl;
 use crate::infrastructure::repository::emitter_impl::EmitterImpl;
 use crate::infrastructure::repository::user_repository_impl::UserRepositoryImpl;
 use app_core::domain::error::ClickCareError;
+use async_trait::async_trait;
 use sqlx::PgPool;
 use std::env::var;
-use async_trait::async_trait;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tokio::sync::broadcast::channel;
-use crate::domain::repository::user_repository::UserRepository;
+// ─── DI container ────────────────────────────────────────────────────────────
 
-pub async fn new(dbtype: DBType) -> Result<Box<dyn CreateUserUseCase>, ClickCareError> {
-    let (sender, _receiver) = channel::<User>(100);
+pub struct DI {
+    pub create_user_use_case: Arc<dyn CreateUserUseCase>,
+    user_repository: Arc<dyn UserRepository>,
+}
 
-    let create_user_use_case: Box<dyn CreateUserUseCase> = match dbtype {
+// ─── Overrides: solo los repos/servicios que quieres mockear ─────────────────
+
+/// Pasa aquí únicamente las dependencias que quieres sustituir.
+/// Todo lo que dejes en `None` se construirá con la implementación real.
+#[derive(Default)]
+pub struct DIOverrides {
+    pub user_repository: Option<Arc<dyn UserRepository>>,
+    pub clinic_repository: Option<Arc<dyn ClinicRepository>>,
+}
+
+// ─── Constructores ───────────────────────────────────────────────────────────
+
+/// Construye el DI completo con implementaciones reales.
+pub async fn new(dbtype: DBType) -> Result<DI, ClickCareError> {
+    new_with_overrides(dbtype, DIOverrides::default()).await
+}
+
+/// Construye el DI usando implementaciones reales, pero sustituye
+/// solo aquellas dependencias presentes en `overrides`.
+///
+/// # Ejemplo en tests
+/// ```rust
+/// let di = new_with_overrides(
+///     DBType::Postgres,
+///     DIOverrides {
+///         user_repository: Some(Arc::new(MockUserRepository::new())),
+///         ..Default::default()
+///     },
+/// ).await?;
+/// ```
+pub async fn new_with_overrides(
+    dbtype: DBType,
+    overrides: DIOverrides,
+) -> Result<DI, ClickCareError> {
+    // ── user_repository ──────────────────────────────────────────────────────
+    let user_repository: Arc<dyn UserRepository> = if let Some(repo) = overrides.user_repository {
+        repo
+    } else {
+        build_user_repository(dbtype).await?
+    };
+
+    // ── clinic_repository ────────────────────────────────────────────────────
+    let clinic_repository: Arc<dyn ClinicRepository> =
+        if let Some(repo) = overrides.clinic_repository {
+            repo
+        } else {
+            let (sender, _receiver) = channel::<User>(100);
+            Arc::new(ClinicRepositoryImpl {
+                user_emitter: Box::new(EmitterImpl { sender }),
+            })
+        };
+
+    // ── use cases ────────────────────────────────────────────────────────────
+    let create_user_use_case = Arc::new(CreateUserUseCaseImpl {
+        user_repository: Arc::clone(&user_repository),
+        clinic_repository,
+    });
+
+    Ok(DI {
+        create_user_use_case,
+        user_repository,
+    })
+}
+
+// ─── Helpers privados ────────────────────────────────────────────────────────
+
+async fn build_user_repository(dbtype: DBType) -> Result<Arc<dyn UserRepository>, ClickCareError> {
+    let user_repository: Arc<dyn UserRepository> = match dbtype {
         DBType::Postgres => {
-            let url = var("PG_URL").unwrap_or("postgres://user:password@localhost:5432".to_string());
+            let url =
+                var("PG_URL").unwrap_or("postgres://user:password@localhost:5432".to_string());
             let pool = PgPool::connect(url.as_str()).await.map_err(|e| {
                 ClickCareError::generic(format!("Error en la conexion a la DB [{}] ({})", url, e))
             })?;
-
-            Box::new(CreateUserUseCaseImpl {
-                user_repository: UserRepositoryImpl { pool },
-                clinic_repository: ClinicRepositoryImpl {
-                    user_emitter: Box::new(EmitterImpl { sender }),
-                },
-            })
+            Arc::new(UserRepositoryImpl { pool })
         }
-
-        DBType::Mock => {
-            Box::new(CreateUserUseCaseImpl {
-                user_repository: MockUserRepositoryImpl { },
-                clinic_repository: ClinicRepositoryImpl {
-                    user_emitter: Box::new(EmitterImpl { sender }),
-                },
-            })
-        }
+        DBType::Mock => Arc::new(MockUserRepositoryImpl {
+            saved_users: Mutex::new(Vec::new()),
+        }),
     };
 
-    Ok(create_user_use_case)
+    Ok(user_repository)
 }
 
 pub enum DBType {
     Postgres,
-    Mock
+    Mock,
 }
 
-struct MockUserRepositoryImpl;
+pub struct MockUserRepositoryImpl {
+    pub saved_users: Mutex<Vec<User>>,
+}
 
 #[async_trait]
 impl UserRepository for MockUserRepositoryImpl {
@@ -59,6 +123,8 @@ impl UserRepository for MockUserRepositoryImpl {
     }
 
     async fn save_user(&self, _user: &User) -> Result<(), ClickCareError> {
+        let mut users = self.saved_users.lock().await;
+        users.push(_user.clone());
         Ok(())
     }
 }
