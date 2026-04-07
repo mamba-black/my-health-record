@@ -13,28 +13,32 @@ use crate::domain::repository::user_repository::UserRepository;
 pub async fn new(dbtype: DBType) -> Result<Box<dyn CreateUserUseCase>, ClickCareError> {
     let (sender, _receiver) = channel::<User>(100);
 
-    let user_repository: Box<dyn UserRepository + Send + Sync> = match dbtype {
+    let create_user_use_case: Box<dyn CreateUserUseCase> = match dbtype {
         DBType::Postgres => {
             let url = var("PG_URL").unwrap_or("postgres://user:password@localhost:5432".to_string());
             let pool = PgPool::connect(url.as_str()).await.map_err(|e| {
                 ClickCareError::generic(format!("Error en la conexion a la DB [{}] ({})", url, e))
             })?;
-            Box::new(UserRepositoryImpl { pool })
+
+            Box::new(CreateUserUseCaseImpl {
+                user_repository: UserRepositoryImpl { pool },
+                clinic_repository: ClinicRepositoryImpl {
+                    user_emitter: Box::new(EmitterImpl { sender }),
+                },
+            })
         }
+
         DBType::Mock => {
-            Box::new(MockUserRepositoryImpl{})
+            Box::new(CreateUserUseCaseImpl {
+                user_repository: MockUserRepositoryImpl { },
+                clinic_repository: ClinicRepositoryImpl {
+                    user_emitter: Box::new(EmitterImpl { sender }),
+                },
+            })
         }
     };
 
-
-    let create_user_use_case = CreateUserUseCaseImpl {
-        user_repository,
-        clinic_repository: Box::new(ClinicRepositoryImpl {
-            user_emitter: Box::new(EmitterImpl { sender }),
-        }),
-    };
-
-    Ok(Box::new(create_user_use_case))
+    Ok(create_user_use_case)
 }
 
 pub enum DBType {

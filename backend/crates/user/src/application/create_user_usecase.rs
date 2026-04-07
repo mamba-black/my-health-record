@@ -54,15 +54,15 @@ pub trait CreateUserUseCase: UseCase<
     Error = CrueateUserError,
 > {}
 
-pub(crate) struct CreateUserUseCaseImpl {
-    pub(crate) user_repository: Box<dyn UserRepository + Send + Sync>,
-    pub(crate) clinic_repository: Box<dyn ClinicRepository + Send + Sync>,
+pub(crate) struct CreateUserUseCaseImpl<UR: UserRepository, CR: ClinicRepository> {
+    pub(crate) user_repository: UR,
+    pub(crate) clinic_repository: CR,
 }
 
-impl CreateUserUseCase for CreateUserUseCaseImpl {}
+impl<UR: UserRepository, CR: ClinicRepository> CreateUserUseCase for CreateUserUseCaseImpl<UR, CR> {}
 
 #[async_trait]
-impl UseCase for CreateUserUseCaseImpl {
+impl<UR: UserRepository, CR: ClinicRepository> UseCase for CreateUserUseCaseImpl<UR, CR> {
     type Command = CreateUserCommand;
     type Response = CreateUserResponse;
     type Error = CrueateUserError;
