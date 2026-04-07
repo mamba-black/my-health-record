@@ -1,0 +1,35 @@
+graph TD
+    Start((Inicio)) --> Request[Recibir SignUpRequest]
+
+    subgraph "UserService (Infrastructure API)"
+        Request --> MapCommand[Mapear a CreateUserCommand]
+        MapCommand --> ExecuteUC[Ejecutar CreateUserUseCase]
+    end
+
+    subgraph "CreateUserUseCase (Application)"
+        ExecuteUC --> CheckExist{¿Usuario existe?<br/>document_id}
+
+        CheckExist -- Sí --> ErrExists[Retornar UserAlreadyExists]
+        CheckExist -- No --> CreateUserObj[Instanciar Entidad User]
+
+        CreateUserObj --> SaveUser[UserRepository: save_user]
+
+        SaveUser --> IsOwner{¿create_clinic == true?}
+
+        IsOwner -- No --> SuccessUC[Retornar Success]
+
+        IsOwner -- Sí --> CreateClinic[ClinicRepository: create_clinic_for_user]
+        CreateClinic --> SuccessUC
+    end
+
+    subgraph "Error Handling"
+        ErrExists --> MapError[Mapear a gRPC Status]
+        CreateClinic -- Error --> UnknownErr[Retornar UnknownError]
+        UnknownErr --> MapError
+    end
+
+    SuccessUC --> Response[Retornar SignUpResponse]
+    MapError --> ErrorResp[Retornar Error Status]
+
+    Response --> End((Fin))
+    ErrorResp --> End
