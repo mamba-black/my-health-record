@@ -1,5 +1,5 @@
-pub(crate) mod patient_api_impl;
-pub(crate) mod user_api_impl;
+pub mod patient_api_impl;
+pub mod user_api_impl;
 
 
 include!(concat!(env!("OUT_DIR"), "/grpc.rs"));

@@ -87,9 +87,14 @@ pub async fn new_with_overrides(
 
 async fn build_user_repository(dbtype: DBType) -> Result<Arc<dyn UserRepository>, ClickCareError> {
     let user_repository: Arc<dyn UserRepository> = match dbtype {
-        DBType::Postgres => {
-            let url =
-                var("PG_URL").unwrap_or("postgres://user:password@localhost:5432".to_string());
+        DBType::Postgres(Some(url)) => {
+            let pool = PgPool::connect(url.as_str()).await.map_err(|e| {
+                ClickCareError::generic(format!("Error en la conexion a la DB [{}] ({})", url, e))
+            })?;
+            Arc::new(UserRepositoryImpl { pool })
+        }
+        DBType::Postgres(None) => {
+            let url = var("PG_URL").unwrap_or("postgres://user:password@localhost:5432".to_string());
             let pool = PgPool::connect(url.as_str()).await.map_err(|e| {
                 ClickCareError::generic(format!("Error en la conexion a la DB [{}] ({})", url, e))
             })?;
@@ -104,7 +109,7 @@ async fn build_user_repository(dbtype: DBType) -> Result<Arc<dyn UserRepository>
 }
 
 pub enum DBType {
-    Postgres,
+    Postgres(Option<String>),
     Mock,
 }
 

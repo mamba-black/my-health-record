@@ -1,1 +1,1 @@
-pub(crate) mod infrastructure;
+pub mod infrastructure;

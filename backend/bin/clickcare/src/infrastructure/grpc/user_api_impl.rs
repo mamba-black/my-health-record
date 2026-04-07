@@ -14,8 +14,8 @@ pub struct UserApiImpl {
 }
 
 impl UserApiImpl {
-    pub async fn new() -> Result<UserApiImpl, ClickCareError> {
-        let di = di::new(DBType::Postgres).await?;
+    pub async fn new(url: Option<String>) -> Result<UserApiImpl, ClickCareError> {
+        let di = di::new(DBType::Postgres(url)).await?;
         Ok(Self {
             create_user_use_case: di.create_user_use_case,
         })

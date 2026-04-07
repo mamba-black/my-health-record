@@ -8,9 +8,9 @@ use tonic::transport::Server;
 use tonic_web::GrpcWebLayer;
 
 pub(crate) mod log;
-pub(crate) mod grpc;
+pub mod grpc;
 
-pub async fn start_server() -> Result<(), ClickCareError> {
+pub async fn start_server(url: Option<String>) -> Result<(), ClickCareError> {
     let addr = "[::1]:50051"
         .parse()
         .map_err(|e| ClickCareError::generic(format!("Error al parsear la direccion del servidor: {}", e)))?;
@@ -21,7 +21,7 @@ pub async fn start_server() -> Result<(), ClickCareError> {
         .expect("Could not build server");
 
     let patient_service_server = PatientApiServer::new(PatientApiImpl::default());
-    let user_service_server = UserApiServer::new(UserApiImpl::new().await?);
+    let user_service_server = UserApiServer::new(UserApiImpl::new(url).await?);
 
     Server::builder()
         .layer(GrpcWebLayer::new())

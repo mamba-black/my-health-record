@@ -10,7 +10,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_logger();
     dotenv().ok();
 
-    start_server().await?;
+    start_server(None).await?;
 
     debug!("This is a log message.");
     info!("This is a log message.");

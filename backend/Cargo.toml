@@ -41,6 +41,7 @@ postgres = "0.19.13"
 ## Dependencies for gRPC server
 axum = "0.8.8"
 tokio = { version = "1.50.0", features = ["tokio-macros", "rt-multi-thread"] }
+tokio-stream = "0.1.18"
 tonic = { version = "0.14.5" }
 tonic-reflection = "0.14.5"
 tonic-web = "0.14.5"
