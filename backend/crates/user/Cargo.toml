@@ -15,3 +15,8 @@ sqlx.workspace = true
 log = "0.4.29"
 uuid.workspace = true
 bon.workspace = true
+
+[dev-dependencies]
+testcontainers.workspace = true
+testcontainers-modules.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
