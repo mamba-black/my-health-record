@@ -6,7 +6,7 @@ mod test {
     use clickcare::infrastructure::grpc::SignUpRequest;
     use rstest::*;
     use testcontainers::runners::AsyncRunner;
-    use testcontainers::ContainerAsync;
+    use testcontainers::{ContainerAsync, ImageExt};
     use testcontainers_modules::postgres;
     use tokio::net::TcpListener;
     use tokio::sync::OnceCell;
@@ -25,10 +25,12 @@ mod test {
             .get_or_init(|| async {
                 let user = "admin";
                 let password = "admin123";
+                let timestamp = chrono::Utc::now().format("%Y%m%d%H%M%S").to_string();
 
                 let container = postgres::Postgres::default()
                     .with_user(user)
                     .with_password(password)
+                    .with_container_name(format!("clickcare-test-{}", timestamp))
                     .start()
                     .await
                     .unwrap();
@@ -84,7 +86,7 @@ mod test {
         let response = client.sign_up(request).await;
 
         assert!(response.is_ok());
-        let inner = response.unwrap().into_inner();
+        let _inner = response.unwrap().into_inner();
         // Validar contenido del response
     }
 }
