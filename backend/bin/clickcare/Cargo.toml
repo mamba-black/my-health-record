@@ -43,6 +43,7 @@ tonic-prost-build.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true
+ctor.workspace = true
 testcontainers.workspace = true
 testcontainers-modules.workspace = true
 postgres.workspace = true

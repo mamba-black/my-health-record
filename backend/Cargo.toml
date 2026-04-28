@@ -22,7 +22,7 @@ ulid = "1.2.1"
 thiserror = "2.0.18"
 async-trait = "0.1.89"
 uuidv7 = "0.1.7"
-uuid = { version = "1.23.0", features = ["v4", "v7"] }
+uuid = { version = "1.23.1", features = ["v4", "v7"] }
 dotenvy = "0.15.7"
 
 strum = "0.28.0"
@@ -39,8 +39,8 @@ postgres = "0.19.13"
 
 ## =============================
 ## Dependencies for gRPC server
-axum = "0.8.8"
-tokio = { version = "1.50.0", features = ["tokio-macros", "rt-multi-thread"] }
+axum = "0.8.9"
+tokio = { version = "1.52.1", features = ["tokio-macros", "rt-multi-thread"] }
 tokio-stream = "0.1.18"
 tonic = { version = "0.14.5" }
 tonic-reflection = "0.14.5"
@@ -60,5 +60,6 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 ## Test
 fake = { version = "5.1.0", features = ["chrono"] }
 rstest = "0.26.1"
-testcontainers = { version = "0.27.2", features = ["blocking"] }
+ctor = "0.10.1"
+testcontainers = { version = "0.27.3", features = ["blocking"] }
 testcontainers-modules = { version = "0.15.0", features = ["postgres"] }

@@ -69,6 +69,18 @@ mod test {
         test_env().await.grpc_addr.as_str()
     }
 
+    #[ctor::dtor]
+    fn shutdown() {
+        if let Some(env) = TEST_ENV.get() {
+            println!("Shutting down test environment with gRPC server at {}", env.grpc_addr);
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                // Aquí podrías agregar lógica para limpiar la base de datos o realizar otras tareas de limpieza si es necesario.
+                let _ = env._container.stop().await;
+            });
+        }
+    }
+
     #[rstest]
     #[tokio::test]
     async fn test_sign_up_grpc_integration(#[future(awt)] grpc_server_addr: &'static str) {

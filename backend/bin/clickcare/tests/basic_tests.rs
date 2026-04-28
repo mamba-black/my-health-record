@@ -79,6 +79,4 @@ mod tests {
         uuid_for_month(2026, 1);
     }
 
-
-    
 }
