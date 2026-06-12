@@ -14,7 +14,6 @@ patient.workspace = true
 chrono.workspace = true
 ulid.workspace = true
 uuid.workspace = true
-uuidv7.workspace = true
 dotenvy.workspace = true
 
 ## =============================

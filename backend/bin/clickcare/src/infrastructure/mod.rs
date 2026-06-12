@@ -7,7 +7,7 @@ use app_core::domain::error::ClickCareError;
 use tonic::transport::Server;
 use tonic_web::GrpcWebLayer;
 
-pub(crate) mod log;
+pub mod log;
 pub mod grpc;
 
 pub async fn start_server(url: Option<String>) -> Result<(), ClickCareError> {

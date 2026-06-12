@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod test {
+    use dotenvy::dotenv;
     use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
     use clickcare::infrastructure::grpc::user_api_impl::UserApiImpl;
     use clickcare::infrastructure::grpc::user_api_server::UserApiServer;
@@ -11,6 +12,7 @@ mod test {
     use tokio::net::TcpListener;
     use tokio::sync::OnceCell;
     use tonic::transport::Server;
+    use clickcare::infrastructure::log::init_logger;
 
     struct TestEnv {
         grpc_addr: String,
@@ -23,6 +25,9 @@ mod test {
     async fn test_env() -> &'static TestEnv {
         TEST_ENV
             .get_or_init(|| async {
+                init_logger();
+                dotenv().ok();
+
                 let user = "admin";
                 let password = "admin123";
                 let timestamp = chrono::Utc::now().format("%Y%m%d%H%M%S").to_string();
@@ -81,24 +86,56 @@ mod test {
         }
     }
 
-    #[rstest]
-    #[tokio::test]
-    async fn test_sign_up_grpc_integration(#[future(awt)] grpc_server_addr: &'static str) {
-        let mut client = UserApiClient::connect(grpc_server_addr)
-            .await
-            .expect("Fallo al conectar");
+    mod uuid_test {
+        use log::info;
+        use rstest::rstest;
+        use clickcare::infrastructure::grpc::SignUpRequest;
+        use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
+        use crate::test::grpc_server_addr;
 
-        let request = tonic::Request::new(SignUpRequest {
-            id_token: "test-token".into(),
-            user_id: uuid::Uuid::now_v7().to_string(),
-            email: "test@example.com".into(),
-            ..Default::default()
-        });
+        #[rstest]
+        #[tokio::test]
+        async fn test_user_id_error_uuid_v4(#[future(awt)] grpc_server_addr: &'static str) {
+            let mut client = UserApiClient::connect(grpc_server_addr)
+                .await
+                .expect("Fallo al conectar");
 
-        let response = client.sign_up(request).await;
+            let request = tonic::Request::new(SignUpRequest {
+                id_token: "test-token".into(),
+                user_id: uuid::Uuid::new_v4().to_string(),
+                email: "test@example.com".into(),
+                ..Default::default()
+            });
 
-        assert!(response.is_ok());
-        let _inner = response.unwrap().into_inner();
-        // Validar contenido del response
+            let response = client.sign_up(request).await;
+
+            info!("Response: {:?}", response);
+            assert!(response.is_err());
+            let _inner = response.unwrap().into_inner();
+            // Validar contenido del response
+        }
+
+        #[rstest]
+        #[tokio::test]
+        async fn test_sign_up_grpc_integration(#[future(awt)] grpc_server_addr: &'static str) {
+            let mut client = UserApiClient::connect(grpc_server_addr)
+                .await
+                .expect("Fallo al conectar");
+
+            let request = tonic::Request::new(SignUpRequest {
+                id_token: "test-token".into(),
+                user_id: uuid::Uuid::now_v7().to_string(),
+                email: "test@example.com".into(),
+                ..Default::default()
+            });
+
+            let response = client.sign_up(request).await;
+
+            info!("Response: {:?}", response);
+            assert!(response.is_ok());
+            let _inner = response.unwrap().into_inner();
+            // Validar contenido del response
+        }
     }
+
 }

@@ -21,7 +21,6 @@ serde_json = "1.0.149"
 ulid = "1.2.1"
 thiserror = "2.0.18"
 async-trait = "0.1.89"
-uuidv7 = "0.1.7"
 uuid = { version = "1.23.1", features = ["v4", "v7"] }
 dotenvy = "0.15.7"
 
