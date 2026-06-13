@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: Pod
+metadata:
+    name: postgres
+    labels:
+        app: postgres
+spec:
+    containers:
+        -   name: postgres
+            image: postgres:17-alpine
+            ports:
+                -   containerPort: 5432
+                    protocol: TCP
+            env:
+                -   name: POSTGRES_DB
+                    value: "clickcare"
+                -   name: POSTGRES_USER
+                    value: "postgres"
+                -   name: POSTGRES_PASSWORD
+                    value: "postgres"
+#                    valueFrom:
+#                        secretKeyRef:
+#                            name: postgres-secret
+#                            key: password
+#                -   name: PGDATA
+#                    value: "/var/lib/postgresql/data/pgdata"
+#            volumeMounts:
+#                -   name: postgres-storage
+#                    mountPath: /var/lib/postgresql/data
+            resources:
+                requests:
+                    memory: "256Mi"
+                    cpu: "250m"
+                limits:
+                    memory: "512Mi"
+                    cpu: "500m"
+            livenessProbe:
+                exec:
+                    command:
+                        - pg_isready
+                        - -U
+                        - postgres
+                initialDelaySeconds: 30
+                periodSeconds: 10
+            readinessProbe:
+                exec:
+                    command:
+                        - pg_isready
+                        - -U
+                        - postgres
+                initialDelaySeconds: 5
+                periodSeconds: 5
+#    volumes:
+#        -   name: postgres-storage
+#            persistentVolumeClaim:
+#                claimName: postgres-pvc
+#---
+#apiVersion: v1
+#kind: Secret
+#metadata:
+#    name: postgres-secret
+#type: Opaque
+#stringData:
+#    password: "postgres"
+#---
+#apiVersion: v1
+#kind: PersistentVolumeClaim
+#metadata:
+#    name: postgres-pvc
+#spec:
+#    accessModes:
+#        - ReadWriteOnce
+#    resources:
+#        requests:
+#            storage: 1Gi
