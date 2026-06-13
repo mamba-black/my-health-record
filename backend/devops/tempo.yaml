@@ -204,6 +204,20 @@ data:
             spanEndTimeShift: '1h'
             filterByTraceID: true
             filterBySpanID: false
+          tracesToMetrics:
+            datasourceUid: prometheus-uid
+            spanStartTimeShift: '-10m'
+            spanEndTimeShift: '10m'
+            tags:
+              - key: 'service.name'
+                value: 'job'
+            queries:
+              - name: 'Uso de CPU'
+                query: 'system_cpu_utilization_ratio'
+              - name: 'Uso de Memoria'
+                query: 'system_memory_usage_bytes'
+
+
 
 
 ---
