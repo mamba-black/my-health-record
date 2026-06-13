@@ -14,44 +14,44 @@ clinic = { path = "crates/clinic" }
 clinic_admin = { path = "crates/clinic_admin" }
 patient = { path = "crates/patient" }
 
-chrono = "0.4.44"
-bon = "3.9.1"
-regex = "1.12.3"
-serde_json = "1.0.149"
+chrono = "0.4.45"
+bon = "3.9.2"
+regex = "1.12.4"
+serde_json = "1.0.150"
 ulid = "1.2.1"
 thiserror = "2.0.18"
 async-trait = "0.1.89"
-uuid = { version = "1.23.1", features = ["v4", "v7"] }
+uuid = { version = "1.23.3", features = ["v4", "v7"] }
 dotenvy = "0.15.7"
 
 strum = "0.28.0"
 strum_macros = "0.28.0"
 
-sqlx = { version = "0.8.6", features = [
+sqlx = { version = "0.9.0", features = [
     "json",
     "postgres",
     "runtime-tokio",
     "tls-rustls",
 ] }
-postgres = "0.19.13"
+postgres = "0.19.14"
 
 
 ## =============================
 ## Dependencies for gRPC server
 axum = "0.8.9"
-tokio = { version = "1.52.1", features = ["tokio-macros", "rt-multi-thread"] }
+tokio = { version = "1.52.3", features = ["tokio-macros", "rt-multi-thread"] }
 tokio-stream = "0.1.18"
-tonic = { version = "0.14.5" }
-tonic-reflection = "0.14.5"
-tonic-web = "0.14.5"
-tonic-prost = "0.14.5"
-tonic-prost-build = "0.14.5"
-prost = "0.14.3"
-prost-types = "0.14.3"
+tonic = { version = "0.14.6" }
+tonic-reflection = "0.14.6"
+tonic-web = "0.14.6"
+tonic-prost = "0.14.6"
+tonic-prost-build = "0.14.6"
+prost = "0.14.4"
+prost-types = "0.14.4"
 
 ## =============================
 ## Observability
-log = "0.4.29"
+log = "0.4.32"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 
@@ -59,6 +59,7 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 ## Test
 fake = { version = "5.1.0", features = ["chrono"] }
 rstest = "0.26.1"
-ctor = "0.10.1"
+ctor = "1.0.7"
+dtor = "1.0.5"
 testcontainers = { version = "0.27.3", features = ["blocking"] }
 testcontainers-modules = { version = "0.15.0", features = ["postgres"] }

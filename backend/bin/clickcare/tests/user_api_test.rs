@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod test {
     use dotenvy::dotenv;
+    use dtor::dtor;
     use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
     use clickcare::infrastructure::grpc::user_api_impl::UserApiImpl;
     use clickcare::infrastructure::grpc::user_api_server::UserApiServer;
@@ -74,7 +75,7 @@ mod test {
         test_env().await.grpc_addr.as_str()
     }
 
-    #[ctor::dtor]
+    #[dtor]
     fn shutdown() {
         if let Some(env) = TEST_ENV.get() {
             println!("Shutting down test environment with gRPC server at {}", env.grpc_addr);
