@@ -24,6 +24,8 @@ impl UserApiImpl {
 
 #[async_trait]
 impl UserApi for UserApiImpl {
+
+    #[tracing::instrument(skip(self, sign_up_request))]
     async fn sign_up(
         &self,
         sign_up_request: Request<SignUpRequest>,

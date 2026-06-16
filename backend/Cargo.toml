@@ -54,6 +54,13 @@ prost-types = "0.14.4"
 log = "0.4.32"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+tracing-opentelemetry = "0.33.0"
+
+opentelemetry = { version = "0.32.0", features = ["metrics", "logs"] }
+opentelemetry_sdk = { version = "0.32.1", features = ["rt-tokio", "metrics", "logs"] }
+opentelemetry-otlp = { version = "0.32.0", features = ["grpc-tonic", "http-proto", "metrics"] }
+opentelemetry-appender-tracing = "0.32.0"
+sys-info = "0.9.1"
 
 ## =============================
 ## Test

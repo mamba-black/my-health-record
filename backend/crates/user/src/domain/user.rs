@@ -1,4 +1,5 @@
 use std::str::FromStr;
+use log::{debug, error, info};
 use strum_macros::Display;
 use app_core::domain::error::ClickCareError;
 use uuid::{Uuid, Version};
@@ -49,7 +50,8 @@ impl User {
                 Err(ClickCareError::generic(format!("El id no es un UUID V7, id: {}", id)))
             }
             Err(e) => {
-                Err(ClickCareError::generic(format!("El id no es un UUID, error: {}", e)))
+                error!("Error desconocido al parsear el id, error: {e}");
+                Err(ClickCareError::generic(format!("Error desconocido al parsear el id, error: {}", e)))
             }
         }
 

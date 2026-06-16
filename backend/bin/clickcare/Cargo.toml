@@ -20,6 +20,7 @@ dotenvy.workspace = true
 ## Dependencies for gRPC server
 axum.workspace = true
 tokio.workspace = true
+tokio-stream.workspace = true
 tonic.workspace = true
 tonic-web.workspace = true
 tonic-prost.workspace = true
@@ -32,10 +33,17 @@ prost-types.workspace = true
 log.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+tracing-opentelemetry.workspace = true
 
+opentelemetry.workspace = true
+opentelemetry_sdk.workspace = true
+opentelemetry-otlp.workspace = true
+opentelemetry-appender-tracing.workspace = true
+sys-info.workspace = true
+
+## =============================
 fake.workspace = true
 regex.workspace = true
-tokio-stream.workspace = true
 
 [build-dependencies]
 tonic-prost-build.workspace = true
