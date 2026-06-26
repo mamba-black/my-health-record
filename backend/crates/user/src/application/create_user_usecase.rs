@@ -14,6 +14,7 @@ pub mod dto {
     use app_core::domain::error::ClickCareError;
     use crate::application::dto::CrueateUserError::UnknownError;
 
+    #[derive(Debug)]
     pub struct CreateUserCommand {
         pub id_token: String,
         pub user_id: String,

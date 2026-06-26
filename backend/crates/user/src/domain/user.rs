@@ -32,6 +32,7 @@ impl User {
         first_name: String,
         last_name: String,
     ) -> Result<Self, ClickCareError> {
+        debug!("user.id: {id}");
 
         match Uuid::from_str(id.as_str()) {
             Ok(id) if id.get_version() == Some(Version::SortRand) => {

@@ -15,6 +15,7 @@ sqlx.workspace = true
 log = "0.4.32"
 uuid.workspace = true
 bon.workspace = true
+tracing = "0.1.44"
 
 [dev-dependencies]
 testcontainers.workspace = true

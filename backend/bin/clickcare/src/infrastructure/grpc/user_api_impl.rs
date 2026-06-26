@@ -4,6 +4,7 @@ use crate::infrastructure::grpc::*;
 use app_core::domain::error::ClickCareError;
 use std::sync::Arc;
 use tonic::*;
+use tracing::debug;
 use user::application::CreateUserUseCase;
 use user::application::dto::{CreateUserCommand, CrueateUserError};
 use user::infrastructure::di;
@@ -52,6 +53,7 @@ impl UserApi for UserApiImpl {
             username: sign_up_request.email,
             password: "123".to_string(),
         };
+        debug!("command: {:?}", command);
 
         self.create_user_use_case
             .execute(command)
