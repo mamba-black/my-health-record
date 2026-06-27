@@ -91,6 +91,54 @@ mod sign_up {
     use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
     use crate::grpc_server_addr;
 
+    // ---- Happy path -------------------------------------------------------
+
+    #[rstest]
+    #[tokio::test]
+    async fn sign_up_succeeds_with_valid_uuid_v7(
+        #[future(awt)] grpc_server_addr: &'static str,
+    ) {
+        let mut client = UserApiClient::connect(grpc_server_addr)
+            .await
+            .expect("Fallo al conectar");
+
+        let request = tonic::Request::new(SignUpRequest {
+            id_token: "test-token".into(),
+            user_id: uuid::Uuid::now_v7().to_string(),
+            email: "test@example.com".into(),
+            ..Default::default()
+        });
+
+        let response = client.sign_up(request).await;
+
+        info!("Response: {:?}", response);
+        assert!(response.is_ok());
+        let _inner = response.unwrap().into_inner();
+        // Validar contenido del response
+    }
+
+    #[rstest]
+    #[tokio::test]
+    #[ignore = "TODO: requiere UserRepositoryImpl real (save_user) + lectura"]
+    async fn sign_up_persists_user_in_database(
+        #[future(awt)] grpc_server_addr: &'static str,
+    ) {
+        let _ = grpc_server_addr;
+        todo!("tras un sign_up exitoso, leer el usuario por id y verificar que se guardó con los datos enviados");
+    }
+
+    #[rstest]
+    #[tokio::test]
+    #[ignore = "TODO: requiere lógica de creación de clínica (flag create_clinic)"]
+    async fn sign_up_creates_clinic_when_create_clinic_is_true(
+        #[future(awt)] grpc_server_addr: &'static str,
+    ) {
+        let _ = grpc_server_addr;
+        todo!("sign_up con create_clinic=true -> verificar que se creó la clínica asociada al usuario");
+    }
+
+    // ---- Validación de entrada -------------------------------------------
+
     #[rstest]
     #[tokio::test]
     async fn sign_up_fails_when_user_id_is_not_uuid_v7(
@@ -120,25 +168,87 @@ mod sign_up {
 
     #[rstest]
     #[tokio::test]
-    async fn sign_up_succeeds_with_valid_uuid_v7(
+    #[ignore = "TODO: requiere validación de email en el caso de uso"]
+    async fn sign_up_fails_when_email_is_invalid(
         #[future(awt)] grpc_server_addr: &'static str,
     ) {
-        let mut client = UserApiClient::connect(grpc_server_addr)
-            .await
-            .expect("Fallo al conectar");
+        let _ = grpc_server_addr;
+        todo!("enviar email sin formato válido (ej. 'no-es-email') -> esperar status InvalidArgument");
+    }
 
-        let request = tonic::Request::new(SignUpRequest {
-            id_token: "test-token".into(),
-            user_id: uuid::Uuid::now_v7().to_string(),
-            email: "test@example.com".into(),
-            ..Default::default()
-        });
+    #[rstest]
+    #[tokio::test]
+    #[ignore = "TODO: requiere validación de campos requeridos"]
+    async fn sign_up_fails_when_required_fields_are_missing(
+        #[future(awt)] grpc_server_addr: &'static str,
+    ) {
+        let _ = grpc_server_addr;
+        todo!("enviar SignUpRequest con first_name/last_name/document_id vacíos -> esperar InvalidArgument");
+    }
 
-        let response = client.sign_up(request).await;
+    // ---- Autenticación ----------------------------------------------------
 
-        info!("Response: {:?}", response);
-        assert!(response.is_ok());
-        let _inner = response.unwrap().into_inner();
-        // Validar contenido del response
+    #[rstest]
+    #[tokio::test]
+    #[ignore = "TODO: requiere verificación del id_token (auth)"]
+    async fn sign_up_fails_when_id_token_is_invalid(
+        #[future(awt)] grpc_server_addr: &'static str,
+    ) {
+        let _ = grpc_server_addr;
+        todo!("enviar id_token inválido/expirado -> esperar status Unauthenticated");
+    }
+
+    // ---- Reglas de negocio ------------------------------------------------
+
+    #[rstest]
+    #[tokio::test]
+    #[ignore = "TODO: requiere UserRepositoryImpl real (exist_user)"]
+    async fn sign_up_fails_when_user_already_exists(
+        #[future(awt)] grpc_server_addr: &'static str,
+    ) {
+        let _ = grpc_server_addr;
+        todo!(
+            "registrar un user_id v7, reintentar el mismo user_id -> esperar status AlreadyExists"
+        );
+    }
+}
+
+mod sign_in {
+    // Imports que usarán los tests cuando se implementen (hoy son stubs).
+    #[allow(unused_imports)]
+    use clickcare::infrastructure::grpc::SignInRequest;
+    #[allow(unused_imports)]
+    use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
+    use crate::grpc_server_addr;
+    use rstest::rstest;
+
+    #[rstest]
+    #[tokio::test]
+    #[ignore = "TODO: SignIn no implementado en UserApiImpl"]
+    async fn sign_in_succeeds_with_valid_credentials(
+        #[future(awt)] grpc_server_addr: &'static str,
+    ) {
+        let _ = grpc_server_addr;
+        todo!("registrar un usuario y luego sign_in con id_token+provider_id válidos -> esperar Ok");
+    }
+
+    #[rstest]
+    #[tokio::test]
+    #[ignore = "TODO: SignIn no implementado en UserApiImpl"]
+    async fn sign_in_fails_when_user_not_found(
+        #[future(awt)] grpc_server_addr: &'static str,
+    ) {
+        let _ = grpc_server_addr;
+        todo!("sign_in con un provider_id que no existe -> esperar status NotFound");
+    }
+
+    #[rstest]
+    #[tokio::test]
+    #[ignore = "TODO: SignIn no implementado + verificación del id_token"]
+    async fn sign_in_fails_when_id_token_is_invalid(
+        #[future(awt)] grpc_server_addr: &'static str,
+    ) {
+        let _ = grpc_server_addr;
+        todo!("sign_in con id_token inválido/expirado -> esperar status Unauthenticated");
     }
 }
