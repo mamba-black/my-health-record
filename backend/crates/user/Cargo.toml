@@ -12,6 +12,7 @@ strum_macros.workspace = true
 tokio.workspace = true
 async-trait.workspace = true
 sqlx.workspace = true
+toasty.workspace = true
 log = "0.4.32"
 uuid.workspace = true
 bon.workspace = true

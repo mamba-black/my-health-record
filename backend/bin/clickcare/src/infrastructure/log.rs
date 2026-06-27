@@ -37,12 +37,12 @@ pub fn init_logger() {
 
     // 6. Crear el formateador para la consola clásica (fmt)
     let fmt_layer = tracing_subscriber::fmt::layer()
-        .with_span_events(FmtSpan::ENTER | FmtSpan::EXIT | FmtSpan::CLOSE);
+        .with_span_events( FmtSpan::CLOSE); //FmtSpan::ENTER | FmtSpan::EXIT |
 
     // 7. Unir y registrar todos los layers
 
     let env_filter_layer = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("debug,opentelemetry=info,opentelemetry_sdk=info,h2=info"));
+        .unwrap_or_else(|_| EnvFilter::new("debug,opentelemetry=info,opentelemetry_sdk=info,h2=info,bollard=info"));
     let subscriber = Registry::default()
         .with(env_filter_layer)
         .with(telemetry_layer)

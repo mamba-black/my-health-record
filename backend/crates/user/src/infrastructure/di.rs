@@ -10,8 +10,11 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use std::env::var;
 use std::sync::Arc;
+use log::{error, info};
+use toasty::Db;
 use tokio::sync::Mutex;
 use tokio::sync::broadcast::channel;
+use tracing::debug;
 // ─── DI container ────────────────────────────────────────────────────────────
 
 pub struct DI {
@@ -88,17 +91,26 @@ pub async fn new_with_overrides(
 async fn build_user_repository(dbtype: DBType) -> Result<Arc<dyn UserRepository>, ClickCareError> {
     let user_repository: Arc<dyn UserRepository> = match dbtype {
         DBType::Postgres(Some(url)) => {
+            debug!("URL de la base de datos: {url}");
             let pool = PgPool::connect(url.as_str()).await.map_err(|e| {
+                error!("Error al crear el Pool para sqlx");
                 ClickCareError::generic(format!("Error en la conexion a la DB [{}] ({})", url, e))
             })?;
-            Arc::new(UserRepositoryImpl { pool })
+            let db: Db = toasty::Db::builder().connect(url.as_str()).await.map_err(|e| {
+                error!("Error al crear el Pool para toasty: {e}");
+                ClickCareError::generic(format!("Error en la conexion a la Toasty DB [{}] ({})", url, e))
+            })?;
+            Arc::new(UserRepositoryImpl { pool, db })
         }
         DBType::Postgres(None) => {
             let url = var("PG_URL").unwrap_or("postgres://user:password@localhost:5432".to_string());
             let pool = PgPool::connect(url.as_str()).await.map_err(|e| {
                 ClickCareError::generic(format!("Error en la conexion a la DB [{}] ({})", url, e))
             })?;
-            Arc::new(UserRepositoryImpl { pool })
+            let db: Db = toasty::Db::builder().connect(url.as_str()).await.map_err(|e| {
+                ClickCareError::generic(format!("Error en la conexion a la Toasty DB [{}] ({})", url, e))
+            })?;
+            Arc::new(UserRepositoryImpl { pool, db })
         }
         DBType::Mock => Arc::new(MockUserRepositoryImpl {
             saved_users: Mutex::new(Vec::new()),

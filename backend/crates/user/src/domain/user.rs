@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use log::{debug, error, info};
+use log::{debug, error};
 use strum_macros::Display;
 use app_core::domain::error::ClickCareError;
 use uuid::{Uuid, Version};
