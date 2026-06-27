@@ -75,7 +75,7 @@ mod test {
         test_env().await.grpc_addr.as_str()
     }
 
-    #[dtor]
+    #[dtor(unsafe)]
     fn shutdown() {
         if let Some(env) = TEST_ENV.get() {
             println!("Shutting down test environment with gRPC server at {}", env.grpc_addr);

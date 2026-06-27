@@ -37,6 +37,17 @@ Each domain crate (`user`, `patient`, etc.) is organized into three layers:
 
 Dependencies only point **inward**: infrastructure → application → domain → core.
 
+```
+bin/clickcare (gRPC infrastructure)
+  └── crates/*/application (use cases)
+        └── crates/*/domain (entities and repository traits)
+              └── crates/core (app_core: UseCase trait, ClickCareError)
+```
+
+**Cross-cutting contracts** (`crates/core`):
+- `app_core::application::UseCase` — base trait with associated types `Command`, `Response`, `Error` and the `execute()` method.
+- `app_core::domain::error::ClickCareError` — the single cross-cutting error type. Construct it with `ClickCareError::generic(msg)`, which captures the caller automatically via `#[track_caller]`.
+
 ## Build, Test, and Development Commands
 
 ```bash
@@ -52,6 +63,9 @@ cargo test --workspace
 # Run tests for a specific crate
 cargo test -p clickcare
 cargo test -p user
+
+# Run a single test by name
+cargo test -p clickcare sign_up_fails
 
 # Format code
 cargo fmt --all
@@ -75,6 +89,27 @@ Proto files are compiled automatically by `bin/clickcare/build.rs` during `cargo
 - **Async**: use `async-trait` for async trait methods; runtime is `tokio` (multi-thread).
 - **Dependency injection**: inject dependencies as `Arc<dyn Trait + Send + Sync>` — never instantiate concrete types outside the `infrastructure/di.rs` module.
 - **Shared dependencies**: always declare new dependencies in the **workspace `Cargo.toml`** and reference them with `.workspace = true` in crate-level `Cargo.toml` files.
+- **UUID v7 required**: user IDs must be UUID v7 (`Uuid::now_v7()`). `User::new()` validates this and fails with a `ClickCareError` if given any other variant. The database also uses `uuidv7()` as the default for PK columns.
+
+## Dependency Injection
+
+Each domain crate exposes the following in `src/infrastructure/di.rs`:
+- `di::new(DBType)` — builds the container with real implementations (e.g. `DBType::Postgres(None)` reads `PG_URL` from the environment).
+- `di::new_with_overrides(DBType, DIOverrides)` — allows substituting dependencies in tests.
+- `DIOverrides` — struct with `Option<Arc<dyn Trait>>` fields for each mockable dependency.
+
+```rust
+// Production
+let di = di::new(DBType::Postgres(None)).await?;  // reads PG_URL from the environment
+
+// Unit tests
+let di = di::new_with_overrides(DBType::Mock, DIOverrides {
+    user_repository: Some(Arc::new(MockUserRepositoryImpl { ... })),
+    ..Default::default()
+}).await?;
+```
+
+Rule: never instantiate concrete types outside `infrastructure/di.rs`.
 
 ## Testing Guidelines
 
@@ -86,6 +121,7 @@ Proto files are compiled automatically by `bin/clickcare/build.rs` during `cargo
 - **Parameterized cases**: use `#[rstest]` with `#[case::<label>]` annotations to label each scenario clearly.
 - **Async tests**: annotate with both `#[rstest]` and `#[tokio::test]`; use `#[future(awt)]` for async fixtures.
 - **Shared state**: use `std::sync::Once` for one-time initialization and `tokio::sync::OnceCell` for async singletons in test modules.
+- **Postgres containers**: the Postgres container is brought up once per suite (via `testcontainers`) and torn down with `#[dtor]`.
 
 ## Commit & Pull Request Guidelines
 
@@ -101,7 +137,13 @@ Proto files are compiled automatically by `bin/clickcare/build.rs` during `cargo
 
 ## Architecture Notes
 
-- **Proto contract**: the public API surface is defined in `proto/api.proto`. Any change to the API must start there.
+- **Proto contract**: the public API surface is defined in `proto/api.proto`. Any change to the API must start there. The server listens on `[::1]:50051` with `gRPC-Web` support.
 - **DI container**: each domain crate exposes a `di::new(DBType)` function and a `DIOverrides` struct to allow test-time injection without touching production wiring.
 - **Environment**: configuration is loaded via `dotenvy` from a `.env` file. Do not commit secrets; use `.env.example` as a template if one is added.
 - **Observability**: use the `tracing` macros (`info!`, `warn!`, `error!`) — not `println!` — in production code. Logger is initialized once at startup via `init_logger()`.
+
+## Environment & Local Infrastructure
+
+- **Required variable**: `PG_URL` (PostgreSQL connection URL), loaded from `.env` via `dotenvy`.
+- **Local services**: `devops/postgres.yaml` and `devops/tempo.yaml` bring up the services with Kubernetes/Docker.
+- **SQL schema**: defined in `ddl/table.sql`; the database uses `uuidv7()` as the default for PK columns.
