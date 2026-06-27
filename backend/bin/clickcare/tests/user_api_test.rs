@@ -111,9 +111,12 @@ mod test {
             let response = client.sign_up(request).await;
 
             info!("Response: {:?}", response);
-            assert!(response.is_err());
-            let _inner = response.unwrap().into_inner();
-            // Validar contenido del response
+            let status = response.expect_err("se esperaba un error por UUID no-v7");
+            assert!(
+                status.message().contains("no es un UUID V7"),
+                "mensaje inesperado: {}",
+                status.message()
+            );
         }
 
         #[rstest]
