@@ -1,6 +1,14 @@
 DROP TABLE IF EXISTS patient_search;
 DROP TABLE IF EXISTS patient;
 DROP TABLE IF EXISTS clinic;
+DROP TABLE IF EXISTS user_account;
+
+CREATE TABLE user_account (
+    id uuid PRIMARY KEY ,
+    first_name       VARCHAR(50) NOT NULL,
+    last_name        VARCHAR(50) NOT NULL,
+    second_last_name VARCHAR(50)
+);
 
 
 CREATE TABLE clinic

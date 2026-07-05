@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use dotenvy::dotenv;
 use dtor::dtor;
 use log::info;
@@ -31,11 +32,18 @@ async fn grpc_server_addr() -> &'static str {
                 let user = "admin";
                 let password = "admin123";
                 let timestamp = chrono::Utc::now().format("%Y%m%d%H%M%S").to_string();
+                let schema_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ddl/table.sql");
+                info!("schema_path: {:?}", schema_path);
+
 
                 let container = postgres::Postgres::default()
                     .with_user(user)
                     .with_password(password)
                     .with_container_name(format!("clickcare-test-{}", timestamp))
+                    .with_copy_to(
+                            "/docker-entrypoint-initdb.d/001_schema.sql",
+                            schema_path,
+                    )
                     .start()
                     .await
                     .unwrap();
