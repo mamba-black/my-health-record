@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use std::env::var;
 use std::sync::Arc;
-use log::{error, info};
+use log::error;
 use toasty::Db;
 use tokio::sync::Mutex;
 use tokio::sync::broadcast::channel;

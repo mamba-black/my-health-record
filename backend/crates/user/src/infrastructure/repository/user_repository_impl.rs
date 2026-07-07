@@ -2,7 +2,7 @@ use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::User;
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;
-use log::{error, info};
+use log::error;
 use sqlx::postgres::PgPool;
 use toasty::Db;
 

@@ -48,5 +48,5 @@ pub fn init_logger() {
         .with(telemetry_layer)
         .with(fmt_layer);
 
-    subscriber.init();
+    let _ = subscriber.try_init();
 }
