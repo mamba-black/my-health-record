@@ -144,8 +144,54 @@ message Attachment {
 
 
 // ============================================================================
-// RECURSO PRINCIPAL (FHIR RESOURCE: PATIENT)
+// RECURSOS PRINCIPALES (FHIR RESOURCES: PERSON & PATIENT)
 // ============================================================================
+
+/// Representa una vinculación FHIR (Person.link) entre la identidad de la persona
+/// y recursos de pacientes, profesionales de salud u organizaciones.
+/// Ref: https://hl7.org/fhir/R4/person-definitions.html#Person.link
+message PersonLink {
+    /// Nivel de certeza o verificación de la vinculación (FHIR: Person.link.assurance)
+    enum AssuranceLevel {
+        ASSURANCE_UNSPECIFIED = 0;
+        LEVEL_1 = 1; // Certeza muy baja (declarativa)
+        LEVEL_2 = 2; // Certeza baja
+        LEVEL_3 = 3; // Certeza alta (verificada)
+        LEVEL_4 = 4; // Certeza oficial / absoluta (documentada y verificada)
+    }
+
+    /// Recurso de destino al que se enlaza esta identidad
+    oneof target {
+        string patient_id = 1;        // ID del recurso Patient vinculado (propio o familiar)
+        string practitioner_id = 2;   // ID del recurso Practitioner (médico / profesional)
+        string related_person_id = 3; // ID del recurso RelatedPerson (tutor / familiar)
+        string organization_id = 4;   // ID del recurso Organization (clínica)
+    }
+
+    AssuranceLevel assurance = 5;     // Nivel de certeza del enlace
+}
+
+/// Recurso Persona (Identidad de Usuario) según la especificación HL7 FHIR R4.
+/// Ref: https://hl7.org/fhir/R4/person.html
+message Person {
+    string id = 1;                      // UUID v7 de la persona / usuario
+    bool active = 2;                    // Estado activo/inactivo de la cuenta
+    repeated Identifier identifier = 3; // Documentos oficiales (ej. DNI)
+    repeated HumanName name = 4;        // Nombres de la persona
+    repeated ContactPoint telecom = 5;  // Vías de contacto (email, teléfono)
+    
+    enum Gender {
+        GENDER_UNSPECIFIED = 0;
+        MALE = 1;
+        FEMALE = 2;
+        OTHER = 3;
+        UNKNOWN = 4;
+    }
+    Gender gender = 6;                  // Género administrativo
+    string birth_date = 7;             // Fecha de nacimiento (Formato YYYY-MM-DD)
+    repeated Attachment photo = 8;      // Fotografía o avatar de la persona
+    repeated PersonLink link = 9;       // Lista de enlaces a recursos Patient, Practitioner, etc.
+}
 
 /// Recurso Paciente según la especificación HL7 FHIR R4.
 /// Ref: https://hl7.org/fhir/R4/patient.html
@@ -184,3 +230,4 @@ message Patient {
     // 5. Fotografía o Imagen de Perfil
     repeated Attachment photo = 11;     // Fotografía o avatar del paciente
 }
+

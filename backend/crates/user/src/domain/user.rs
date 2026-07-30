@@ -5,19 +5,34 @@ use std::str::FromStr;
 use strum_macros::Display;
 use uuid::{Uuid, Version};
 
-/// Entidad de dominio que representa un Usuario en el sistema.
+/// Entidad de dominio que representa la **Cuenta de Usuario** del sistema.
 ///
-/// Alineado con las especificaciones de **HL7 FHIR R4** (`Person` / `Patient`).
-/// Sigue la arquitectura Cebolla (Onion Architecture) y requiere identificadores
-/// primarios en formato **UUID v7**.
+/// Separa los metadatos de autenticación/cuenta (`User`) de la identidad física
+/// y demográfica de la persona (`Person`), siguiendo **Onion Architecture** y **DDD**.
 #[derive(Debug, Clone)]
 pub struct User {
-    /// Identificador único del usuario (obligatorio UUID v7).
+    /// Identificador único de la cuenta de usuario (UUID v7).
     pub id: Uuid,
-    /// Estado activo/inactivo del usuario en el sistema.
+    /// Estado activo/inactivo de la cuenta.
     pub active: bool,
 
-    /// Estructura de nombres del usuario (FHIR: `Person.name` / `HumanName`).
+    /// Recurso de identidad y demografía de la persona física (FHIR `Person`).
+    pub person: Person,
+
+    /// Proveedor de identidad utilizado para la autenticación (ej. Google).
+    pub provider_info: IdentityProvider,
+    /// Indica si el usuario es propietario o administrador de clínica.
+    pub is_owner: bool,
+}
+
+/// Entidad de dominio que representa a la persona física según la especificación **HL7 FHIR R4 Person**.
+///
+/// Ref: <https://hl7.org/fhir/R4/person.html>
+#[derive(Debug, Clone)]
+pub struct Person {
+    /// Identificador único de la persona (UUID v7).
+    pub id: Uuid,
+    /// Estructura de nombres de la persona (FHIR: `Person.name` / `HumanName`).
     pub name: HumanName,
     /// Lista de puntos de contacto (FHIR: `Person.telecom` / `ContactPoint`).
     pub telecom: Vec<ContactPoint>,
@@ -29,11 +44,8 @@ pub struct User {
     pub birth_date: Option<NaiveDate>,
     /// Dirección domiciliaria o residencial (FHIR: `Person.address`).
     pub address: Option<String>,
-
-    /// Proveedor de identidad utilizado para la autenticación (ej. Google).
-    pub provider_info: IdentityProvider,
-    /// Indica si el usuario es propietario o administrador de clínica.
-    pub is_owner: bool,
+    /// Enlaces a los distintos roles y recursos FHIR asociados (FHIR: `Person.link`).
+    pub links: Vec<PersonLink>,
 }
 
 /// Identificador oficial del usuario (FHIR Identifier).
@@ -51,8 +63,49 @@ pub enum IdentityProvider {
     Google,
 }
 
+// ========================================================================
+// FHIR Person.link Data Structures
+// ========================================================================
+
+/// Enlace entre la persona/usuario y recursos relacionados en FHIR (`Person.link`).
+///
+/// Ref: <https://hl7.org/fhir/R4/person-definitions.html#Person.link>
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PersonLink {
+    /// Recurso de destino vinculado (Patient, Practitioner, RelatedPerson, Organization).
+    pub target: PersonLinkTarget,
+    /// Nivel de certeza o verificación de la vinculación (FHIR: `Person.link.assurance`).
+    pub assurance: Option<LinkAssuranceLevel>,
+}
+
+/// Recurso de destino al cual está vinculada la identidad de la persona física.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PersonLinkTarget {
+    /// Vinculado a un expediente de Paciente (`Patient` ID).
+    Patient(Uuid),
+    /// Vinculado a un perfil de Profesional de Salud (`Practitioner` ID).
+    Practitioner(Uuid),
+    /// Vinculado a una relación de Tutor o Cuidador Familiar (`RelatedPerson` ID).
+    RelatedPerson(Uuid),
+    /// Vinculado a una Clínica u Organización Sanitaria (`Organization` ID).
+    Organization(Uuid),
+}
+
+/// Nivel de certeza del enlace según HL7 FHIR (`Person.link.assurance`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LinkAssuranceLevel {
+    /// Nivel 1: Certeza muy baja (declarativa).
+    Level1,
+    /// Nivel 2: Certeza baja.
+    Level2,
+    /// Nivel 3: Certeza alta (verificada).
+    Level3,
+    /// Nivel 4: Certeza absoluta (documentada y verificada oficialmente).
+    Level4,
+}
+
 impl User {
-    /// Crea una nueva instancia validada de `User`.
+    /// Crea una nueva instancia validada de `User` y su `Person` asociada.
     ///
     /// # Parámetros
     /// - `id`: String representation del UUID, **debe ser un UUID v7**.
@@ -77,18 +130,26 @@ impl User {
         debug!("user.id: {id}");
 
         match Uuid::from_str(id.as_str()) {
-            Ok(id) if id.get_version() == Some(Version::SortRand) => Ok(Self {
-                id,
-                active: true,
-                name: HumanName::new(name, first_name, Some(last_name)),
-                telecom: vec![],
-                identifier,
-                photo_url: None,
-                birth_date: None,
-                address: None,
-                provider_info: IdentityProvider::Google,
-                is_owner,
-            }),
+            Ok(id) if id.get_version() == Some(Version::SortRand) => {
+                let person = Person {
+                    id,
+                    name: HumanName::new(name, first_name, Some(last_name)),
+                    telecom: vec![ContactPoint::email(email)],
+                    identifier,
+                    photo_url: None,
+                    birth_date: None,
+                    address: None,
+                    links: vec![],
+                };
+
+                Ok(Self {
+                    id,
+                    active: true,
+                    person,
+                    provider_info: IdentityProvider::Google,
+                    is_owner,
+                })
+            }
             Ok(id) => Err(ClickCareError::generic(format!(
                 "El id no es un UUID V7, id: {}",
                 id
@@ -101,6 +162,50 @@ impl User {
                 )))
             }
         }
+    }
+
+    /// Vincula un nuevo recurso FHIR (Patient, Practitioner, Organization) a la identidad de la persona.
+    pub fn add_link(&mut self, target: PersonLinkTarget, assurance: Option<LinkAssuranceLevel>) {
+        self.person.add_link(target, assurance);
+    }
+
+    /// Retorna todos los IDs de recursos `Patient` asociados a esta cuenta de usuario.
+    pub fn patient_ids(&self) -> Vec<Uuid> {
+        self.person.patient_ids()
+    }
+
+    /// Retorna todos los IDs de recursos `Organization` (clínicas) asociados a esta cuenta.
+    pub fn organization_ids(&self) -> Vec<Uuid> {
+        self.person.organization_ids()
+    }
+}
+
+impl Person {
+    /// Vincula un nuevo recurso FHIR a la persona.
+    pub fn add_link(&mut self, target: PersonLinkTarget, assurance: Option<LinkAssuranceLevel>) {
+        self.links.push(PersonLink { target, assurance });
+    }
+
+    /// Retorna todos los IDs de `Patient` vinculados.
+    pub fn patient_ids(&self) -> Vec<Uuid> {
+        self.links
+            .iter()
+            .filter_map(|link| match link.target {
+                PersonLinkTarget::Patient(id) => Some(id),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Retorna todos los IDs de `Organization` vinculados.
+    pub fn organization_ids(&self) -> Vec<Uuid> {
+        self.links
+            .iter()
+            .filter_map(|link| match link.target {
+                PersonLinkTarget::Organization(id) => Some(id),
+                _ => None,
+            })
+            .collect()
     }
 }
 
@@ -211,6 +316,8 @@ impl ContactPoint {
         }
     }
 }
+
+
 
 
 
