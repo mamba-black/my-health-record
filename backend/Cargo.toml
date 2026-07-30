@@ -15,13 +15,13 @@ clinic_admin = { path = "crates/clinic_admin" }
 patient = { path = "crates/patient" }
 
 chrono = "0.4.45"
-bon = "3.9.2"
-regex = "1.12.4"
-serde_json = "1.0.150"
-ulid = "1.2.1"
-thiserror = "2.0.18"
-async-trait = "0.1.89"
-uuid = { version = "1.23.3", features = ["v4", "v7"] }
+bon = "3.9.3"
+regex = "1.13.1"
+serde_json = "1.0.151"
+ulid = "3.0.0"
+thiserror = "2.0.19"
+async-trait = "0.1.91"
+uuid = { version = "1.24.0", features = ["v4", "v7"] }
 dotenvy = "0.15.7"
 
 strum = "0.28.0"
@@ -29,7 +29,7 @@ strum_macros = "0.28.0"
 
 ## =====================================
 ## Base de datos
-toasty = { version = "0.7.0", features = ["postgresql"] }
+toasty = { version = "0.8.0", features = ["postgresql"] }
 sqlx = { version = "0.9.0", features = [
     "json",
     "postgres",
@@ -42,8 +42,8 @@ postgres = "0.19.14"
 ## =============================
 ## Dependencies for gRPC server
 axum = "0.8.9"
-tokio = { version = "1.52.3", features = ["tokio-macros", "rt-multi-thread"] }
-tokio-stream = "0.1.18"
+tokio = { version = "1.53.1", features = ["tokio-macros", "rt-multi-thread"] }
+tokio-stream = "0.1.19"
 tonic = { version = "0.14.6" }
 tonic-reflection = "0.14.6"
 tonic-web = "0.14.6"
@@ -55,7 +55,7 @@ prost-types = "0.14.4"
 
 ## =============================
 ## Observability
-log = "0.4.32"
+log = "0.4.33"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 tracing-opentelemetry = "0.33.0"
@@ -71,7 +71,7 @@ sys-info = "0.9.1"
 ## Test
 fake = { version = "5.1.0", features = ["chrono"] }
 rstest = "0.26.1"
-ctor = "1.0.7"
+ctor = "1.0.10"
 dtor = "1.0.5"
 testcontainers = { version = "0.27.3", features = ["blocking"] }
 testcontainers-modules = { version = "0.15.0", features = ["postgres"] }

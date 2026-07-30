@@ -1,8 +1,21 @@
-# Repository Guidelines
+# Repository Guidelines & Project Overview
+
+## Project Description
+
+**My Health Record (Backend)** is a Rust 2024 backend service for healthcare management following **Onion Architecture**. It provides a high-performance gRPC API (using `tonic` and `axum`) with gRPC-Web support, handling domain bounded contexts such as users, patients, clinics, and clinic administration.
+
+### Architectural Principles & Memory Directives
+- **Domain-Driven Design (DDD)**: Strict adherence to DDD principles to protect the domain and keep bounded contexts isolated, ensuring business logic and invariants are guarded from infrastructure or external leaks. Domain boundaries and entities are modeled following **HL7 FHIR** specifications as the primary guide whenever possible. Clinical terminology and medical coding align with recognized health standards (**SNOMED CT**, **CIE-10/CIE-11** for diagnoses, **LOINC** for laboratory observations, and **DICOM** for medical imaging metadata).
+- **Architecture**: Strict **Onion Architecture** (Domain isolated from infrastructure details).
+- **Language & Stack**: **Rust 2024** for backend code, **Nushell** (`.nu`) for scripting and automation tasks.
+- **API First**: `proto/api.proto` is the single source of truth for public API contracts.
+- **Identity**: UUID v7 (`Uuid::now_v7()`) is mandatory for all user and entity primary keys.
+- **User Onboarding Strategy (Progressive Profiling)**: Single unified user registration flow with progressive data collection. Initial user creation requires minimal data (DNI optional). Document registration is required progressively only when performing specific key operations (e.g., confirming an appointment for patients or activating a clinic/emitting records for clinic admins).
+
+
+---
 
 ## Project Structure & Module Organization
-
-This is a Cargo workspace following **Onion Architecture**. Business rules are isolated from infrastructure details.
 
 ```
 backend/
@@ -27,26 +40,82 @@ backend/
 └── proto/                  # Protobuf definitions (api.proto)
 ```
 
-Each domain crate (`user`, `patient`, etc.) is organized into three layers:
+### Onion Architecture Layers
 
-| Layer | Path | Responsibility |
-|---|---|---|
-| **Domain** | `crates/*/src/domain/` | Entities, aggregates, repository traits |
-| **Application** | `crates/*/src/application/` | Use cases implementing `app_core::application::UseCase` |
-| **Infrastructure** | `crates/*/src/infrastructure/` | Repository implementations, DI container |
+| Layer | Path | Responsibility | Dependencies |
+|---|---|---|---|
+| **Core** | `crates/core/` | Base traits (`UseCase`), cross-cutting error (`ClickCareError`) | None |
+| **Domain** | `crates/*/src/domain/` | Entities, aggregates, domain events, repository traits | `crates/core` |
+| **Application** | `crates/*/src/application/` | Business use cases implementing `app_core::application::UseCase` | `domain`, `crates/core` |
+| **Infrastructure** | `crates/*/src/infrastructure/` | DB repositories, DI container (`di.rs`), external integrations | `application`, `domain`, `crates/core` |
+| **gRPC Server** | `bin/clickcare/` | gRPC controllers & service entry point | `crates/*` |
 
-Dependencies only point **inward**: infrastructure → application → domain → core.
-
+Dependencies strictly point **inward**:
 ```
-bin/clickcare (gRPC infrastructure)
-  └── crates/*/application (use cases)
-        └── crates/*/domain (entities and repository traits)
-              └── crates/core (app_core: UseCase trait, ClickCareError)
+bin/clickcare (gRPC entry point)
+  └── crates/*/infrastructure (DB repos, DI wiring)
+        └── crates/*/application (use cases)
+              └── crates/*/domain (entities & repository traits)
+                    └── crates/core (app_core contracts)
 ```
 
-**Cross-cutting contracts** (`crates/core`):
-- `app_core::application::UseCase` — base trait with associated types `Command`, `Response`, `Error` and the `execute()` method.
-- `app_core::domain::error::ClickCareError` — the single cross-cutting error type. Construct it with `ClickCareError::generic(msg)`, which captures the caller automatically via `#[track_caller]`.
+---
+
+## Request Flow Sequence Diagram
+
+The following sequence diagram illustrates how a request flows through the Onion Architecture layers during execution (e.g., User Sign-Up or Patient Record creation):
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Client / Frontend
+    participant gRPC as gRPC Adapter (bin/clickcare)
+    participant DI as DI Container (infrastructure/di.rs)
+    participant UseCase as Use Case (application Layer)
+    participant Domain as Entity / Domain (domain Layer)
+    participant Repo as Repository Impl (infrastructure Layer)
+    participant DB as PostgreSQL Database
+
+    Client->>gRPC: gRPC Request (e.g. CreateUserRequest)
+    gRPC->>DI: Resolve Use Case dependencies
+    DI-->>gRPC: UseCase instance (Arc<dyn Trait>)
+    gRPC->>UseCase: execute(Command)
+    UseCase->>Domain: User::new(UUID v7, parameters...)
+    Domain-->>UseCase: Ok(User Entity)
+    UseCase->>Repo: repository.save(&user)
+    Repo->>DB: INSERT INTO users ... (SQL)
+    DB-->>Repo: SQL Success / Affected rows
+    Repo-->>UseCase: Ok(())
+    UseCase-->>gRPC: Ok(CreateUserResponse)
+    gRPC-->>Client: gRPC Response (Protobuf)
+```
+
+---
+
+## Core Rules & Technical Mandates
+
+1. **Strict Dependency Injection (DI)**
+   - Inject dependencies as `Arc<dyn Trait + Send + Sync>`.
+   - Never instantiate concrete types outside `src/infrastructure/di.rs`.
+   - Domain crates expose `di::new(DBType)` and `DIOverrides` for test mock injection.
+
+2. **UUID v7 Requirement**
+   - All Primary Keys and User IDs **must** be UUID v7 (`Uuid::now_v7()`).
+   - Domain constructors validate UUID v7 compliance and return `ClickCareError` on invalid formats.
+
+3. **Error Handling & Observability**
+   - Use `ClickCareError` (`crates/core`) for cross-cutting errors.
+   - Use `thiserror` for domain-specific errors and propagate with `?`.
+   - **Zero `unwrap()` in production paths**.
+   - Use `tracing` macros (`info!`, `warn!`, `error!`), **never** use `println!`.
+
+4. **Scripts & Tooling**
+   - For automation, deployment, or helper scripts, **prefer Nushell scripts (`.nu`)**.
+
+5. **Protobuf API Single Source of Truth**
+   - `proto/api.proto` defines all external endpoints. Any API change must begin by updating `.proto` definitions.
+
+---
 
 ## Build, Test, and Development Commands
 
@@ -61,89 +130,12 @@ cargo build -p clickcare
 cargo test --workspace
 
 # Run tests for a specific crate
-cargo test -p clickcare
 cargo test -p user
-
-# Run a single test by name
-cargo test -p clickcare sign_up_fails
 
 # Format code
 cargo fmt --all
 
-# Lint
+# Linting (CI strict mode)
 cargo clippy --workspace -- -D warnings
-
-# Build for production
-cargo build --release -p clickcare
 ```
 
-Proto files are compiled automatically by `bin/clickcare/build.rs` during `cargo build`.
-
-## Coding Style & Naming Conventions
-
-- **Formatter**: `rustfmt` with default settings. Run `cargo fmt --all` before committing.
-- **Linter**: `clippy` — treat warnings as errors in CI (`-D warnings`).
-- **Edition**: Rust 2024 (set in `[workspace.package]`).
-- **Naming**: follow standard Rust conventions — `snake_case` for functions/variables, `PascalCase` for types/traits, `SCREAMING_SNAKE_CASE` for constants.
-- **Error handling**: use `thiserror` for domain errors; propagate with `?`. Avoid `unwrap()` in production paths.
-- **Async**: use `async-trait` for async trait methods; runtime is `tokio` (multi-thread).
-- **Dependency injection**: inject dependencies as `Arc<dyn Trait + Send + Sync>` — never instantiate concrete types outside the `infrastructure/di.rs` module.
-- **Shared dependencies**: always declare new dependencies in the **workspace `Cargo.toml`** and reference them with `.workspace = true` in crate-level `Cargo.toml` files.
-- **UUID v7 required**: user IDs must be UUID v7 (`Uuid::now_v7()`). `User::new()` validates this and fails with a `ClickCareError` if given any other variant. The database also uses `uuidv7()` as the default for PK columns.
-
-## Dependency Injection
-
-Each domain crate exposes the following in `src/infrastructure/di.rs`:
-- `di::new(DBType)` — builds the container with real implementations (e.g. `DBType::Postgres(None)` reads `PG_URL` from the environment).
-- `di::new_with_overrides(DBType, DIOverrides)` — allows substituting dependencies in tests.
-- `DIOverrides` — struct with `Option<Arc<dyn Trait>>` fields for each mockable dependency.
-
-```rust
-// Production
-let di = di::new(DBType::Postgres(None)).await?;  // reads PG_URL from the environment
-
-// Unit tests
-let di = di::new_with_overrides(DBType::Mock, DIOverrides {
-    user_repository: Some(Arc::new(MockUserRepositoryImpl { ... })),
-    ..Default::default()
-}).await?;
-```
-
-Rule: never instantiate concrete types outside `infrastructure/di.rs`.
-
-## Testing Guidelines
-
-- **Frameworks**: `rstest` for parameterized tests, `fake` for generating test data, `testcontainers` / `testcontainers-modules` for integration tests requiring a real database.
-- **Mocks**: define mock implementations inside `infrastructure/di.rs` (e.g. `MockUserRepositoryImpl`) and inject them via `DIOverrides`.
-- **Unit tests**: place in a `#[cfg(test)] mod test { ... }` block at the bottom of the source file.
-- **Integration tests**: place in `tests/` under the relevant crate (e.g. `bin/clickcare/tests/`).
-- **Test naming**: use descriptive snake_case names that state the scenario — `sign_up_fails_with_invalid_user_id`.
-- **Parameterized cases**: use `#[rstest]` with `#[case::<label>]` annotations to label each scenario clearly.
-- **Async tests**: annotate with both `#[rstest]` and `#[tokio::test]`; use `#[future(awt)]` for async fixtures.
-- **Shared state**: use `std::sync::Once` for one-time initialization and `tokio::sync::OnceCell` for async singletons in test modules.
-- **Postgres containers**: the Postgres container is brought up once per suite (via `testcontainers`) and torn down with `#[dtor]`.
-
-## Commit & Pull Request Guidelines
-
-- **Commit style**: use [Conventional Commits](https://www.conventionalcommits.org/) — `feat:`, `fix:`, `chore:`, `test:`, `refactor:`, `docs:`.
-  ```
-  feat: add UUID v7 validation to CreateUserUseCase
-  fix: return AlreadyExists status on duplicate user sign-up
-  chore: update dependencies in Cargo.toml to latest versions
-  ```
-- **Scope**: keep each commit focused on a single logical change.
-- **PRs**: target the `develop` branch. Include a short description of what changed and why. Link related issues where applicable.
-- **Before opening a PR**: run `cargo fmt --all`, `cargo clippy --workspace -- -D warnings`, and `cargo test --workspace` locally to ensure everything passes.
-
-## Architecture Notes
-
-- **Proto contract**: the public API surface is defined in `proto/api.proto`. Any change to the API must start there. The server listens on `[::1]:50051` with `gRPC-Web` support.
-- **DI container**: each domain crate exposes a `di::new(DBType)` function and a `DIOverrides` struct to allow test-time injection without touching production wiring.
-- **Environment**: configuration is loaded via `dotenvy` from a `.env` file. Do not commit secrets; use `.env.example` as a template if one is added.
-- **Observability**: use the `tracing` macros (`info!`, `warn!`, `error!`) — not `println!` — in production code. Logger is initialized once at startup via `init_logger()`.
-
-## Environment & Local Infrastructure
-
-- **Required variable**: `PG_URL` (PostgreSQL connection URL), loaded from `.env` via `dotenvy`.
-- **Local services**: `devops/postgres.yaml` and `devops/tempo.yaml` bring up the services with Kubernetes/Docker.
-- **SQL schema**: defined in `ddl/table.sql`; the database uses `uuidv7()` as the default for PK columns.

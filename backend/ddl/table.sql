@@ -86,7 +86,7 @@ FROM patient;
 -- ========================================================================
 
 
-INSERT INTO patient(first_name, last_name, date_of_birth)
-VALUES ('John',
-        'Doe',
-        '1980-05-15');
+-- INSERT INTO patient(first_name, last_name, date_of_birth)
+-- VALUES ('John',
+--         'Doe',
+--         '1980-05-15');

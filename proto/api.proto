@@ -23,6 +23,12 @@ service PatientApi {
     rpc Save (Patient) returns (Patient) {}
 }
 
+message Document {
+    oneof document_type {
+        string dni = 1;
+    }
+}
+
 message SignUpRequest {
     string id_token = 1;
     string user_id = 2;
@@ -30,8 +36,7 @@ message SignUpRequest {
     string provider_name = 4;
     optional string provider_avatar_url = 5;
     string email = 6;
-    string document_type = 7;
-    string document_id = 8;
+    optional Document document = 7;
     string first_name = 9;
     string last_name = 10;
     optional string second_last_name = 11;

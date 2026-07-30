@@ -131,7 +131,7 @@ pub struct MockUserRepositoryImpl {
 
 #[async_trait]
 impl UserRepository for MockUserRepositoryImpl {
-    async fn exist_user(&self, _user_id: &str) -> Result<bool, ClickCareError> {
+    async fn exist_user_by_document(&self, document_type: &str, document_value: &str) -> Result<bool, ClickCareError> {
         Ok(false)
     }
 

@@ -35,10 +35,10 @@ async fn grpc_server_addr() -> &'static str {
                 let schema_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ddl/table.sql");
                 info!("schema_path: {:?}", schema_path);
 
-
                 let container = postgres::Postgres::default()
                     .with_user(user)
                     .with_password(password)
+                    .with_tag("18")
                     .with_container_name(format!("clickcare-test-{}", timestamp))
                     .with_copy_to(
                             "/docker-entrypoint-initdb.d/001_schema.sql",
@@ -47,6 +47,7 @@ async fn grpc_server_addr() -> &'static str {
                     .start()
                     .await
                     .unwrap();
+                info!("Container INICIADO");
 
                 let host_port = container.get_host_port_ipv4(5432).await.unwrap();
                 let connection_string = format!(

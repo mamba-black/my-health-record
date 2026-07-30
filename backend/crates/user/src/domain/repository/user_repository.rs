@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait UserRepository: Send + Sync {
-    async fn exist_user(&self, user_id: &str) -> Result<bool, ClickCareError>;
+    async fn exist_user_by_document(&self, document_type: &str, document_value: &str) -> Result<bool, ClickCareError>;
     async fn find_user_by_id(&self, user_id: &str) -> Result<User, ClickCareError>;
     async fn save_user(&self, user: &User) -> Result<(), ClickCareError>;
 }

@@ -6,9 +6,13 @@ use std::sync::Arc;
 use tonic::*;
 use tracing::debug;
 use user::application::CreateUserUseCase;
-use user::application::dto::{CreateUserCommand, CrueateUserError};
+use user::application::command::{CreateUserCommand, CrueateUserError};
+use user::application::command::CrueateUserError::UnknownError;
+use user::domain::user::Document::DNI;
 use user::infrastructure::di;
 use user::infrastructure::di::DBType;
+use crate::infrastructure;
+use crate::infrastructure::grpc::document::DocumentType;
 
 pub struct UserApiImpl {
     create_user_use_case: Arc<dyn CreateUserUseCase>,
@@ -40,8 +44,7 @@ impl UserApi for UserApiImpl {
             provider_name: sign_up_request.provider_name,
             provider_avatar_url: sign_up_request.provider_avatar_url,
             email: sign_up_request.email.clone(),
-            document_type: sign_up_request.document_type,
-            document_id: sign_up_request.document_id,
+            document: sign_up_request.document.and_then(|document| document.document_type.map(|DocumentType::Dni(dni)| DNI(dni))),
             first_name: sign_up_request.first_name,
             last_name: sign_up_request.last_name,
             second_last_name: sign_up_request.second_last_name,
@@ -87,7 +90,7 @@ mod test {
     use tokio::sync::{Mutex, OnceCell};
     use tonic::{Request, Response, Status};
     use user::domain::repository::user_repository::UserRepository;
-    use user::domain::user::DocumentType;
+    use user::domain::user::Document;
     use user::infrastructure::di;
     use user::infrastructure::di::{DBType, DI, DIOverrides, MockUserRepositoryImpl};
     use uuid::Uuid;
@@ -103,8 +106,7 @@ mod test {
         provider_name: "".to_string(),
         provider_avatar_url: None,
         email: "".to_string(),
-        document_type: "".to_string(),
-        document_id: "".to_string(),
+        document: None,
         first_name: "".to_string(),
         last_name: "".to_string(),
         second_last_name: None,
@@ -184,8 +186,7 @@ mod test {
         let request = Request::new(SignUpRequest {
             user_id: user_id.clone(),
             email: "miuler@gmail.com".to_string(),
-            document_id: "40404040".to_string(),
-            document_type: DocumentType::DNI.to_string(),
+            document: None,
             ..SIGN_UP_REQUEST.clone()
         });
         let result = user_api_impl.sign_up(request).await;
