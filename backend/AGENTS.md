@@ -5,19 +5,147 @@
 **My Health Record (Backend)** is a Rust 2024 backend service for healthcare management following **Onion Architecture**. It provides a high-performance gRPC API (using `tonic` and `axum`) with gRPC-Web support, handling domain bounded contexts such as users, patients, clinics, and clinic administration.
 
 ### Architectural Principles & Memory Directives
-- **Domain-Driven Design (DDD)**: Strict adherence to DDD principles to protect the domain and keep bounded contexts isolated, ensuring business logic and invariants are guarded from infrastructure or external leaks. Domain boundaries and entities are modeled following **HL7 FHIR** specifications as the primary guide whenever possible. Clinical terminology and medical coding align with recognized health standards (**SNOMED CT**, **CIE-10/CIE-11** for diagnoses, **LOINC** for laboratory observations, and **DICOM** for medical imaging metadata).
+
+#### 1. Domain-Driven Design (DDD) & HL7 FHIR Alignment
+- **Domain Boundaries & Protection**: Strict adherence to DDD principles to protect the domain and keep bounded contexts isolated, ensuring business logic and invariants are guarded from infrastructure or external leaks. Domain boundaries and entities are modeled following **HL7 FHIR** specifications as the primary guide whenever possible.
+- **User Account & Identity Composition (`User` -> `Person`)**: `User` represents the authentication / system account boundary (`id`, `active`, `person`, `provider_info`, `is_owner`). Physical human identity and demographics strictly live inside `User.person`, following **HL7 FHIR R4 Person** (`name`, `telecom`, `identifier`, `photo_url`, `birth_date`, `address`, `links`). Never flatten `Person` fields directly inside `User`.
+- **Role Links via `Person.link`**: A `Person` connects to its healthcare roles via `PersonLink` targets (`Patient`, `Practitioner`, `RelatedPerson`, `Organization`). This allows a single user account to manage multiple patient profiles (e.g., parents managing children) or administer a clinic without requiring a dummy patient record.
+- **FHIR Terminology & Conventions**: `HumanName` uses `given`, `family`, `second_family` (hispanic extension), and `text`. `ContactPoint` uses `system` (`Phone`, `Email`, etc.) and `use_type`. Note: FHIR `Account` refers exclusively to financial billing/coverage accounts; authentication accounts are mapped to `User` / `Person`.
+
+#### 2. Domain Encapsulation & Code Conventions
+- **Domain Value Object Encapsulation & Getter Conventions (Rust C-GETTER)**: Domain Value Objects and Entities keep internal fields encapsulated to enforce domain invariants. Smart constructors (`new`) pre-compute and guarantee valid fields (e.g. `text: String`). Read-only getters follow Rust API Guidelines (`C-GETTER` convention) and are auto-generated via `derive_getters::Getters` (or `bon::Builder` for fluent construction) to eliminate boilerplate while maintaining strict encapsulation.
+- **Safe Builder Pattern (`bon`)**: For objects with computed internal fields (e.g. `HumanName.text`), do not derive `Builder` on the struct directly; apply `#[bon::bon]` on the `impl` block with `#[builder] pub fn builder(...)` delegating to `new()`, preventing external callers from bypassing calculation rules.
+
+#### 3. Data Mapping & Interoperability Compliance
+- **BFF Request vs. FHIR Domain Mapping**: External API DTOs (`proto/api.proto`) keep flat, convenient fields matching frontend and OAuth provider payloads (e.g., `provider_avatar_url`, `id_token`, `provider_id`). Application Use Cases must explicitly map these flat request fields into rich FHIR domain Value Objects (`Person`, `HumanName`, `ContactPoint`, `photo_url`) upon entering the domain layer. Never leak raw DTO structures into domain entities.
+- **Shared FHIR Data Types (`crates/core`)**: Core FHIR Data Types (`HumanName`, `ContactPoint`, `Identifier`, `Address`, `Attachment`) are defined in `crates/core` (`app_core::domain::fhir`) so all bounded contexts (`user`, `patient`, `clinic`, `clinic_admin`) share unified, immutable Value Objects.
+- **Peruvian Healthcare & Terminology Compliance**: National identifiers in `Identifier` map to official Peruvian registries (e.g., `DNI` uses system `http://reniec.gob.pe/dni` or FHIR code `NNPER`). Diagnostic coding aligns with **CIE-10** (official MINSA) and **SNOMED CT**, laboratory observations with **LOINC**, and imaging with **DICOM**.
+
+#### 4. Business & Onboarding Strategy
+- **User Onboarding Strategy (Progressive Profiling)**: Single unified user registration flow with progressive data collection. Initial user creation requires minimal data (DNI optional). Document registration is required progressively only when performing specific key operations (e.g., confirming an appointment for patients or activating a clinic/emitting records for clinic admins).
+
+#### 5. General Tech Stack Directives
 - **Architecture**: Strict **Onion Architecture** (Domain isolated from infrastructure details).
 - **Language & Stack**: **Rust 2024** for backend code, **Nushell** (`.nu`) for scripting and automation tasks.
 - **API First**: `proto/api.proto` is the single source of truth for public API contracts.
 - **Identity**: UUID v7 (`Uuid::now_v7()`) is mandatory for all user and entity primary keys.
-- **User Account & Identity Composition (`User` -> `Person`)**: `User` represents the authentication / system account boundary (`id`, `active`, `person`, `provider_info`, `is_owner`). Physical human identity and demographics strictly live inside `User.person`, following **HL7 FHIR R4 Person** (`name`, `telecom`, `identifier`, `photo_url`, `birth_date`, `address`, `links`). Never flatten `Person` fields directly inside `User`.
-- **Role Links via `Person.link`**: A `Person` connects to its healthcare roles via `PersonLink` targets (`Patient`, `Practitioner`, `RelatedPerson`, `Organization`). This allows a single user account to manage multiple patient profiles (e.g., parents managing children) or administer a clinic without requiring a dummy patient record.
-- **FHIR Terminology & Conventions**: `HumanName` uses `given`, `family`, `second_family` (hispanic extension), and `text`. `ContactPoint` uses `system` (`Phone`, `Email`, etc.) and `use_type`. Note: FHIR `Account` refers exclusively to financial billing/coverage accounts; authentication accounts are mapped to `User` / `Person`.
-- **Domain Value Object Encapsulation & Getter Conventions (Rust C-GETTER)**: Domain Value Objects and Entities keep internal fields encapsulated to enforce domain invariants. Smart constructors (`new`) pre-compute and guarantee valid fields (e.g. `text: String`). Read-only getters follow Rust API Guidelines (`C-GETTER` convention) and are auto-generated via `derive_getters::Getters` (or `bon::Builder` for fluent construction) to eliminate boilerplate while maintaining strict encapsulation. For objects with computed internal fields (e.g. `HumanName.text`), do not derive `Builder` on the struct directly; apply `#[bon::bon]` on the `impl` block with `#[builder] pub fn builder(...)` delegating to `new()`, preventing external callers from bypassing calculation rules.
-- **BFF Request vs. FHIR Domain Mapping**: External API DTOs (`proto/api.proto`) keep flat, convenient fields matching frontend and OAuth provider payloads (e.g., `provider_avatar_url`, `id_token`, `provider_id`). Application Use Cases must explicitly map these flat request fields into rich FHIR domain Value Objects (`Person`, `HumanName`, `ContactPoint`, `photo_url`) upon entering the domain layer. Never leak raw DTO structures into domain entities.
-- **Shared FHIR Data Types (`crates/core`)**: Core FHIR Data Types (`HumanName`, `ContactPoint`, `Identifier`, `Address`, `Attachment`) are defined in `crates/core` (`app_core::domain::fhir`) so all bounded contexts (`user`, `patient`, `clinic`, `clinic_admin`) share unified, immutable Value Objects.
-- **Peruvian Healthcare & Terminology Compliance**: National identifiers in `Identifier` map to official Peruvian registries (e.g., `DNI` uses system `http://reniec.gob.pe/dni` or FHIR code `NNPER`). Diagnostic coding aligns with **CIE-10** (official MINSA) and **SNOMED CT**, laboratory observations with **LOINC**, and imaging with **DICOM**.
-- **User Onboarding Strategy (Progressive Profiling)**: Single unified user registration flow with progressive data collection. Initial user creation requires minimal data (DNI optional). Document registration is required progressively only when performing specific key operations (e.g., confirming an appointment for patients or activating a clinic/emitting records for clinic admins).
+
+---
+
+### Domain Model Class Diagram
+
+The following class diagram visualizes the domain entities, value objects, and relationships following HL7 FHIR and DDD:
+
+```mermaid
+classDiagram
+    class User {
+        +Uuid id
+        +bool active
+        +Person person
+        +IdentityProvider provider_info
+        +bool is_owner
+        +new(...) Result~User, ClickCareError~
+        +add_link(target, assurance)
+        +patient_ids() Vec~Uuid~
+        +organization_ids() Vec~Uuid~
+    }
+
+    class Person {
+        +Uuid id
+        +HumanName name
+        +Vec~ContactPoint~ telecom
+        +Option~Identifier~ identifier
+        +Option~String~ photo_url
+        +Option~NaiveDate~ birth_date
+        +Option~String~ address
+        +Vec~PersonLink~ links
+        +add_link(target, assurance)
+        +patient_ids() Vec~Uuid~
+        +organization_ids() Vec~Uuid~
+    }
+
+    class HumanName {
+        -Vec~String~ given
+        -String family
+        -Option~String~ second_family
+        -String text
+        +new(given, family, second_family) HumanName
+        +builder() HumanNameBuilder
+        +given() Vec~String~
+        +family() String
+        +second_family() Option~String~
+        +text() String
+    }
+
+    class ContactPoint {
+        +ContactPointSystem system
+        +String value
+        +Option~ContactPointUse~ use_type
+        +email(value) ContactPoint
+        +phone(value, use_type) ContactPoint
+    }
+
+    class ContactPointSystem {
+        <<enumeration>>
+        Phone
+        Email
+        Fax
+        Url
+    }
+
+    class ContactPointUse {
+        <<enumeration>>
+        Home
+        Work
+        Mobile
+        Temp
+        Old
+    }
+
+    class Identifier {
+        +IdentifierType doc_type
+        +String value
+        +Option~String~ system
+        +dni(value) Identifier
+    }
+
+    class IdentityProvider {
+        <<enumeration>>
+        Google
+    }
+
+    class PersonLink {
+        +PersonLinkTarget target
+        +Option~LinkAssuranceLevel~ assurance
+    }
+
+    class PersonLinkTarget {
+        <<enumeration>>
+        Patient(Uuid)
+        Practitioner(Uuid)
+        RelatedPerson(Uuid)
+        Organization(Uuid)
+    }
+
+    class LinkAssuranceLevel {
+        <<enumeration>>
+        Level1
+        Level2
+        Level3
+        Level4
+    }
+
+    User "1" *-- "1" Person : contains (User -> Person)
+    User "1" *-- "1" IdentityProvider : authenticated by
+    Person "1" *-- "1" HumanName : named by
+    Person "1" *-- "0..*" ContactPoint : reached via
+    Person "1" *-- "0..1" Identifier : identified by
+    Person "1" *-- "0..*" PersonLink : links to
+    ContactPoint "1" *-- "1" ContactPointSystem : system
+    ContactPoint "0..1" *-- "1" ContactPointUse : use
+    PersonLink "1" *-- "1" PersonLinkTarget : targets
+    PersonLink "0..1" *-- "1" LinkAssuranceLevel : assurance
+```
 
 
 
