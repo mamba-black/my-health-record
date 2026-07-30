@@ -1,5 +1,7 @@
 use app_core::domain::error::ClickCareError;
+use bon::{bon, Builder};
 use chrono::NaiveDate;
+use derive_getters::Getters;
 use log::{debug, error};
 use std::str::FromStr;
 use strum_macros::Display;
@@ -9,7 +11,7 @@ use uuid::{Uuid, Version};
 ///
 /// Separa los metadatos de autenticación/cuenta (`User`) de la identidad física
 /// y demográfica de la persona (`Person`), siguiendo **Onion Architecture** y **DDD**.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Getters, Builder)]
 pub struct User {
     /// Identificador único de la cuenta de usuario (UUID v7).
     pub id: Uuid,
@@ -28,7 +30,7 @@ pub struct User {
 /// Entidad de dominio que representa a la persona física según la especificación **HL7 FHIR R4 Person**.
 ///
 /// Ref: <https://hl7.org/fhir/R4/person.html>
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Getters, Builder)]
 pub struct Person {
     /// Identificador único de la persona (UUID v7).
     pub id: Uuid,
@@ -216,20 +218,21 @@ impl Person {
 /// Tipo de dato HL7 FHIR R4: `HumanName`.
 ///
 /// Ref: <https://hl7.org/fhir/R4/datatypes.html#HumanName>
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Getters)]
 pub struct HumanName {
     /// Nombres de pila (`given`), ej. `["Juan", "Carlos"]`.
-    pub given: Vec<String>,
+    given: Vec<String>,
     /// Primer apellido (`family`), ej. `"Pérez"`.
-    pub family: String,
+    family: String,
     /// Segundo apellido (extensión hispana de `family`), ej. `"Gómez"`.
-    pub second_family: Option<String>,
-    /// Nombre completo formateado y representable en texto.
-    pub text: Option<String>,
+    second_family: Option<String>,
+    /// Nombre completo formateado y representable en texto (`text`).
+    text: String,
 }
 
+#[bon]
 impl HumanName {
-    /// Construye una nueva instancia de `HumanName` calculando el campo `text`.
+    /// Smart Constructor principal: Garantiza que `text` siempre sea pre-calculado e inmutable.
     pub fn new(given: Vec<String>, family: String, second_family: Option<String>) -> Self {
         let text = match &second_family {
             Some(sec) => format!("{} {} {}", given.join(" "), family, sec),
@@ -239,16 +242,14 @@ impl HumanName {
             given,
             family,
             second_family,
-            text: Some(text),
+            text,
         }
     }
 
-    /// Retorna la representación en texto completo del nombre de la persona.
-    pub fn full_name(&self) -> String {
-        self.text.clone().unwrap_or_else(|| match &self.second_family {
-            Some(sec) => format!("{} {} {}", self.given.join(" "), self.family, sec),
-            None => format!("{} {}", self.given.join(" "), self.family),
-        })
+    /// Builder fluente provisto por `bon` que reutiliza la lógica de `new()`.
+    #[builder]
+    pub fn builder(given: Vec<String>, family: String, second_family: Option<String>) -> Self {
+        Self::new(given, family, second_family)
     }
 }
 
@@ -287,7 +288,7 @@ pub enum ContactPointUse {
 /// Tipo de dato HL7 FHIR R4: `ContactPoint`.
 ///
 /// Ref: <https://hl7.org/fhir/R4/datatypes.html#ContactPoint>
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Getters, Builder)]
 pub struct ContactPoint {
     /// Canal o sistema empleado para el contacto.
     pub system: ContactPointSystem,
