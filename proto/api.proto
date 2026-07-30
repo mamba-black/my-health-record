@@ -1,174 +1,186 @@
 syntax = "proto3";
 package grpc;
 
+// ============================================================================
+// SERVICIOS (SERVICES)
+// ============================================================================
+
+/// Servicio de gestión y búsqueda de pacientes en el contexto clínico.
+/// Basado en el recurso Patient de HL7 FHIR R4.
+service PatientApi {
+    /// Búsqueda de pacientes por criterio (nombre, apellido, email).
+    rpc SearchPatient (SearchPatientRequest) returns (SearchPatientResponse) {}
+
+    /// Obtiene un paciente por su identificador único (UUID v7).
+    rpc GetPatientById (PatientIdRequest) returns (Patient) {}
+
+    /// Crea o actualiza un registro de paciente.
+    rpc Save (Patient) returns (Patient) {}
+}
+
+/// Servicio de gestión de usuarios, autenticación y registro inicial.
+service UserApi {
+    /// Registro de un nuevo usuario en la plataforma (Perfilado Progresivo).
+    rpc SignUp (SignUpRequest) returns (SignUpResponse) {}
+
+    /// Inicio de sesión de un usuario registrado utilizando token de ID.
+    rpc SignIn (SignInRequest) returns (SignInResponse) {}
+}
+
+
+// ============================================================================
+// MENSAJES DE SOLICITUD Y RESPUESTA DE PACIENTE Y USUARIOS
+// ============================================================================
+
+/// Solicitud de búsqueda de pacientes.
 message SearchPatientRequest {
-    optional string name = 1;
+    optional string name = 1; // Filtro de búsqueda por nombre o coincidencia parcial
 }
 
+/// Solicitud de consulta por ID de paciente.
 message PatientIdRequest {
-    optional string id = 1;
+    optional string id = 1; // UUID v7 del paciente
 }
 
+/// Respuesta estructurada a la búsqueda de pacientes.
 message SearchPatientResponse {
     optional string first_name = 1;
     optional string last_name = 2;
     optional string second_last_name = 3;
     optional string email = 4;
-    repeated Patient patients = 5;
+    repeated Patient patients = 5; // Lista de pacientes coincidentes
 }
 
-service PatientApi {
-    rpc SearchPatient (SearchPatientRequest) returns (SearchPatientResponse) {}
-    rpc GetPatientById (PatientIdRequest) returns (Patient) {}
-    rpc Save (Patient) returns (Patient) {}
-}
-
+/// Representa una identificación oficial o nacional (FHIR Identifier).
 message Identifier {
     oneof identifier_type {
-        string dni = 1;
+        string dni = 1; // Documento Nacional de Identidad
     }
 }
 
+/// Solicitud de registro inicial de usuario (Sign Up).
+/// Implementa la estrategia de perfilado progresivo.
 message SignUpRequest {
-    string id_token = 1;
-    string user_id = 2;
-    string provider_id = 3;          // 👈 Identificador del proveedor (ej. "google.com")
-    string provider_name = 4;        // 👈 Nombre del proveedor
-    optional string provider_avatar_url = 5; // 👈 URL de imagen entregada por el proveedor
+    string id_token = 1;                     // Token JWT del proveedor de identidad
+    string user_id = 2;                      // UUID v7 asignado al usuario
+    string provider_id = 3;                  // Identificador del proveedor (ej. "google.com")
+    string provider_name = 4;                // Nombre legible del proveedor (ej. "Google")
+    optional string provider_avatar_url = 5; // URL de la fotografía entregada por el proveedor
 
-    string email = 6;
-    optional Identifier identifier = 7;
-    string given_name = 9;
-    string family_name = 10;
-    optional string second_family_name = 11;
-    string phone = 12;
-    string address = 13;
-    string birth_date = 14;
-    optional string display_name = 15;
-    bool create_clinic = 16;
+    string email = 6;                        // Correo electrónico principal
+    optional Identifier identifier = 7;      // Documento de identidad opcional en registro inicial
+    string given_name = 9;                   // Nombres de pila (FHIR: HumanName.given)
+    string family_name = 10;                 // Primer apellido (FHIR: HumanName.family)
+    optional string second_family_name = 11; // Segundo apellido (Extensión hispana)
+    string phone = 12;                       // Teléfono de contacto
+    string address = 13;                     // Dirección domiciliaria
+    string birth_date = 14;                  // Fecha de nacimiento (Formato YYYY-MM-DD)
+    optional string display_name = 15;       // Nombre de visualización personalizado
+    bool create_clinic = 16;                 // Indica si se debe inicializar una clínica para el usuario
 }
 
-message SignUpResponse {
-}
+/// Respuesta al registro de usuario.
+message SignUpResponse {}
 
+/// Solicitud de autenticación de usuario (Sign In).
 message SignInRequest {
-    string id_token = 1;
-    string provider_id = 2;
+    string id_token = 1;     // Token JWT del proveedor de identidad
+    string provider_id = 2;  // Identificador del proveedor de autenticación
 }
+
+/// Respuesta a la autenticación de usuario.
 message SignInResponse {}
 
-service UserApi {
-    rpc SignUp (SignUpRequest) returns (SignUpResponse) {}
-    rpc SignIn (SignInRequest) returns (SignInResponse) {}
-}
 
+// ============================================================================
+// TIPOS DE DATOS CLAVE (DATA TYPES - HL7 FHIR R4)
+// ============================================================================
 
-
-
-
-
-// ----------------------------------------------------------------------
-// TIPOS DE DATOS CLAVE (DATA TYPES)
-// ----------------------------------------------------------------------
-
-//// Represents a unique identification as used in FHIR
-//message Identifier {
-//  string system = 1;  // URL del sistema emisor (ej. https://fhir.org/id/dni)
-//  string value = 2;   // Valor del identificador (ej. "45987321")
-//  string use = 3;     // Propósito (ej. "usual", "official")
-//}
-
-// Represents a human's name (apellido, nombres de pila, etc.)
+/// Representa el nombre de una persona según la especificación HL7 FHIR R4.
+/// Ref: https://hl7.org/fhir/R4/datatypes.html#HumanName
 message HumanName {
-  string use = 1;     // Uso (ej. "legal", "usual")
-  repeated string family = 2; // Apellidos (puede haber más de uno)
-  repeated string given = 3;  // Nombres de pila
-  // Otros campos (prefix, suffix, period) omitidos por simplicidad
+    string use = 1;             // Propósito del nombre (ej. "official", "usual")
+    repeated string family = 2; // Apellidos (family names)
+    repeated string given = 3;  // Nombres de pila (given names)
 }
 
-// Represents contact details (phone, email, etc.)
+/// Representa un punto de contacto (teléfono, email, etc.) según HL7 FHIR R4.
+/// Ref: https://hl7.org/fhir/R4/datatypes.html#ContactPoint
 message ContactPoint {
-  enum System {
-    SYSTEM_UNSPECIFIED = 0;
-    PHONE = 1;
-    FAX = 2;
-    EMAIL = 3;
-    SMS = 4;
-    URL = 5;
-  }
-  enum Use {
-    USE_UNSPECIFIED = 0;
-    HOME = 1;
-    WORK = 2;
-    MOBILE = 3;
-    TEMP = 4;
-    OLD = 5;
-  }
-  System system = 1;
-  string value = 2;   // El valor real (ej. "juan.perez@email.com")
-  Use use = 3;
+    /// Sistema de telecomunicación utilizado
+    enum System {
+        SYSTEM_UNSPECIFIED = 0;
+        PHONE = 1;
+        FAX = 2;
+        EMAIL = 3;
+        SMS = 4;
+        URL = 5;
+    }
+
+    /// Contexto o propósito del contacto
+    enum Use {
+        USE_UNSPECIFIED = 0;
+        HOME = 1;
+        WORK = 2;
+        MOBILE = 3;
+        TEMP = 4;
+        OLD = 5;
+    }
+
+    System system = 1; // Canal de contacto
+    string value = 2;  // Valor del contacto (ej. "usuario@dominio.com" o "+51999888777")
+    Use use = 3;       // Contexto de uso
 }
 
-// FHIR R4: https://hl7.org/fhir/R4/datatypes.html#Attachment
+/// Representa un archivo adjunto o medio multimedia según HL7 FHIR R4.
+/// Ref: https://hl7.org/fhir/R4/datatypes.html#Attachment
 message Attachment {
-  // Tipo MIME (p.ej. "image/jpeg", "image/png")
-  string content_type = 1;
-
-  // URL donde está el contenido (si aplica)
-  string url = 2;
-
-  // Contenido embebido (equivalente al base64Binary de FHIR)
-  bytes data = 3;
-
-  // Título/leyenda opcional
-  string title = 4;
-
-  // Fecha/hora de creación (dateTime en FHIR). Simplificado como string ISO-8601.
-  string creation = 5;
+    string content_type = 1; // Tipo MIME (ej. "image/jpeg", "image/png")
+    string url = 2;          // URL accesible del recurso
+    bytes data = 3;          // Contenido binario directo (opcional)
+    string title = 4;        // Título o descripción del recurso
+    string creation = 5;     // Fecha de creación (Formato ISO-8601)
 }
 
-// ----------------------------------------------------------------------
-// RECURSO PRINCIPAL (RESOURCE)
-// ----------------------------------------------------------------------
 
-// https://hl7.org/fhir/R4/patient.html
+// ============================================================================
+// RECURSO PRINCIPAL (FHIR RESOURCE: PATIENT)
+// ============================================================================
+
+/// Recurso Paciente según la especificación HL7 FHIR R4.
+/// Ref: https://hl7.org/fhir/R4/patient.html
 message Patient {
-  // Campos del Metadato Básico de un Recurso FHIR
-  string id = 1;       // Identificador único del recurso
+    string id = 1;                      // UUID v7 único del paciente
 
-  // 1. Identificación
-  repeated Identifier identifier = 2; // Uno o más identificadores
+    // 1. Identificación y Estado
+    repeated Identifier identifier = 2; // Documentos e identificadores asociados
+    bool active = 3;                    // Estado activo/inactivo del registro del paciente
 
-  // 2. Estado
-  bool active = 3;                  // Si el paciente/usuario está activo
+    // 2. Datos Demográficos
+    repeated HumanName name = 4;        // Nombres del paciente (legal, usual, etc.)
+    repeated ContactPoint telecom = 5;  // Vías de contacto (teléfono, email)
 
-  // 3. Demografía
-  repeated HumanName name = 4;      // Nombres (ej. legal y usual)
-  repeated ContactPoint telecom = 5; // Información de contacto (email, teléfono)
+    /// Género administrativo según FHIR
+    enum Gender {
+        GENDER_UNSPECIFIED = 0;
+        MALE = 1;
+        FEMALE = 2;
+        OTHER = 3;
+        UNKNOWN = 4;
+    }
 
-  enum Gender {
-    GENDER_UNSPECIFIED = 0;
-    MALE = 1;
-    FEMALE = 2;
-    OTHER = 3;
-    UNKNOWN = 4;
-  }
-  Gender gender = 6;
-  string birth_date = 7;           // Fecha de nacimiento (string en formato YYYY-MM-DD)
+    Gender gender = 6;                  // Género del paciente
+    string birth_date = 7;             // Fecha de nacimiento (Formato YYYY-MM-DD)
 
-  // 4. Otros
-  // El campo `deceased[x]` se modela con un 'oneof' para manejar tipos
-  // boolean o dateTime, aunque aquí lo simplificamos a una fecha.
-  oneof deceased_status {
-    bool is_deceased_boolean = 8;
-    string deceased_date_time = 9; // Fecha y hora del fallecimiento
-  }
+    // 3. Estado de fallecimiento
+    oneof deceased_status {
+        bool is_deceased_boolean = 8;   // Indica si el paciente ha fallecido
+        string deceased_date_time = 9;  // Fecha y hora del fallecimiento (ISO-8601)
+    }
 
-  // 5. Gestión
-  // Reference es un tipo de dato clave en FHIR para enlazar recursos
-  // Aquí usamos un string simple que contendría la referencia (ej. "Organization/123")
-  string managing_organization_reference = 10;
+    // 4. Organización y Custodia
+    string managing_organization_reference = 10; // Referencia a la clínica u organización custodia
 
-  // 6. Multimedia (FHIR: Patient.photo 0..*)
-  repeated Attachment photo = 11;
+    // 5. Fotografía o Imagen de Perfil
+    repeated Attachment photo = 11;     // Fotografía o avatar del paciente
 }
