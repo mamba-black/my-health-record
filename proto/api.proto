@@ -23,8 +23,8 @@ service PatientApi {
     rpc Save (Patient) returns (Patient) {}
 }
 
-message Document {
-    oneof document_type {
+message Identifier {
+    oneof identifier_type {
         string dni = 1;
     }
 }
@@ -32,17 +32,18 @@ message Document {
 message SignUpRequest {
     string id_token = 1;
     string user_id = 2;
-    string provider_id = 3;
-    string provider_name = 4;
-    optional string provider_avatar_url = 5;
+    string provider_id = 3;          // 👈 Identificador del proveedor (ej. "google.com")
+    string provider_name = 4;        // 👈 Nombre del proveedor
+    optional string provider_avatar_url = 5; // 👈 URL de imagen entregada por el proveedor
+
     string email = 6;
-    optional Document document = 7;
-    string first_name = 9;
-    string last_name = 10;
-    optional string second_last_name = 11;
+    optional Identifier identifier = 7;
+    string given_name = 9;
+    string family_name = 10;
+    optional string second_family_name = 11;
     string phone = 12;
     string address = 13;
-    string birthdate = 14;
+    string birth_date = 14;
     optional string display_name = 15;
     bool create_clinic = 16;
 }
@@ -70,12 +71,12 @@ service UserApi {
 // TIPOS DE DATOS CLAVE (DATA TYPES)
 // ----------------------------------------------------------------------
 
-// Represents a unique identification as used in FHIR
-message Identifier {
-  string system = 1;  // URL del sistema emisor (ej. https://fhir.org/id/dni)
-  string value = 2;   // Valor del identificador (ej. "45987321")
-  string use = 3;     // Propósito (ej. "usual", "official")
-}
+//// Represents a unique identification as used in FHIR
+//message Identifier {
+//  string system = 1;  // URL del sistema emisor (ej. https://fhir.org/id/dni)
+//  string value = 2;   // Valor del identificador (ej. "45987321")
+//  string use = 3;     // Propósito (ej. "usual", "official")
+//}
 
 // Represents a human's name (apellido, nombres de pila, etc.)
 message HumanName {

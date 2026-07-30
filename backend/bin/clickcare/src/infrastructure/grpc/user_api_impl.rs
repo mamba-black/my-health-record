@@ -8,11 +8,11 @@ use tracing::debug;
 use user::application::CreateUserUseCase;
 use user::application::command::{CreateUserCommand, CrueateUserError};
 use user::application::command::CrueateUserError::UnknownError;
-use user::domain::user::Document::DNI;
+use user::domain::user::Identifier::DNI;
 use user::infrastructure::di;
 use user::infrastructure::di::DBType;
 use crate::infrastructure;
-use crate::infrastructure::grpc::document::DocumentType;
+use crate::infrastructure::grpc::identifier::IdentifierType;
 
 pub struct UserApiImpl {
     create_user_use_case: Arc<dyn CreateUserUseCase>,
@@ -44,13 +44,13 @@ impl UserApi for UserApiImpl {
             provider_name: sign_up_request.provider_name,
             provider_avatar_url: sign_up_request.provider_avatar_url,
             email: sign_up_request.email.clone(),
-            document: sign_up_request.document.and_then(|document| document.document_type.map(|DocumentType::Dni(dni)| DNI(dni))),
-            first_name: sign_up_request.first_name,
-            last_name: sign_up_request.last_name,
-            second_last_name: sign_up_request.second_last_name,
+            identifier: sign_up_request.identifier.and_then(|identifier| identifier.identifier_type.map(|IdentifierType::Dni(dni)| DNI(dni))),
+            first_name: sign_up_request.given_name,
+            last_name: sign_up_request.family_name,
+            second_last_name: sign_up_request.second_family_name,
             phone: sign_up_request.phone,
             address: sign_up_request.address,
-            birthdate: sign_up_request.birthdate,
+            birthdate: sign_up_request.birth_date,
             display_name: sign_up_request.display_name,
             create_clinic: sign_up_request.create_clinic,
             username: sign_up_request.email,
@@ -90,7 +90,7 @@ mod test {
     use tokio::sync::{Mutex, OnceCell};
     use tonic::{Request, Response, Status};
     use user::domain::repository::user_repository::UserRepository;
-    use user::domain::user::Document;
+    use user::domain::user::Identifier;
     use user::infrastructure::di;
     use user::infrastructure::di::{DBType, DI, DIOverrides, MockUserRepositoryImpl};
     use uuid::Uuid;
@@ -106,13 +106,13 @@ mod test {
         provider_name: "".to_string(),
         provider_avatar_url: None,
         email: "".to_string(),
-        document: None,
-        first_name: "".to_string(),
-        last_name: "".to_string(),
-        second_last_name: None,
+        identifier: None,
+        given_name: "".to_string(),
+        family_name: "".to_string(),
+        second_family_name: None,
         phone: "".to_string(),
         address: "".to_string(),
-        birthdate: "".to_string(),
+        birth_date: "".to_string(),
         display_name: None,
         create_clinic: false,
     });
@@ -186,7 +186,7 @@ mod test {
         let request = Request::new(SignUpRequest {
             user_id: user_id.clone(),
             email: "miuler@gmail.com".to_string(),
-            document: None,
+            identifier: None,
             ..SIGN_UP_REQUEST.clone()
         });
         let result = user_api_impl.sign_up(request).await;

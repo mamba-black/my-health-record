@@ -3,8 +3,8 @@ use crate::application::create_user_usecase::command::CrueateUserError::{Unknown
 use crate::application::create_user_usecase::command::{CreateUserCommand, CreateUserResponse, CrueateUserError};
 use crate::domain::repository::clinic_repository::ClinicRepository;
 use crate::domain::repository::user_repository::UserRepository;
-use crate::domain::user::Document::DNI;
-use crate::domain::user::{Document, User};
+use crate::domain::user::Identifier::DNI;
+use crate::domain::user::{Identifier, User};
 use app_core::application::UseCase;
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;
@@ -13,7 +13,7 @@ use log::error;
 pub mod command {
     use app_core::domain::error::ClickCareError;
     use crate::application::command::CrueateUserError::UnknownError;
-    use crate::domain::user::Document;
+    use crate::domain::user::Identifier;
 
     #[derive(Debug)]
     pub struct CreateUserCommand {
@@ -23,7 +23,7 @@ pub mod command {
         pub provider_name: String,
         pub provider_avatar_url: Option<String>,
         pub email: String,
-        pub document: Option<Document>,
+        pub identifier: Option<Identifier>,
         pub first_name: String,
         pub last_name: String,
         pub second_last_name: Option<String>,
@@ -71,10 +71,10 @@ impl UseCase for CreateUserUseCaseImpl {
 
     async fn execute(&self, command: Self::Command) -> Result<Self::Response, Self::Error> {
 
-        let mut document: Option<Document> = None;
-        let exist_user = match &command.document {
+        let mut identifier: Option<Identifier> = None;
+        let exist_user = match &command.identifier {
             Some(DNI(value)) => {
-                document = Some(DNI(value.clone()));
+                identifier = Some(DNI(value.clone()));
                 self.user_repository
                     .exist_user_by_document("DNI", value)
                     .await
@@ -84,19 +84,19 @@ impl UseCase for CreateUserUseCaseImpl {
         };
 
         if exist_user {
-            error!("User with document ID {:?} already exists", command.document);
-            let msg = format!("User with document ID {:?} already exists", command.document);
+            error!("User with document ID {:?} already exists", command.identifier);
+            let msg = format!("User with document ID {:?} already exists", command.identifier);
             return Err(UserAlreadyExists(ClickCareError::generic(msg)))
         }
 
         let user = User::new(
             command.user_id,
-            command.username,
-            document,
-            command.create_clinic,
-            command.email,
+            vec![command.username],
             command.first_name,
             command.last_name,
+            identifier,
+            command.create_clinic,
+            command.email,
         )?;
 
         self.user_repository
