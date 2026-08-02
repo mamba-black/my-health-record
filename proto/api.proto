@@ -77,6 +77,7 @@ message SignUpRequest {
     string birth_date = 14;                  // Fecha de nacimiento (Formato YYYY-MM-DD)
     optional string display_name = 15;       // Nombre de visualización personalizado
     bool create_clinic = 16;                 // Indica si se debe inicializar una clínica para el usuario
+    optional bool confirm_pending_presencial_link = 17; // Confirma explícitamente la creación de la cuenta dejando la vinculación en estado pendiente presencial
 }
 
 /// Estado del resultado del registro de usuario.
