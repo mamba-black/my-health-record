@@ -8,12 +8,12 @@ mod tests {
 
     #[test]
     fn ulid_ulid_test() {
-        println!("ulid: {}", Ulid::new());
-        println!("ulid: {}", Ulid::new());
-        println!("ulid: {}", Ulid::new());
-        println!("ulid: {}", Ulid::new());
-        println!("ulid: {}", Ulid::new());
-        println!("ulid: {}", Ulid::new());
+        println!("ulid: {}", Ulid::generate());
+        println!("ulid: {}", Ulid::generate());
+        println!("ulid: {}", Ulid::generate());
+        println!("ulid: {}", Ulid::generate());
+        println!("ulid: {}", Ulid::generate());
+        println!("ulid: {}", Ulid::generate());
     }
 
 

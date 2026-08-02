@@ -1,6 +1,5 @@
 use app_core::domain::error::ClickCareError;
 use bon::{bon, Builder};
-use chrono::NaiveDate;
 use derive_getters::Getters;
 use log::{debug, error};
 use std::str::FromStr;
@@ -27,7 +26,8 @@ pub struct User {
     pub is_owner: bool,
 }
 
-/// Entidad de dominio que representa a la persona física según la especificación **HL7 FHIR R4 Person**.
+/// Proyección mínima de la persona física (FHIR R4 Person) en el contexto de `User`
+/// necesaria para la búsqueda de cuentas, autenticación y validación de unicidad de identidad.
 ///
 /// Ref: <https://hl7.org/fhir/R4/person.html>
 #[derive(Debug, Clone, Getters, Builder)]
@@ -40,12 +40,6 @@ pub struct Person {
     pub telecom: Vec<ContactPoint>,
     /// Documento o identificador oficial opcional (FHIR: `Person.identifier`).
     pub identifier: Option<Identifier>,
-    /// URL de la imagen de perfil o avatar (FHIR: `Person.photo`).
-    pub photo_url: Option<String>,
-    /// Fecha de nacimiento (FHIR: `Person.birthDate`).
-    pub birth_date: Option<NaiveDate>,
-    /// Dirección domiciliaria o residencial (FHIR: `Person.address`).
-    pub address: Option<String>,
     /// Enlaces a los distintos roles y recursos FHIR asociados (FHIR: `Person.link`).
     pub links: Vec<PersonLink>,
 }
@@ -138,9 +132,6 @@ impl User {
                     name: HumanName::new(name, first_name, Some(last_name)),
                     telecom: vec![ContactPoint::email(email)],
                     identifier,
-                    photo_url: None,
-                    birth_date: None,
-                    address: None,
                     links: vec![],
                 };
 
