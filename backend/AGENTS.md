@@ -1,36 +1,36 @@
-# Repository Guidelines & Project Overview
+# Guías del Repositorio y Visión General del Proyecto
 
-## Project Description
+## Descripción del Proyecto
 
-**My Health Record (Backend)** is a Rust 2024 backend service for healthcare management following **Onion Architecture**. It provides a high-performance gRPC API (using `tonic` and `axum`) with gRPC-Web support, handling domain bounded contexts such as users, patients, clinics, and clinic administration.
+**My Health Record (Backend)** es un servicio de backend en Rust 2024 para la gestión de salud que sigue la **Arquitectura Cebolla (Onion Architecture)**. Proporciona una API gRPC de alto rendimiento (utilizando `tonic` y `axum`) con soporte gRPC-Web, manejando contextos delimitados del dominio como usuarios, pacientes, clínicas y administración clínica.
 
-### Architectural Principles & Memory Directives
+### Principios Arquitectónicos y Directivas de Memoria
 
-#### 1. Domain-Driven Design (DDD) & HL7 FHIR Alignment
-- **Domain Boundaries & Protection**: Strict adherence to DDD principles to protect the domain and keep bounded contexts isolated, ensuring business logic and invariants are guarded from infrastructure or external leaks. Domain boundaries and entities are modeled following **HL7 FHIR** specifications as the primary guide whenever possible.
-- **Bounded Contexts & FHIR Resource Mapping**:
-  | Crate / Bounded Context | Primary FHIR Resource | Responsibility & Domain Scope |
+#### 1. Diseño Guiado por el Dominio (DDD) y Alineación con HL7 FHIR
+- **Protección y Limites del Dominio**: Adherencia estricta a los principios de DDD para proteger el dominio y mantener los contextos delimitados aislados, asegurando que la lógica de negocio y sus invariantes estén protegidos contra filtraciones de infraestructura o externas. Los límites y entidades del dominio se modelan siguiendo las especificaciones de **HL7 FHIR** como guía principal siempre que sea posible.
+- **Contextos Delimitados y Mapeo de Recursos FHIR**:
+  | Crate / Bounded Context | Recurso FHIR Principal | Responsabilidad y Alcance del Dominio |
   |---|---|---|
-  | **`crates/user`** | **`Person`** + `User` | **System Account & Physical Identity**: `User` manages system auth (`id`, `active`, `provider_info`, `is_owner`). Physical human identity lives strictly in **FHIR R4 `Person`** (`name`, `telecom`, `identifier`, `birth_date`, `photo_url`, `address`, `links`). |
-  | **`crates/patient`** | **`Patient`** | **Clinical Record**: Patient health record, emergency contacts, primary practitioner (`generalPractitioner`), and care histories. |
-  | **`crates/clinic`** | **`Organization`** / **`Location`** | **Clinic & Physical Facilities**: `Organization` represents legal entity (RUC, legal name, billing). `Location` represents physical branches, consult rooms, or care areas. |
-  | **`crates/clinic_admin`** | **`Practitioner`** / **`PractitionerRole`** | **Health Practitioners & Admin**: `Practitioner` stores medical credentials (CMP/COP, specialty). `PractitionerRole` maps doctor roles, schedules, and clinic associations. |
-  | **`crates/core`** | FHIR Data Types | Shared Value Objects (`HumanName`, `ContactPoint`, `Identifier`, `Address`). |
-- **User Account & Identity Composition (`User` -> `Person`)**: `User` represents the authentication / system account boundary (`id`, `active`, `person`, `provider_info`, `is_owner`). Physical human identity and demographics strictly live inside `User.person`, following **HL7 FHIR R4 Person** (`name`, `telecom`, `identifier`, `photo_url`, `birth_date`, `address`, `links`). Never flatten `Person` fields directly inside `User`.
-- **Role Links via `Person.link`**: A `Person` connects to its healthcare roles via `PersonLink` targets (`Patient`, `Practitioner`, `RelatedPerson`, `Organization`). This allows a single user account to manage multiple patient profiles (e.g., parents managing children) or administer a clinic without requiring a dummy patient record.
-- **FHIR Terminology & Conventions**: `HumanName` uses `given`, `family`, `second_family` (hispanic extension), and `text`. `ContactPoint` uses `system` (`Phone`, `Email`, etc.) and `use_type`. Note: FHIR `Account` refers exclusively to financial billing/coverage accounts; authentication accounts are mapped to `User` / `Person`.
+  | **`crates/user`** | **`Person`** + `User` | **Cuenta de Sistema e Identidad Física**: `User` gestiona la autenticación del sistema (`id`, `active`, `provider_info`, `is_owner`). La identidad física humana vive strictly en **FHIR R4 `Person`** (`name`, `telecom`, `identifier`, `links`). |
+  | **`crates/patient`** | **`Patient`** | **Expediente Clínico**: Registro de salud del paciente, contactos de emergencia, médico principal (`generalPractitioner`) e historiales de atención. |
+  | **`crates/clinic`** | **`Organization`** / **`Location`** | **Clínica y Instalaciones Físicas**: `Organization` representa la entidad legal (RUC, razón social, facturación). `Location` representa sedes físicas, consultorios o áreas de atención. |
+  | **`crates/clinic_admin`** | **`Practitioner`** / **`PractitionerRole`** | **Profesionales de Salud y Admisión**: `Practitioner` almacena credenciales médicas (CMP/COP, especialidad). `PractitionerRole` mapea roles médicos, horarios y vinculaciones a clínicas. |
+  | **`crates/core`** | Tipos de Datos FHIR | Value Objects compartidos (`HumanName`, `ContactPoint`, `Identifier`, `Address`). |
+- **Composición de Cuenta e Identidad de Usuario (`User` -> `Person`)**: `User` representa el límite de autenticación / cuenta del sistema (`id`, `active`, `person`, `provider_info`, `is_owner`). La identidad humana física y su demografía viven estrictamente dentro de `User.person`, siguiendo **HL7 FHIR R4 Person** (`name`, `telecom`, `identifier`, `links`). Nunca aplanar los campos de `Person` directamente dentro de `User`.
+- **Enlaces de Roles vía `Person.link`**: Una `Person` se conecta con sus roles sanitarios mediante los destinos de `PersonLink` (`Patient`, `Practitioner`, `RelatedPerson`, `Organization`). Esto permite que una sola cuenta de usuario gestione múltiples perfiles de pacientes (ej. padres administrando a sus hijos) o administre una clínica sin requerir un registro de paciente ficticio.
+- **Terminología y Convenciones FHIR**: `HumanName` utiliza `given`, `family`, `second_family` (extensión hispana) y `text`. `ContactPoint` utiliza `system` (`Phone`, `Email`, etc.) y `use_type`. Nota: FHIR `Account` se refiere exclusivamente a cuentas financieras de facturación/cobertura; las cuentas de autenticación del sistema se mapean a `User` / `Person`.
 
-#### 2. Domain Encapsulation & Code Conventions
-- **Domain Value Object Encapsulation & Getter Conventions (Rust C-GETTER)**: Domain Value Objects and Entities keep internal fields encapsulated to enforce domain invariants. Smart constructors (`new`) pre-compute and guarantee valid fields (e.g. `text: String`). Read-only getters follow Rust API Guidelines (`C-GETTER` convention) and are auto-generated via `derive_getters::Getters` (or `bon::Builder` for fluent construction) to eliminate boilerplate while maintaining strict encapsulation.
-- **Safe Builder Pattern (`bon`)**: For objects with computed internal fields (e.g. `HumanName.text`), do not derive `Builder` on the struct directly; apply `#[bon::bon]` on the `impl` block with `#[builder] pub fn builder(...)` delegating to `new()`, preventing external callers from bypassing calculation rules.
+#### 2. Encapsulamiento del Dominio y Convenciones de Código
+- **Encapsulamiento de Value Objects del Dominio y Convenciones de Getters (Rust C-GETTER)**: Los Value Objects y Entidades del Dominio mantienen sus campos internos encapsulados para hacer cumplir los invariantes de negocio. Los Smart Constructors (`new`) pre-calculan y garantizan campos válidos (ej. `text: String`). Los getters de solo lectura siguen las guías de API de Rust (convención `C-GETTER`) y se auto-generan vía `derive_getters::Getters` (o `bon::Builder` para construcción fluente) para eliminar código repetitivo manteniendo un estricto encapsulamiento.
+- **Patrón Builder Seguro (`bon`)**: Para objetos con campos internos calculados (ej. `HumanName.text`), no derivar `Builder` directamente en la struct; aplicar `#[bon::bon]` en el bloque `impl` con `#[builder] pub fn builder(...)` delegando a `new()`, evitando que llamadores externos salten las reglas de cálculo.
 
-#### 3. Data Mapping & Interoperability Compliance
-- **BFF Request vs. FHIR Domain Mapping**: External API DTOs (`proto/api.proto`) keep flat, convenient fields matching frontend and OAuth provider payloads (e.g., `provider_avatar_url`, `id_token`, `provider_id`). Application Use Cases must explicitly map these flat request fields into rich FHIR domain Value Objects (`Person`, `HumanName`, `ContactPoint`, `photo_url`) upon entering the domain layer. Never leak raw DTO structures into domain entities.
-- **Shared FHIR Data Types (`crates/core`)**: Core FHIR Data Types (`HumanName`, `ContactPoint`, `Identifier`, `Address`, `Attachment`) are defined in `crates/core` (`app_core::domain::fhir`) so all bounded contexts (`user`, `patient`, `clinic`, `clinic_admin`) share unified, immutable Value Objects.
-- **Peruvian Healthcare & Terminology Compliance**: National identifiers in `Identifier` map to official Peruvian registries (e.g., `DNI` uses system `http://reniec.gob.pe/dni` or FHIR code `NNPER`). Diagnostic coding aligns with **CIE-10** (official MINSA) and **SNOMED CT**, laboratory observations with **LOINC**, and imaging with **DICOM**.
+#### 3. Mapeo de Datos y Cumplimiento de Interoperabilidad
+- **Mapeo de Solicitudes BFF vs. Dominio FHIR**: Los DTOs de la API externa (`proto/api.proto`) mantienen campos planos y convenientes alineados a los payloads del frontend y proveedores OAuth (ej. `provider_avatar_url`, `id_token`, `provider_id`). Los Casos de Uso de la Aplicación deben mapear explícitamente estos campos planos a Value Objects ricos del dominio FHIR (`Person`, `HumanName`, `ContactPoint`) al ingresar a la capa de dominio. Nunca filtrar estructuras planas de DTOs dentro de entidades de dominio.
+- **Tipos de Datos FHIR Compartidos (`crates/core`)**: Los tipos de datos core de FHIR (`HumanName`, `ContactPoint`, `Identifier`, `Address`, `Attachment`) se definen en `crates/core` (`app_core::domain::fhir`) para que todos los contextos delimitados (`user`, `patient`, `clinic`, `clinic_admin`) compartan Value Objects unificados e inmutables.
+- **Cumplimiento Normativo Sanitario Peruano**: Los identificadores nacionales en `Identifier` se mapean a los registros oficiales peruanos (ej. `DNI` utiliza el sistema `http://reniec.gob.pe/dni` o código FHIR `NNPER`). La codificación diagnóstica se alinea con **CIE-10** (oficial MINSA) y **SNOMED CT**, observaciones de laboratorio con **LOINC**, e imágenes médicas con **DICOM**.
 
-#### 4. Business & Onboarding Strategy
-- **User Onboarding Strategy (Progressive Profiling)**: Single unified user registration flow with progressive data collection. Initial user creation requires minimal data (DNI optional). National identity document registration (`Identifier`) is enforced progressively depending on role-based operational triggers:
+#### 4. Estrategia de Negocio y Registro Progresivo
+- **Estrategia de Registro Progresivo (Progressive Profiling)**: Flujo de registro unificado con recolección progresiva de datos. La creación inicial de la cuenta requiere datos mínimos (DNI opcional). El registro del documento de identidad nacional (`Identifier`) se exige progresivamente según disparadores operacionales por rol:
 
   | Rol del Usuario | ¿DNI al registrarse? | Disparador Mandatorio de DNI | Razón de Negocio / Legal (Perú) |
   |---|---|---|---|
@@ -38,214 +38,214 @@
   | **Administrador de Clínica (`Clinic Admin`)** | ❌ Opcional | Al **activar/crear la Clínica (`Organization`)** o configurar facturación/RUC. | Verificación de identidad legal del representante de la clínica. |
   | **Profesional de Salud (`Practitioner`)** | ❌ Opcional | Al **activar perfil médico**, habilitar agenda o **firmar atenciones/recetas**. | Verificación de identidad + Colegiatura (CMP/COP) para emitir actos médicos. |
 
-- **Uniqueness & Identity Invariants**:
-  - `User.email`: Strictly unique per system account (Primary authentication credential).
-  - `User.person.identifier` (DNI): Unique per primary `User` account to ensure a single Electronic Health Record (EHR / Ley N° 30024) per physical citizen.
-  - `ContactPoint` (Phone): Non-strict / Shared uniqueness (allows family members or parents managing dependents to share home/contact numbers).
+- **Invariantes de Unicidad e Identidad**:
+  - `User.email`: Estrictamente único por cuenta de sistema (Credencial principal de autenticación).
+  - `User.person.identifier` (DNI): Único por cuenta `User` principal para garantizar una única Historia Clínica Electrónica (HCE / Ley N° 30024) por ciudadano físico.
+  - `ContactPoint` (Teléfono): Unicidad no estricta / compartida (permite a familiares o padres administrando dependientes compartir números telefónicos de casa o contacto).
 
-- **Account Recovery, Re-binding & Presencial Verification**:
-  - **Lost Email / Phone Recovery**: When a user registers a new account with a DNI that is already bound to an existing identity whose credentials were lost:
-    1. A new `User` account is created with `PersonLink` in a `Pending Verification` state (`LinkAssuranceLevel::Level1`).
-    2. **Appointment Booking is 100% CONFIRMED** (never tentative; medical slot is fully guaranteed for the patient).
-    3. **Presencial Check-in & Approval**: On the appointment date, during physical receptionist check-in, the receptionist verifies the physical DNI card, completing the check-in and elevating `LinkAssuranceLevel` to verified (`Level3`/`Level4`), unlocking past medical history access in the app seamlessly.
+- **Recuperación de Cuenta, Re-vinculación y Verificación Presencial**:
+  - **Recuperación por Pérdida de Correo / Teléfono**: Cuando un usuario registra una nueva cuenta con un DNI que ya está vinculado a una identidad existente cuyas credenciales se perdieron:
+    1. Se crea una nueva cuenta `User` con `PersonLink` en estado `Pendiente de Verificación` (`LinkAssuranceLevel::Level1`).
+    2. **La Reserva de la Cita Médica queda 100% CONFIRMADA** (nunca tentativa; el cupo médico queda totalmente garantizado para el paciente).
+    3. **Check-in Presencial y Aprobación**: El día de la cita, durante el check-in presencial en recepción, la recepcionista verifica el DNI físico, completando el check-in y elevando el `LinkAssuranceLevel` a verificado (`Level3`/`Level4`), desbloqueando el acceso a historiales pasados en la App de forma transparente.
 
-- **API Onboarding Response Statuses (`proto/api.proto`)**:
-  - `SignUpStatus::SUCCESS`: Account created cleanly. Response message: `"Usuario registrado exitosamente."`
-  - `SignUpStatus::LINK_PENDING_PRESENCIAL_VERIFICATION`: Account created with explicit confirmation (`confirm_pending_presencial_link = true`); prior DNI history detected. `PersonLink` set to `Level1` (Pending). Response message: `"Cuenta creada exitosamente. Se detectó una Historia Clínica asociada a tu DNI. La vinculación final se completará durante tu verificación presencial en tu próxima cita médica."`
-  - `DNI_ALREADY_VERIFIED_CONFLICT` (`gRPC Status: ALREADY_EXISTS`): Returned on initial registration attempt when DNI already exists and `confirm_pending_presencial_link` is `false`/`None`. Response message: `"El DNI ingresado ya está asociado a una cuenta. ¿Deseas iniciar sesión o solicitar la vinculación presencial en tu próxima cita médica?"`
+- **Estados de Respuesta de Registro en la API (`proto/api.proto`)**:
+  - `SignUpStatus::SUCCESS`: Cuenta creada limpiamente. Mensaje de respuesta: `"Usuario registrado exitosamente."`
+  - `SignUpStatus::LINK_PENDING_PRESENCIAL_VERIFICATION`: Cuenta creada con confirmación explícita (`confirm_pending_presencial_link = true`); se detectó historial previo del DNI. `PersonLink` configurado en `Level1` (Pendiente). Mensaje de respuesta: `"Cuenta creada exitosamente. Se detectó una Historia Clínica asociada a tu DNI. La vinculación final se completará durante tu verificación presencial en tu próxima cita médica."`
+  - `DNI_ALREADY_VERIFIED_CONFLICT` (`Status gRPC: ALREADY_EXISTS`): Devuelto en el intento de registro inicial cuando el DNI ya existe y `confirm_pending_presencial_link` es `false`/`None`. Mensaje de respuesta: `"El DNI ingresado ya está asociado a una cuenta. ¿Deseas iniciar sesión o solicitar la vinculación presencial en tu próxima cita médica?"`
 
 ---
 
-### 4.1. Account & Identity Lifecycle Use Cases
+### 4.1. Casos de Uso del Ciclo de Vida de Cuentas e Identidad
 
-#### Use Case 1: Progressive Onboarding & Confirmed Booking
-User signs up with minimal info (Google OIDC/Email). When booking an appointment, DNI & Phone become mandatory. The appointment is **100% CONFIRMED** in the clinic schedule.
+#### Caso de Uso 1: Registro Progresivo y Cita Confirmada
+El usuario se registra con datos mínimos (Google OIDC/Email). Al agendar una cita médica, el DNI y Teléfono se vuelven obligatorios. La cita se guarda **100% CONFIRMADA** en la agenda de la clínica.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Patient as Patient / App
-    participant App as Mobile/Web App
+    actor Patient as Paciente / App
+    participant App as App Móvil/Web
     participant UserDomain as crates/user
     participant ClinicDomain as crates/clinic
-    participant DB as PostgreSQL DB
+    participant DB as Base de Datos PostgreSQL
 
-    Patient->>App: 1. Sign Up (Email / OIDC)
-    App->>UserDomain: Create User (Minimal Person)
-    UserDomain->>DB: Save User (active=true, DNI=None)
+    Patient->>App: 1. Registro inicial (Email / OIDC)
+    App->>UserDomain: Crear Usuario (Person Mínima)
+    UserDomain->>DB: Guardar Usuario (active=true, DNI=None)
     
-    Patient->>App: 2. Book Appointment
-    App->>Patient: Prompt DNI & Phone (Mandatory per Ley 30024)
-    Patient->>App: Submits DNI & Phone
-    App->>UserDomain: Update Person (identifier=DNI, telecom=Phone)
-    App->>ClinicDomain: Book Appointment (Doctor, Slot)
-    ClinicDomain-->>App: Appointment Status: CONFIRMED
-    App-->>Patient: Display Booking Confirmation
+    Patient->>App: 2. Reservar Cita Médica
+    App->>Patient: Solicitar DNI y Teléfono (Obligatorio Ley 30024)
+    Patient->>App: Ingresa DNI y Teléfono
+    App->>UserDomain: Actualizar Person (identifier=DNI, telecom=Teléfono)
+    App->>ClinicDomain: Reservar Cita (Médico, Horario)
+    ClinicDomain-->>App: Estado de Cita: CONFIRMADA
+    App-->>Patient: Mostrar Confirmación de Cita
 ```
 
-#### Use Case 2: Lost Credentials Recovery & Presencial Re-binding
-User lost access to email/phone. Registers a new account with their DNI. Account is created with `LinkAssuranceLevel::Level1` (Pending). Appointment is **100% CONFIRMED**. On appointment day, Receptionist verifies physical DNI at check-in, promoting assurance to `Level3`/`Level4` (Verified).
+#### Caso de Uso 2: Recuperación de Credenciales y Re-vinculación Presencial
+El usuario perdió acceso a su correo/teléfono antiguo. Registra una nueva cuenta con su DNI. La cuenta se crea con `LinkAssuranceLevel::Level1` (Pendiente). La cita se guarda **100% CONFIRMADA**. El día de la cita, la recepcionista verifica el DNI físico al hacer Check-in, elevando la certeza a `Level3`/`Level4` (Verificado).
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Patient as Patient
-    actor Receptionist as Clinic Receptionist
-    participant App as App / System
+    actor Patient as Paciente
+    actor Receptionist as Recepcionista de Clínica
+    participant App as App / Sistema
     participant UserDomain as crates/user
     participant AdminDomain as crates/clinic_admin
-    participant DB as PostgreSQL DB
+    participant DB as Base de Datos PostgreSQL
 
-    Patient->>App: Sign Up with New Email + Existing DNI
-    App->>UserDomain: Detect Existing DNI History
-    UserDomain->>UserDomain: Create User + PersonLink (Assurance: Level1 Pending)
-    App->>App: Book Appointment (Status: CONFIRMED)
+    Patient->>App: Registro con Nuevo Correo + DNI Existente
+    App->>UserDomain: Detectar Historial de DNI Existente
+    UserDomain->>UserDomain: Crear Usuario + PersonLink (Assurance: Level1 Pendiente)
+    App->>App: Reservar Cita Médica (Estado: CONFIRMADA)
     
-    Note over Patient, Receptionist: Appointment Day (Presencial Check-in)
-    Patient->>Receptionist: Arrives at Clinic & Present Physical DNI
-    Receptionist->>AdminDomain: Perform Check-in (DNI 10000001)
-    AdminDomain->>AdminDomain: Detect Pending Link Request (carlos_nuevo@gmail.com)
-    Receptionist->>AdminDomain: Verify Physical DNI & Click "Approve Link"
-    AdminDomain->>UserDomain: Elevate PersonLink Assurance (Level3/Level4 Verified)
-    UserDomain->>DB: Update Link Assurance & Deactivate Old User
-    AdminDomain-->>Patient: Patient Checked-in & App Fully Linked
+    Note over Patient, Receptionist: Día de la Cita Médica (Check-in Presencial)
+    Patient->>Receptionist: Llega a la clínica y presenta DNI Físico
+    Receptionist->>AdminDomain: Realizar Check-in (DNI 10000001)
+    AdminDomain->>AdminDomain: Detectar Solicitud de Vinculación Pendiente (carlos_nuevo@gmail.com)
+    Receptionist->>AdminDomain: Verificar DNI Físico y clic en "Aprobar Vinculación"
+    AdminDomain->>UserDomain: Elevar Assurance de PersonLink (Level3/Level4 Verificado)
+    UserDomain->>DB: Actualizar Assurance y Desactivar Usuario Antiguo
+    AdminDomain-->>Patient: Paciente con Check-in completo y App totalmente vinculada
 ```
 
-#### Use Case 3: DNI Mistake Correction & Family Profile Conversion
-User accidentally registered a family member's DNI (e.g., child or parent) on their main account. User converts the family member's DNI to a managed `Patient` profile (`PersonLinkTarget::Patient`) and sets their own DNI on the main account.
+#### Caso de Uso 3: Corrección de DNI Registrado por Error y Conversión a Perfil Familiar
+El usuario registró por error el DNI de un familiar (ej. hijo o padre) en su cuenta principal. El usuario convierte el DNI del familiar en un perfil gestionado de `Patient` (`PersonLinkTarget::Patient`) e ingresa su propio DNI en la cuenta principal.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Account Owner
-    participant App as Mobile App
+    actor User as Titular de la Cuenta
+    participant App as App Móvil
     participant UserDomain as crates/user
     participant PatientDomain as crates/patient
-    participant DB as PostgreSQL DB
+    participant DB as Base de Datos PostgreSQL
 
-    User->>App: Select "Correct DNI / Move DNI to Dependent"
-    App->>UserDomain: Initiate Profile Conversion (DNI 77777777)
-    UserDomain->>PatientDomain: Create Dependent Patient Profile (DNI 77777777)
-    PatientDomain->>DB: Save Patient (Managed by Owner)
-    UserDomain->>UserDomain: Add PersonLinkTarget::Patient(dependent_id)
+    User->>App: Seleccionar "Corregir DNI / Mover DNI a Dependiente"
+    App->>UserDomain: Iniciar Conversión de Perfil (DNI 77777777)
+    UserDomain->>PatientDomain: Crear Perfil de Paciente Dependiente (DNI 77777777)
+    PatientDomain->>DB: Guardar Paciente (Gestionado por Titular)
+    UserDomain->>UserDomain: Agregar PersonLinkTarget::Patient(dependent_id)
     
-    User->>App: Enter Owner's Real DNI (10000001)
-    App->>UserDomain: Update User.person.identifier = DNI 10000001
-    UserDomain->>DB: Save Owner Identity
-    App-->>User: Profile Reorganized (Owner + Dependent Patient)
+    User->>App: Ingresar DNI Real del Titular (10000001)
+    App->>UserDomain: Actualizar User.person.identifier = DNI 10000001
+    UserDomain->>DB: Guardar Identidad del Titular
+    App-->>User: Perfil Reorganizado (Titular + Paciente Dependiente)
 ```
 
-#### Use Case 4: Pre-check Query by DNI & Dynamic Options
-App queries API before or during registration. Backend checks DNI existence and status to guide UX choices.
+#### Caso de Uso 4: Consulta Previa por DNI y Opciones Dinámicas
+La App consulta a la API antes o durante el registro. El backend verifica la existencia y estado del DNI para guiar las opciones de interfaz.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as App / Client
+    actor Client as App / Cliente
     participant API as UserApi (gRPC)
     participant UserDomain as crates/user
-    participant DB as PostgreSQL DB
+    participant DB as Base de Datos PostgreSQL
 
-    Client->>API: Query DNI Status (DNI 10000001)
-    API->>UserDomain: Check DNI Existence
+    Client->>API: Consultar Estado de DNI (DNI 10000001)
+    API->>UserDomain: Verificar Existencia de DNI
     UserDomain->>DB: SELECT FROM users/persons WHERE identifier = DNI 10000001
     
-    alt DNI Not Found
-        DB-->>UserDomain: Not Found
-        UserDomain-->>API: Available
-        API-->>Client: Status: OK (DNI Available for normal registration)
-    else DNI Exists on Active Account (Level3/Level4 Verified)
-        DB-->>UserDomain: Active User (carlos@gmail.com)
-        UserDomain-->>API: Conflict (Verified Account)
-        API-->>Client: Status: ALREADY_EXISTS (Prompt User to Sign In / Recover Account)
-    else DNI Exists on Clinical History / Unverified Account
-        DB-->>UserDomain: Patient History Found
-        UserDomain-->>API: History Found (Link Available)
-        API-->>Client: Status: LINK_AVAILABLE (Prompt User to Request Presencial Link)
+    alt DNI No Encontrado
+        DB-->>UserDomain: No Encontrado
+        UserDomain-->>API: Disponible
+        API-->>Client: Estado: OK (DNI Disponible para registro normal)
+    else DNI Existe en Cuenta Activa (Level3/Level4 Verificado)
+        DB-->>UserDomain: Usuario Activo (carlos@gmail.com)
+        UserDomain-->>API: Conflicto (Cuenta Verificada)
+        API-->>Client: Estado: ALREADY_EXISTS (Sugerir Iniciar Sesión / Recuperar Cuenta)
+    else DNI Existe en Historia Clínica / Cuenta No Verificada
+        DB-->>UserDomain: Historial de Paciente Encontrado
+        UserDomain-->>API: Historial Encontrado (Vinculación Disponible)
+        API-->>Client: Estado: LINK_AVAILABLE (Sugerir Solicitar Vinculación Presencial)
     end
 ```
 
-#### Use Case 5: Dependent Profile Independence (Child Turns 18)
-A managed dependent child (`Patient` linked to parent's account) registers their own autonomous `User` account with their email and DNI.
+#### Caso de Uso 5: Independización de Perfil Dependiente (Hijo cumple 18 años)
+Un hijo registrado como dependiente (`Patient` vinculado a la cuenta del padre) registra su propia cuenta `User` autónoma con su correo y DNI.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Child as Dependent (Now Adult)
-    participant App as Mobile App
+    actor Child as Dependiente (Ahora Adulto)
+    participant App as App Móvil
     participant UserDomain as crates/user
     participant AdminDomain as crates/clinic_admin
-    participant DB as PostgreSQL DB
+    participant DB as Base de Datos PostgreSQL
 
-    Child->>App: Register Autonomous Account (email + DNI 77777777)
+    Child->>App: Registrar Cuenta Autónoma (email + DNI 77777777)
     App->>UserDomain: SignUpRequest (confirm_pending_presencial_link=true)
-    UserDomain->>UserDomain: Create User + PersonLink (Assurance: Level1 Pending)
-    UserDomain->>DB: Save User Account
-    App-->>Child: Display Pending Verification Notice
+    UserDomain->>UserDomain: Crear Usuario + PersonLink (Assurance: Level1 Pendiente)
+    UserDomain->>DB: Guardar Cuenta de Usuario
+    App-->>Child: Mostrar Aviso de Verificación Pendiente
 
-    Note over Child, AdminDomain: Presencial Appointment at Clinic
-    Child->>AdminDomain: Present Physical DNI at Check-in
-    AdminDomain->>UserDomain: Approve Link & Transfer Record (Assurance: Level3/Level4)
-    UserDomain->>DB: Update Link & Unlink Managed Dependent Status
-    AdminDomain-->>Child: App Unlocked & History Fully Independent
+    Note over Child, AdminDomain: Cita Presencial en la Clínica
+    Child->>AdminDomain: Presentar DNI Físico en Check-in
+    AdminDomain->>UserDomain: Aprobar Vinculación y Transferir Registro (Assurance: Level3/Level4)
+    UserDomain->>DB: Actualizar Vinculación y Desvincular Estado de Dependiente
+    AdminDomain-->>Child: App Desbloqueada e Historial Totalmente Independiente
 ```
 
-#### Use Case 6: Profile Data Updates & Assurance Level Controls
-User attempts to update identity fields (Name, DNI, Telecom). Updates are allowed freely for unverified accounts (`Level1`) and restricted/audit-logged for verified accounts (`Level3`/`Level4`).
+#### Caso de Uso 6: Actualización de Datos de Perfil y Controles por Nivel de Certeza
+El usuario intenta actualizar campos de identidad (Nombre, DNI, Teléfono). Las actualizaciones se permiten libremente en cuentas no verificadas (`Level1`) y se restringen/auditan en cuentas verificadas (`Level3`/`Level4`).
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as User / Patient
-    participant App as Mobile App
+    actor User as Usuario / Paciente
+    participant App as App Móvil
     participant UserDomain as crates/user
-    participant DB as PostgreSQL DB
+    participant DB as Base de Datos PostgreSQL
 
-    User->>App: Edit Profile Request (Name / DNI)
+    User->>App: Solicitud de Edición de Perfil (Nombre / DNI)
     App->>UserDomain: UpdateProfile(UserCommand)
     
-    alt Assurance is Level1 (Unverified / Pending)
-        UserDomain->>UserDomain: Update Person Identifier / Name
-        UserDomain->>DB: Save Updated Person
-        UserDomain-->>App: Success (Profile Updated)
-    else Assurance is Level3/Level4 (Verified in Clinic)
-        UserDomain-->>App: Error / Restricted (DNI edit requires in-clinic approval)
-        App-->>User: Display Notice ("Contact Reception to update verified DNI")
+    alt Assurance es Level1 (No Verificado / Pendiente)
+        UserDomain->>UserDomain: Actualizar Identifier / Nombre de Person
+        UserDomain->>DB: Guardar Person Actualizado
+        UserDomain-->>App: Éxito (Perfil Actualizado)
+    else Assurance es Level3/Level4 (Verificado en Clínica)
+        UserDomain-->>App: Error / Restringido (Edición de DNI requiere aprobación en clínica)
+        App-->>User: Mostrar Aviso ("Contacta a Recepción para actualizar un DNI verificado")
     end
 ```
 
 ---
 
-#### 5. General Tech Stack Directives
-- **Architecture**: Strict **Onion Architecture** (Domain isolated from infrastructure details).
-- **Language & Stack**: **Rust 2024** for backend code, **Nushell** (`.nu`) for scripting and automation tasks.
-- **API First**: `proto/api.proto` is the single source of truth for public API contracts.
-- **Identity**: UUID v7 (`Uuid::now_v7()`) is mandatory for all user and entity primary keys.
+#### 5. Directivas Generales del Stack Tecnológico
+- **Arquitectura**: Estricta **Arquitectura Cebolla (Onion Architecture)** (Dominio aislado de detalles de infraestructura).
+- **Lenguaje y Stack**: **Rust 2024** para el backend, **Nushell** (`.nu`) para scripts y tareas de automatización.
+- **API First**: `proto/api.proto` es la única fuente de verdad para los contratos de la API pública.
+- **Identidad**: UUID v7 (`Uuid::now_v7()`) es obligatorio para todas las llaves primarias de usuarios y entidades.
 
 ---
 
-### Architecture & FHIR Identity Composition
+### Arquitectura y Composición de Identidad FHIR
 
-The diagram below illustrates how system authentication (`User`) composes physical identity (`Person`) and links to healthcare role resources (`Patient`, `Practitioner`, `Organization`):
+El siguiente gráfico ilustra cómo la autenticación del sistema (`User`) compone la identidad física (`Person`) y se vincula con los recursos de roles sanitarios (`Patient`, `Practitioner`, `Organization`):
 
 ```mermaid
 graph TD
-    subgraph auth_boundary["System Auth Boundary"]
-        User["User (System Account)<br/>id: UUID v7, active, provider_info"]
+    subgraph auth_boundary["Límite de Autenticación de Sistema"]
+        User["User (Cuenta de Sistema)<br/>id: UUID v7, active, provider_info"]
     end
 
-    subgraph physical_identity["Physical Identity (FHIR R4 Person)"]
+    subgraph physical_identity["Identidad Física (FHIR R4 Person)"]
         Person["Person<br/>name: HumanName<br/>telecom: ContactPoint[]<br/>identifier: Identifier (DNI/CE)<br/>links: PersonLink[]"]
     end
 
-    subgraph healthcare_roles["Healthcare Roles (FHIR Resources)"]
-        Patient["Patient (crates/patient)<br/>Clinical Record"]
-        Practitioner["Practitioner (crates/clinic_admin)<br/>Medical License (CMP/COP)"]
-        Organization["Organization (crates/clinic)<br/>Clinic / Legal Entity"]
-        RelatedPerson["RelatedPerson<br/>Tutor / Guardian"]
+    subgraph healthcare_roles["Roles Sanitarios (Recursos FHIR)"]
+        Patient["Patient (crates/patient)<br/>Expediente Clínico"]
+        Practitioner["Practitioner (crates/clinic_admin)<br/>Colegiatura Médica (CMP/COP)"]
+        Organization["Organization (crates/clinic)<br/>Clínica / Entidad Legal"]
+        RelatedPerson["RelatedPerson<br/>Tutor / Cuidador"]
     end
 
-    User -->|1:1 Composition| Person
+    User -->|Composición 1:1| Person
     Person -->|Person.link| Patient
     Person -->|Person.link| Practitioner
     Person -->|Person.link| Organization
@@ -254,9 +254,9 @@ graph TD
 
 ---
 
-### Domain Model Class Diagram
+### Diagrama de Clases del Modelo de Dominio
 
-The following class diagram visualizes the domain entities, value objects, and relationships following HL7 FHIR and DDD:
+El siguiente diagrama de clases visualiza las entidades de dominio, value objects y relaciones siguiendo HL7 FHIR y DDD:
 
 ```mermaid
 classDiagram
@@ -277,9 +277,6 @@ classDiagram
         +HumanName name
         +Vec~ContactPoint~ telecom
         +Option~Identifier~ identifier
-        +Option~String~ photo_url
-        +Option~NaiveDate~ birth_date
-        +Option~String~ address
         +Vec~PersonLink~ links
         +add_link(target, assurance)
         +patient_ids() Vec~Uuid~
@@ -357,143 +354,140 @@ classDiagram
         Level4
     }
 
-    User "1" *-- "1" Person : contains (User -> Person)
-    User "1" *-- "1" IdentityProvider : authenticated by
-    Person "1" *-- "1" HumanName : named by
-    Person "1" *-- "0..*" ContactPoint : reached via
-    Person "1" *-- "0..1" Identifier : identified by
-    Person "1" *-- "0..*" PersonLink : links to
-    ContactPoint "1" *-- "1" ContactPointSystem : system
-    ContactPoint "0..1" *-- "1" ContactPointUse : use
-    PersonLink "1" *-- "1" PersonLinkTarget : targets
-    PersonLink "0..1" *-- "1" LinkAssuranceLevel : assurance
+    User "1" *-- "1" Person : contiene (User -> Person)
+    User "1" *-- "1" IdentityProvider : autenticado por
+    Person "1" *-- "1" HumanName : nombra a
+    Person "1" *-- "0..*" ContactPoint : contactado vía
+    Person "1" *-- "0..1" Identifier : identificado por
+    Person "1" *-- "0..*" PersonLink : enlaza a
+    ContactPoint "1" *-- "1" ContactPointSystem : sistema
+    ContactPoint "0..1" *-- "1" ContactPointUse : uso
+    PersonLink "1" *-- "1" PersonLinkTarget : destino
+    PersonLink "0..1" *-- "1" LinkAssuranceLevel : certeza
 ```
-
-
 
 ---
 
-## Project Structure & Module Organization
+## Estructura del Proyecto y Organización de Módulos
 
 ```
 backend/
-├── Cargo.toml              # Workspace root — shared dependency versions live here
+├── Cargo.toml              # Raíz del workspace — versiones de dependencias compartidas
 ├── bin/
-│   └── clickcare/          # gRPC server entry point (tonic + axum)
-│       ├── build.rs        # Proto compilation via tonic-prost-build
+│   └── clickcare/          # Punto de entrada del servidor gRPC (tonic + axum)
+│       ├── build.rs        # Compilación de proto vía tonic-prost-build
 │       ├── src/
 │       │   ├── main.rs
 │       │   ├── lib.rs
 │       │   └── infrastructure/
-│       │       └── grpc/   # gRPC service implementations (e.g. UserApiImpl)
-│       └── tests/          # Integration tests
+│       │       └── grpc/   # Implementaciones de servicios gRPC (ej. UserApiImpl)
+│       └── tests/          # Pruebas de integración
 ├── crates/
-│   ├── core/               # app_core — shared traits, ClickCareError, base contracts
-│   ├── user/               # User bounded context
-│   ├── patient/            # Patient bounded context
-│   ├── clinic/             # Clinic bounded context
-│   └── clinic_admin/       # Clinic admin bounded context
-├── ddl/                    # SQL schema definitions
-├── docs/                   # Architecture diagrams and FHIR references
-└── proto/                  # Protobuf definitions (api.proto)
+│   ├── core/               # app_core — traits compartidos, ClickCareError, contratos base
+│   ├── user/               # Bounded context de Usuario
+│   ├── patient/            # Bounded context de Paciente
+│   ├── clinic/             # Bounded context de Clínica
+│   └── clinic_admin/       # Bounded context de Administración de Clínica
+├── ddl/                    # Definiciones de esquema SQL
+├── docs/                   # Diagramas de arquitectura y referencias FHIR
+└── proto/                  # Definiciones Protobuf (api.proto)
 ```
 
-### Onion Architecture Layers
+### Capas de la Arquitectura Cebolla
 
-| Layer | Path | Responsibility | Dependencies |
+| Capa | Ruta | Responsabilidad | Dependencias |
 |---|---|---|---|
-| **Core** | `crates/core/` | Base traits (`UseCase`), cross-cutting error (`ClickCareError`) | None |
-| **Domain** | `crates/*/src/domain/` | Entities, aggregates, domain events, repository traits | `crates/core` |
-| **Application** | `crates/*/src/application/` | Business use cases implementing `app_core::application::UseCase` | `domain`, `crates/core` |
-| **Infrastructure** | `crates/*/src/infrastructure/` | DB repositories, DI container (`di.rs`), external integrations | `application`, `domain`, `crates/core` |
-| **gRPC Server** | `bin/clickcare/` | gRPC controllers & service entry point | `crates/*` |
+| **Core** | `crates/core/` | Traits base (`UseCase`), error transversal (`ClickCareError`) | Ninguna |
+| **Domain** | `crates/*/src/domain/` | Entidades, agregados, eventos de dominio, traits de repositorio | `crates/core` |
+| **Application** | `crates/*/src/application/` | Casos de uso de negocio implementando `app_core::application::UseCase` | `domain`, `crates/core` |
+| **Infrastructure** | `crates/*/src/infrastructure/` | Repositorios DB, contenedor DI (`di.rs`), adaptadores externos | `application`, `domain`, `crates/core` |
+| **gRPC Server** | `bin/clickcare/` | Controladores gRPC y punto de entrada del servicio | `crates/*` |
 
-Dependencies strictly point **inward**:
+Las dependencias apuntan estrictamente **hacia adentro**:
 ```
-bin/clickcare (gRPC entry point)
-  └── crates/*/infrastructure (DB repos, DI wiring)
-        └── crates/*/application (use cases)
-              └── crates/*/domain (entities & repository traits)
-                    └── crates/core (app_core contracts)
+bin/clickcare (Punto de entrada gRPC)
+  └── crates/*/infrastructure (Repositorios DB, cableado DI)
+        └── crates/*/application (Casos de uso)
+              └── crates/*/domain (Entidades y traits de repositorio)
+                    └── crates/core (Contratos app_core)
 ```
 
 ---
 
-## Request Flow Sequence Diagram
+## Diagrama de Secuencia del Flujo de Solicitudes
 
-The following sequence diagram illustrates how a request flows through the Onion Architecture layers during execution (e.g., User Sign-Up or Patient Record creation):
+El siguiente diagrama de secuencia ilustra cómo fluye una solicitud a través de las capas de la Arquitectura Cebolla durante la ejecución (ej. Registro de Usuario o creación de expediente de Paciente):
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as Client / Frontend
-    participant gRPC as gRPC Adapter (bin/clickcare)
-    participant DI as DI Container (infrastructure/di.rs)
-    participant UseCase as Use Case (application Layer)
-    participant Domain as Entity / Domain (domain Layer)
-    participant Repo as Repository Impl (infrastructure Layer)
-    participant DB as PostgreSQL Database
+    actor Client as Cliente / Frontend
+    participant gRPC as Adaptador gRPC (bin/clickcare)
+    participant DI as Contenedor DI (infrastructure/di.rs)
+    participant UseCase as Caso de Uso (Capa de aplicación)
+    participant Domain as Entidad / Dominio (Capa de dominio)
+    participant Repo as Impl Repositorio (Capa de infraestructura)
+    participant DB as Base de Datos PostgreSQL
 
-    Client->>gRPC: gRPC Request (e.g. CreateUserRequest)
-    gRPC->>DI: Resolve Use Case dependencies
-    DI-->>gRPC: UseCase instance (Arc<dyn Trait>)
+    Client->>gRPC: Solicitud gRPC (ej. CreateUserRequest)
+    gRPC->>DI: Resolver dependencias del Caso de Uso
+    DI-->>gRPC: Instancia del UseCase (Arc<dyn Trait>)
     gRPC->>UseCase: execute(Command)
-    UseCase->>Domain: User::new(UUID v7, parameters...)
-    Domain-->>UseCase: Ok(User Entity)
+    UseCase->>Domain: User::new(UUID v7, parámetros...)
+    Domain-->>UseCase: Ok(Entidad User)
     UseCase->>Repo: repository.save(&user)
     Repo->>DB: INSERT INTO users ... (SQL)
-    DB-->>Repo: SQL Success / Affected rows
+    DB-->>Repo: Éxito SQL / Filas afectadas
     Repo-->>UseCase: Ok(())
     UseCase-->>gRPC: Ok(CreateUserResponse)
-    gRPC-->>Client: gRPC Response (Protobuf)
+    gRPC-->>Client: Respuesta gRPC (Protobuf)
 ```
 
 ---
 
-## Core Rules & Technical Mandates
+## Reglas Principales y Mandatos Técnicos
 
-1. **Strict Dependency Injection (DI)**
-   - Inject dependencies as `Arc<dyn Trait + Send + Sync>`.
-   - Never instantiate concrete types outside `src/infrastructure/di.rs`.
-   - Domain crates expose `di::new(DBType)` and `DIOverrides` for test mock injection.
+1. **Inyección de Dependencias Estricta (DI)**
+   - Inyectar dependencias como `Arc<dyn Trait + Send + Sync>`.
+   - Nunca instanciar tipos concretos fuera de `src/infrastructure/di.rs`.
+   - Las crates de dominio exponen `di::new(DBType)` y `DIOverrides` para inyección de mocks en pruebas.
 
-2. **UUID v7 Requirement**
-   - All Primary Keys and User IDs **must** be UUID v7 (`Uuid::now_v7()`).
-   - Domain constructors validate UUID v7 compliance and return `ClickCareError` on invalid formats.
+2. **Requerimiento Obligatorio de UUID v7**
+   - Todas las Llaves Primarias e IDs de usuario **deben** ser UUID v7 (`Uuid::now_v7()`).
+   - Los constructores de dominio validan el cumplimiento de UUID v7 y devuelven `ClickCareError` en formatos inválidos.
 
-3. **Error Handling & Observability**
-   - Use `ClickCareError` (`crates/core`) for cross-cutting errors.
-   - Use `thiserror` for domain-specific errors and propagate with `?`.
-   - **Zero `unwrap()` in production paths**.
-   - Use `tracing` macros (`info!`, `warn!`, `error!`), **never** use `println!`.
+3. **Manejo de Errores y Observabilidad**
+   - Utilizar `ClickCareError` (`crates/core`) para errores transversales.
+   - Utilizar `thiserror` para errores específicos del dominio y propagar con `?`.
+   - **Cero `unwrap()` en rutas de producción**.
+   - Utilizar macros de `tracing` (`info!`, `warn!`, `error!`), **nunca** usar `println!`.
 
-4. **Scripts & Tooling**
-   - For automation, deployment, or helper scripts, **prefer Nushell scripts (`.nu`)**.
+4. **Scripts y Herramientas**
+   - Para automatización, despliegue o scripts auxiliares, **preferir scripts de Nushell (`.nu`)**.
 
-5. **Protobuf API Single Source of Truth**
-   - `proto/api.proto` defines all external endpoints. Any API change must begin by updating `.proto` definitions.
+5. **Protobuf API como Única Fuente de Verdad**
+   - `proto/api.proto` define todos los endpoints externos. Cualquier cambio en la API debe comenzar actualizando las definiciones `.proto`.
 
 ---
 
-## Build, Test, and Development Commands
+## Comandos de Compilación, Pruebas y Desarrollo
 
 ```bash
-# Check compilation across the entire workspace
+# Verificar compilación en todo el workspace
 cargo check --workspace
 
-# Build the gRPC server
+# Compilar el servidor gRPC
 cargo build -p clickcare
 
-# Run all tests (unit + integration)
+# Ejecutar todas las pruebas (unitarias + integración)
 cargo test --workspace
 
-# Run tests for a specific crate
+# Ejecutar pruebas para una crate específica
 cargo test -p user
 
-# Format code
+# Formatear código
 cargo fmt --all
 
-# Linting (CI strict mode)
+# Linter (Modo estricto CI)
 cargo clippy --workspace -- -D warnings
 ```
-
