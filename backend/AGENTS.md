@@ -8,6 +8,14 @@
 
 #### 1. Domain-Driven Design (DDD) & HL7 FHIR Alignment
 - **Domain Boundaries & Protection**: Strict adherence to DDD principles to protect the domain and keep bounded contexts isolated, ensuring business logic and invariants are guarded from infrastructure or external leaks. Domain boundaries and entities are modeled following **HL7 FHIR** specifications as the primary guide whenever possible.
+- **Bounded Contexts & FHIR Resource Mapping**:
+  | Crate / Bounded Context | Primary FHIR Resource | Responsibility & Domain Scope |
+  |---|---|---|
+  | **`crates/user`** | **`Person`** + `User` | **System Account & Physical Identity**: `User` manages system auth (`id`, `active`, `provider_info`, `is_owner`). Physical human identity lives strictly in **FHIR R4 `Person`** (`name`, `telecom`, `identifier`, `birth_date`, `photo_url`, `address`, `links`). |
+  | **`crates/patient`** | **`Patient`** | **Clinical Record**: Patient health record, emergency contacts, primary practitioner (`generalPractitioner`), and care histories. |
+  | **`crates/clinic`** | **`Organization`** / **`Location`** | **Clinic & Physical Facilities**: `Organization` represents legal entity (RUC, legal name, billing). `Location` represents physical branches, consult rooms, or care areas. |
+  | **`crates/clinic_admin`** | **`Practitioner`** / **`PractitionerRole`** | **Health Practitioners & Admin**: `Practitioner` stores medical credentials (CMP/COP, specialty). `PractitionerRole` maps doctor roles, schedules, and clinic associations. |
+  | **`crates/core`** | FHIR Data Types | Shared Value Objects (`HumanName`, `ContactPoint`, `Identifier`, `Address`). |
 - **User Account & Identity Composition (`User` -> `Person`)**: `User` represents the authentication / system account boundary (`id`, `active`, `person`, `provider_info`, `is_owner`). Physical human identity and demographics strictly live inside `User.person`, following **HL7 FHIR R4 Person** (`name`, `telecom`, `identifier`, `photo_url`, `birth_date`, `address`, `links`). Never flatten `Person` fields directly inside `User`.
 - **Role Links via `Person.link`**: A `Person` connects to its healthcare roles via `PersonLink` targets (`Patient`, `Practitioner`, `RelatedPerson`, `Organization`). This allows a single user account to manage multiple patient profiles (e.g., parents managing children) or administer a clinic without requiring a dummy patient record.
 - **FHIR Terminology & Conventions**: `HumanName` uses `given`, `family`, `second_family` (hispanic extension), and `text`. `ContactPoint` uses `system` (`Phone`, `Email`, etc.) and `use_type`. Note: FHIR `Account` refers exclusively to financial billing/coverage accounts; authentication accounts are mapped to `User` / `Person`.
@@ -30,11 +38,52 @@
   | **Administrador de Clínica (`Clinic Admin`)** | ❌ Opcional | Al **activar/crear la Clínica (`Organization`)** o configurar facturación/RUC. | Verificación de identidad legal del representante de la clínica. |
   | **Profesional de Salud (`Practitioner`)** | ❌ Opcional | Al **activar perfil médico**, habilitar agenda o **firmar atenciones/recetas**. | Verificación de identidad + Colegiatura (CMP/COP) para emitir actos médicos. |
 
+- **Uniqueness & Identity Invariants**:
+  - `User.email`: Strictly unique per system account (Primary authentication credential).
+  - `User.person.identifier` (DNI): Unique per primary `User` account to ensure a single Electronic Health Record (EHR / Ley N° 30024) per physical citizen.
+  - `ContactPoint` (Phone): Non-strict / Shared uniqueness (allows family members or parents managing dependents to share home/contact numbers).
+
+- **Account Recovery, Re-binding & Presencial Verification**:
+  - **Lost Email / Phone Recovery**: When a user registers a new account with a DNI that is already bound to an existing identity whose credentials were lost:
+    1. A new `User` account is created with `PersonLink` in a `Pending Verification` state (`LinkAssuranceLevel::Level1`).
+    2. **Appointment Booking is 100% CONFIRMED** (never tentative; medical slot is fully guaranteed for the patient).
+    3. **Presencial Check-in & Approval**: On the appointment date, during physical receptionist check-in, the receptionist verifies the physical DNI card, completing the check-in and elevating `LinkAssuranceLevel` to verified (`Level3`/`Level4`), unlocking past medical history access in the app seamlessly.
+
 #### 5. General Tech Stack Directives
 - **Architecture**: Strict **Onion Architecture** (Domain isolated from infrastructure details).
 - **Language & Stack**: **Rust 2024** for backend code, **Nushell** (`.nu`) for scripting and automation tasks.
 - **API First**: `proto/api.proto` is the single source of truth for public API contracts.
 - **Identity**: UUID v7 (`Uuid::now_v7()`) is mandatory for all user and entity primary keys.
+
+---
+
+### Architecture & FHIR Identity Composition
+
+The diagram below illustrates how system authentication (`User`) composes physical identity (`Person`) and links to healthcare role resources (`Patient`, `Practitioner`, `Organization`):
+
+```mermaid
+graph TD
+    subgraph auth_boundary["System Auth Boundary"]
+        User["User (System Account)<br/>id: UUID v7, active, provider_info"]
+    end
+
+    subgraph physical_identity["Physical Identity (FHIR R4 Person)"]
+        Person["Person<br/>name: HumanName<br/>telecom: ContactPoint[]<br/>identifier: Identifier (DNI/CE)<br/>links: PersonLink[]"]
+    end
+
+    subgraph healthcare_roles["Healthcare Roles (FHIR Resources)"]
+        Patient["Patient (crates/patient)<br/>Clinical Record"]
+        Practitioner["Practitioner (crates/clinic_admin)<br/>Medical License (CMP/COP)"]
+        Organization["Organization (crates/clinic)<br/>Clinic / Legal Entity"]
+        RelatedPerson["RelatedPerson<br/>Tutor / Guardian"]
+    end
+
+    User -->|1:1 Composition| Person
+    Person -->|Person.link| Patient
+    Person -->|Person.link| Practitioner
+    Person -->|Person.link| Organization
+    Person -->|Person.link| RelatedPerson
+```
 
 ---
 
