@@ -39,7 +39,7 @@ impl UserApi for UserApiImpl {
 
         let command = CreateUserCommand {
             id_token: sign_up_request.id_token,
-            user_id: sign_up_request.user_id,
+            user_id: sign_up_request.user_id.clone(),
             provider_id: sign_up_request.provider_id,
             provider_name: sign_up_request.provider_name,
             provider_avatar_url: sign_up_request.provider_avatar_url,
@@ -58,10 +58,18 @@ impl UserApi for UserApiImpl {
         };
         debug!("command: {:?}", command);
 
+        let user_id = sign_up_request.user_id;
         self.create_user_use_case
             .execute(command)
             .await
-            .map(|_a| Response::new(SignUpResponse {}))
+            .map(|_a| {
+                Response::new(SignUpResponse {
+                    status: SignUpStatus::Success as i32,
+                    message: "Usuario registrado exitosamente.".to_string(),
+                    user_id: Some(user_id),
+                    link: None,
+                })
+            })
             .map_err(|err| match err {
                 CrueateUserError::UserAlreadyExists(e) => Status::already_exists(e.to_string()),
                 CrueateUserError::UnknownError(e) => Status::unknown(e.to_string()),

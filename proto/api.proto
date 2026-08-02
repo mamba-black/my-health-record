@@ -79,8 +79,22 @@ message SignUpRequest {
     bool create_clinic = 16;                 // Indica si se debe inicializar una clínica para el usuario
 }
 
+/// Estado del resultado del registro de usuario.
+enum SignUpStatus {
+    SIGN_UP_STATUS_UNSPECIFIED = 0;
+    /// Registro completado y verificado exitosamente.
+    SUCCESS = 1;
+    /// Registro completado. Se detectó un historial previo con el DNI; la vinculación quedó en estado pendiente de verificación presencial.
+    LINK_PENDING_PRESENCIAL_VERIFICATION = 2;
+}
+
 /// Respuesta al registro de usuario.
-message SignUpResponse {}
+message SignUpResponse {
+    SignUpStatus status = 1;      // Estado contextual de la operación de registro
+    string message = 2;            // Mensaje legible para la interfaz de usuario (UI)
+    optional string user_id = 3;   // UUID v7 de la cuenta de usuario creada
+    optional PersonLink link = 4;  // Enlace generado con su nivel de certeza (AssuranceLevel)
+}
 
 /// Solicitud de autenticación de usuario (Sign In).
 message SignInRequest {
