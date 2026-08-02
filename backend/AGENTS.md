@@ -49,6 +49,89 @@
     2. **Appointment Booking is 100% CONFIRMED** (never tentative; medical slot is fully guaranteed for the patient).
     3. **Presencial Check-in & Approval**: On the appointment date, during physical receptionist check-in, the receptionist verifies the physical DNI card, completing the check-in and elevating `LinkAssuranceLevel` to verified (`Level3`/`Level4`), unlocking past medical history access in the app seamlessly.
 
+---
+
+### 4.1. Account & Identity Lifecycle Use Cases
+
+#### Use Case 1: Progressive Onboarding & Confirmed Booking
+User signs up with minimal info (Google OIDC/Email). When booking an appointment, DNI & Phone become mandatory. The appointment is **100% CONFIRMED** in the clinic schedule.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Patient as Patient / App
+    participant App as Mobile/Web App
+    participant UserDomain as crates/user
+    participant ClinicDomain as crates/clinic
+    participant DB as PostgreSQL DB
+
+    Patient->>App: 1. Sign Up (Email / OIDC)
+    App->>UserDomain: Create User (Minimal Person)
+    UserDomain->>DB: Save User (active=true, DNI=None)
+    
+    Patient->>App: 2. Book Appointment
+    App->>Patient: Prompt DNI & Phone (Mandatory per Ley 30024)
+    Patient->>App: Submits DNI & Phone
+    App->>UserDomain: Update Person (identifier=DNI, telecom=Phone)
+    App->>ClinicDomain: Book Appointment (Doctor, Slot)
+    ClinicDomain-->>App: Appointment Status: CONFIRMED
+    App-->>Patient: Display Booking Confirmation
+```
+
+#### Use Case 2: Lost Credentials Recovery & Presencial Re-binding
+User lost access to email/phone. Registers a new account with their DNI. Account is created with `LinkAssuranceLevel::Level1` (Pending). Appointment is **100% CONFIRMED**. On appointment day, Receptionist verifies physical DNI at check-in, promoting assurance to `Level3`/`Level4` (Verified).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Patient as Patient
+    actor Receptionist as Clinic Receptionist
+    participant App as App / System
+    participant UserDomain as crates/user
+    participant AdminDomain as crates/clinic_admin
+    participant DB as PostgreSQL DB
+
+    Patient->>App: Sign Up with New Email + Existing DNI
+    App->>UserDomain: Detect Existing DNI History
+    UserDomain->>UserDomain: Create User + PersonLink (Assurance: Level1 Pending)
+    App->>App: Book Appointment (Status: CONFIRMED)
+    
+    Note over Patient, Receptionist: Appointment Day (Presencial Check-in)
+    Patient->>Receptionist: Arrives at Clinic & Present Physical DNI
+    Receptionist->>AdminDomain: Perform Check-in (DNI 10000001)
+    AdminDomain->>AdminDomain: Detect Pending Link Request (carlos_nuevo@gmail.com)
+    Receptionist->>AdminDomain: Verify Physical DNI & Click "Approve Link"
+    AdminDomain->>UserDomain: Elevate PersonLink Assurance (Level3/Level4 Verified)
+    UserDomain->>DB: Update Link Assurance & Deactivate Old User
+    AdminDomain-->>Patient: Patient Checked-in & App Fully Linked
+```
+
+#### Use Case 3: DNI Mistake Correction & Family Profile Conversion
+User accidentally registered a family member's DNI (e.g., child or parent) on their main account. User converts the family member's DNI to a managed `Patient` profile (`PersonLinkTarget::Patient`) and sets their own DNI on the main account.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Account Owner
+    participant App as Mobile App
+    participant UserDomain as crates/user
+    participant PatientDomain as crates/patient
+    participant DB as PostgreSQL DB
+
+    User->>App: Select "Correct DNI / Move DNI to Dependent"
+    App->>UserDomain: Initiate Profile Conversion (DNI 77777777)
+    UserDomain->>PatientDomain: Create Dependent Patient Profile (DNI 77777777)
+    PatientDomain->>DB: Save Patient (Managed by Owner)
+    UserDomain->>UserDomain: Add PersonLinkTarget::Patient(dependent_id)
+    
+    User->>App: Enter Owner's Real DNI (10000001)
+    App->>UserDomain: Update User.person.identifier = DNI 10000001
+    UserDomain->>DB: Save Owner Identity
+    App-->>User: Profile Reorganized (Owner + Dependent Patient)
+```
+
+---
+
 #### 5. General Tech Stack Directives
 - **Architecture**: Strict **Onion Architecture** (Domain isolated from infrastructure details).
 - **Language & Stack**: **Rust 2024** for backend code, **Nushell** (`.nu`) for scripting and automation tasks.
