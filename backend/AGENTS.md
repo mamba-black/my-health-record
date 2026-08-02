@@ -49,6 +49,11 @@
     2. **Appointment Booking is 100% CONFIRMED** (never tentative; medical slot is fully guaranteed for the patient).
     3. **Presencial Check-in & Approval**: On the appointment date, during physical receptionist check-in, the receptionist verifies the physical DNI card, completing the check-in and elevating `LinkAssuranceLevel` to verified (`Level3`/`Level4`), unlocking past medical history access in the app seamlessly.
 
+- **API Onboarding Response Statuses (`proto/api.proto`)**:
+  - `SignUpStatus::SUCCESS`: Account created cleanly. Response message: `"Usuario registrado exitosamente."`
+  - `SignUpStatus::LINK_PENDING_PRESENCIAL_VERIFICATION`: Account created; prior DNI history detected. `PersonLink` set to `Level1` (Pending). Response message: `"Cuenta creada exitosamente. Se detectó una Historia Clínica asociada a tu DNI. La vinculación final se completará durante tu verificación presencial en tu próxima cita médica."`
+  - `DNI_ALREADY_VERIFIED_CONFLICT` (`gRPC Status: ALREADY_EXISTS`): Returns explicit error when trying to override an active verified DNI. Response message: `"El DNI ingresado ya está asociado a una cuenta verificada. Por favor, inicia sesión o solicita asistencia en recepción."`
+
 ---
 
 ### 4.1. Account & Identity Lifecycle Use Cases
