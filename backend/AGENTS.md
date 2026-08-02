@@ -51,8 +51,8 @@
 
 - **API Onboarding Response Statuses (`proto/api.proto`)**:
   - `SignUpStatus::SUCCESS`: Account created cleanly. Response message: `"Usuario registrado exitosamente."`
-  - `SignUpStatus::LINK_PENDING_PRESENCIAL_VERIFICATION`: Account created; prior DNI history detected. `PersonLink` set to `Level1` (Pending). Response message: `"Cuenta creada exitosamente. Se detectó una Historia Clínica asociada a tu DNI. La vinculación final se completará durante tu verificación presencial en tu próxima cita médica."`
-  - `DNI_ALREADY_VERIFIED_CONFLICT` (`gRPC Status: ALREADY_EXISTS`): Returns explicit error when trying to override an active verified DNI. Response message: `"El DNI ingresado ya está asociado a una cuenta verificada. Por favor, inicia sesión o solicita asistencia en recepción."`
+  - `SignUpStatus::LINK_PENDING_PRESENCIAL_VERIFICATION`: Account created with explicit confirmation (`confirm_pending_presencial_link = true`); prior DNI history detected. `PersonLink` set to `Level1` (Pending). Response message: `"Cuenta creada exitosamente. Se detectó una Historia Clínica asociada a tu DNI. La vinculación final se completará durante tu verificación presencial en tu próxima cita médica."`
+  - `DNI_ALREADY_VERIFIED_CONFLICT` (`gRPC Status: ALREADY_EXISTS`): Returned on initial registration attempt when DNI already exists and `confirm_pending_presencial_link` is `false`/`None`. Response message: `"El DNI ingresado ya está asociado a una cuenta. ¿Deseas iniciar sesión o solicitar la vinculación presencial en tu próxima cita médica?"`
 
 ---
 
