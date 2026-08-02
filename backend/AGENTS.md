@@ -9,6 +9,7 @@
 #### 1. Diseño Guiado por el Dominio (DDD) y Alineación con HL7 FHIR
 - **Protección y Limites del Dominio**: Adherencia estricta a los principios de DDD para proteger el dominio y mantener los contextos delimitados aislados, asegurando que la lógica de negocio y sus invariantes estén protegidos contra filtraciones de infraestructura o externas. Los límites y entidades del dominio se modelan siguiendo las especificaciones de **HL7 FHIR** como guía principal siempre que sea posible.
 - **Contextos Delimitados y Mapeo de Recursos FHIR**:
+
   | Crate / Bounded Context | Recurso FHIR Principal | Responsabilidad y Alcance del Dominio |
   |---|---|---|
   | **`crates/user`** | **`Person`** + `User` | **Cuenta de Sistema e Identidad Física**: `User` gestiona la autenticación del sistema (`id`, `active`, `provider_info`, `is_owner`). La identidad física humana vive strictly en **FHIR R4 `Person`** (`name`, `telecom`, `identifier`, `links`). |
@@ -73,7 +74,7 @@ sequenceDiagram
     Patient->>App: 1. Registro inicial (Email / OIDC)
     App->>UserDomain: Crear Usuario (Person Mínima)
     UserDomain->>DB: Guardar Usuario (active=true, DNI=None)
-    
+
     Patient->>App: 2. Reservar Cita Médica
     App->>Patient: Solicitar DNI y Teléfono (Obligatorio Ley 30024)
     Patient->>App: Ingresa DNI y Teléfono
@@ -100,7 +101,7 @@ sequenceDiagram
     App->>UserDomain: Detectar Historial de DNI Existente
     UserDomain->>UserDomain: Crear Usuario + PersonLink (Assurance: Level1 Pendiente)
     App->>App: Reservar Cita Médica (Estado: CONFIRMADA)
-    
+
     Note over Patient, Receptionist: Día de la Cita Médica (Check-in Presencial)
     Patient->>Receptionist: Llega a la clínica y presenta DNI Físico
     Receptionist->>AdminDomain: Realizar Check-in (DNI 10000001)
@@ -128,7 +129,7 @@ sequenceDiagram
     UserDomain->>PatientDomain: Crear Perfil de Paciente Dependiente (DNI 77777777)
     PatientDomain->>DB: Guardar Paciente (Gestionado por Titular)
     UserDomain->>UserDomain: Agregar PersonLinkTarget::Patient(dependent_id)
-    
+
     User->>App: Ingresar DNI Real del Titular (10000001)
     App->>UserDomain: Actualizar User.person.identifier = DNI 10000001
     UserDomain->>DB: Guardar Identidad del Titular
@@ -149,7 +150,7 @@ sequenceDiagram
     Client->>API: Consultar Estado de DNI (DNI 10000001)
     API->>UserDomain: Verificar Existencia de DNI
     UserDomain->>DB: SELECT FROM users/persons WHERE identifier = DNI 10000001
-    
+
     alt DNI No Encontrado
         DB-->>UserDomain: No Encontrado
         UserDomain-->>API: Disponible
@@ -203,7 +204,7 @@ sequenceDiagram
 
     User->>App: Solicitud de Edición de Perfil (Nombre / DNI)
     App->>UserDomain: UpdateProfile(UserCommand)
-    
+
     alt Assurance es Level1 (No Verificado / Pendiente)
         UserDomain->>UserDomain: Actualizar Identifier / Nombre de Person
         UserDomain->>DB: Guardar Person Actualizado
