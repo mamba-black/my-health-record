@@ -135,6 +135,85 @@ sequenceDiagram
     App-->>User: Profile Reorganized (Owner + Dependent Patient)
 ```
 
+#### Use Case 4: Pre-check Query by DNI & Dynamic Options
+App queries API before or during registration. Backend checks DNI existence and status to guide UX choices.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as App / Client
+    participant API as UserApi (gRPC)
+    participant UserDomain as crates/user
+    participant DB as PostgreSQL DB
+
+    Client->>API: Query DNI Status (DNI 10000001)
+    API->>UserDomain: Check DNI Existence
+    UserDomain->>DB: SELECT FROM users/persons WHERE identifier = DNI 10000001
+    
+    alt DNI Not Found
+        DB-->>UserDomain: Not Found
+        UserDomain-->>API: Available
+        API-->>Client: Status: OK (DNI Available for normal registration)
+    else DNI Exists on Active Account (Level3/Level4 Verified)
+        DB-->>UserDomain: Active User (carlos@gmail.com)
+        UserDomain-->>API: Conflict (Verified Account)
+        API-->>Client: Status: ALREADY_EXISTS (Prompt User to Sign In / Recover Account)
+    else DNI Exists on Clinical History / Unverified Account
+        DB-->>UserDomain: Patient History Found
+        UserDomain-->>API: History Found (Link Available)
+        API-->>Client: Status: LINK_AVAILABLE (Prompt User to Request Presencial Link)
+    end
+```
+
+#### Use Case 5: Dependent Profile Independence (Child Turns 18)
+A managed dependent child (`Patient` linked to parent's account) registers their own autonomous `User` account with their email and DNI.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Child as Dependent (Now Adult)
+    participant App as Mobile App
+    participant UserDomain as crates/user
+    participant AdminDomain as crates/clinic_admin
+    participant DB as PostgreSQL DB
+
+    Child->>App: Register Autonomous Account (email + DNI 77777777)
+    App->>UserDomain: SignUpRequest (confirm_pending_presencial_link=true)
+    UserDomain->>UserDomain: Create User + PersonLink (Assurance: Level1 Pending)
+    UserDomain->>DB: Save User Account
+    App-->>Child: Display Pending Verification Notice
+
+    Note over Child, AdminDomain: Presencial Appointment at Clinic
+    Child->>AdminDomain: Present Physical DNI at Check-in
+    AdminDomain->>UserDomain: Approve Link & Transfer Record (Assurance: Level3/Level4)
+    UserDomain->>DB: Update Link & Unlink Managed Dependent Status
+    AdminDomain-->>Child: App Unlocked & History Fully Independent
+```
+
+#### Use Case 6: Profile Data Updates & Assurance Level Controls
+User attempts to update identity fields (Name, DNI, Telecom). Updates are allowed freely for unverified accounts (`Level1`) and restricted/audit-logged for verified accounts (`Level3`/`Level4`).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User / Patient
+    participant App as Mobile App
+    participant UserDomain as crates/user
+    participant DB as PostgreSQL DB
+
+    User->>App: Edit Profile Request (Name / DNI)
+    App->>UserDomain: UpdateProfile(UserCommand)
+    
+    alt Assurance is Level1 (Unverified / Pending)
+        UserDomain->>UserDomain: Update Person Identifier / Name
+        UserDomain->>DB: Save Updated Person
+        UserDomain-->>App: Success (Profile Updated)
+    else Assurance is Level3/Level4 (Verified in Clinic)
+        UserDomain-->>App: Error / Restricted (DNI edit requires in-clinic approval)
+        App-->>User: Display Notice ("Contact Reception to update verified DNI")
+    end
+```
+
 ---
 
 #### 5. General Tech Stack Directives
