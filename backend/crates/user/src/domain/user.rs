@@ -116,9 +116,9 @@ impl User {
     /// Retorna `ClickCareError` si el `id` suministrado no es un UUID v7 válido.
     pub fn new(
         id: String,
-        name: Vec<String>,
-        first_name: String,
-        last_name: String,
+        given: Vec<String>,
+        family: String,
+        second_family: String,
         identifier: Option<Identifier>,
         is_owner: bool,
         email: String,
@@ -129,7 +129,7 @@ impl User {
             Ok(id) if id.get_version() == Some(Version::SortRand) => {
                 let person = Person {
                     id,
-                    name: HumanName::new(name, first_name, Some(last_name)),
+                    name: HumanName::new(given, family, Some(second_family)),
                     telecom: vec![ContactPoint::email(email)],
                     identifier,
                     links: vec![],

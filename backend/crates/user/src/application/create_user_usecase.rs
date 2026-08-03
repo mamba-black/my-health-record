@@ -104,9 +104,9 @@ impl UseCase for CreateUserUseCaseImpl {
 
         let user = User::new(
             command.user_id,
-            vec![command.username],
-            command.first_name,
+            vec![command.first_name],
             command.last_name,
+            command.second_last_name.unwrap_or_default(),
             identifier,
             command.create_clinic,
             command.email,
