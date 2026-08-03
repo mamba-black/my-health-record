@@ -114,7 +114,7 @@ mod sign_up {
             user_id: user_id.to_string(),
             email: "test@example.com".into(),
             given_name: "Juan".into(),
-            family_name: "Pérez".into(),
+            family_name: Some("Pérez".into()),
             ..Default::default()
         };
         let request = tonic::Request::new(sign_up_request.clone());
@@ -142,7 +142,7 @@ mod sign_up {
             let db_email: String = row.get("email");
             let db_active: bool = row.get("active");
             let given_name: String = row.get("given_name");
-            let family_name: String = row.get("family_name");
+            let family_name: Option<String> = row.get("family_name");
 
             assert_eq!(db_id, user_id);
             assert_eq!(db_email, sign_up_request.email);

@@ -29,7 +29,7 @@ pub mod command {
         pub email: String,
         pub identifier: Option<Identifier>,
         pub first_name: String,
-        pub last_name: String,
+        pub last_name: Option<String>,
         pub second_last_name: Option<String>,
         pub phone: String,
         pub address: String,

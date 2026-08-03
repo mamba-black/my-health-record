@@ -70,7 +70,7 @@ message SignUpRequest {
     string email = 6;                        // Correo electrónico principal
     optional Identifier identifier = 7;      // Documento de identidad opcional en registro inicial
     string given_name = 9;                   // Nombres de pila (FHIR: HumanName.given)
-    string family_name = 10;                 // Primer apellido (FHIR: HumanName.family)
+    optional string family_name = 10;        // Primer apellido (FHIR: HumanName.family)
     optional string second_family_name = 11; // Segundo apellido (Extensión hispana)
     string phone = 12;                       // Teléfono de contacto
     string address = 13;                     // Dirección domiciliaria

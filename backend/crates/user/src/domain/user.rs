@@ -117,7 +117,7 @@ impl User {
     pub fn new(
         id: String,
         given: Vec<String>,
-        family: String,
+        family: Option<String>,
         second_family: String,
         identifier: Option<Identifier>,
         is_owner: bool,
@@ -213,8 +213,8 @@ impl Person {
 pub struct HumanName {
     /// Nombres de pila (`given`), ej. `["Juan", "Carlos"]`.
     given: Vec<String>,
-    /// Primer apellido (`family`), ej. `"Pérez"`.
-    family: String,
+    /// Primer apellido (`family`), opcional según FHIR R4.
+    family: Option<String>,
     /// Segundo apellido (extensión hispana de `family`), ej. `"Gómez"`.
     second_family: Option<String>,
     /// Nombre completo formateado y representable en texto (`text`).
@@ -224,10 +224,11 @@ pub struct HumanName {
 #[bon]
 impl HumanName {
     /// Smart Constructor principal: Garantiza que `text` siempre sea pre-calculado e inmutable.
-    pub fn new(given: Vec<String>, family: String, second_family: Option<String>) -> Self {
-        let text = match &second_family {
-            Some(sec) => format!("{} {} {}", given.join(" "), family, sec),
-            None => format!("{} {}", given.join(" "), family),
+    pub fn new(given: Vec<String>, family: Option<String>, second_family: Option<String>) -> Self {
+        let text = match (&family, &second_family) {
+            (Some(f), Some(sec)) => format!("{} {} {}", given.join(" "), f, sec),
+            (Some(f), None) => format!("{} {}", given.join(" "), f),
+            (None, _) => given.join(" "),
         };
         Self {
             given,
@@ -239,7 +240,7 @@ impl HumanName {
 
     /// Builder fluente provisto por `bon` que reutiliza la lógica de `new()`.
     #[builder]
-    pub fn builder(given: Vec<String>, family: String, second_family: Option<String>) -> Self {
+    pub fn builder(given: Vec<String>, family: Option<String>, second_family: Option<String>) -> Self {
         Self::new(given, family, second_family)
     }
 }

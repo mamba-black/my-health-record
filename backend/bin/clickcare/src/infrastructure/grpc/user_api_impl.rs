@@ -119,7 +119,7 @@ mod test {
         email: "".to_string(),
         identifier: None,
         given_name: "".to_string(),
-        family_name: "".to_string(),
+        family_name: None,
         second_family_name: None,
         phone: "".to_string(),
         address: "".to_string(),

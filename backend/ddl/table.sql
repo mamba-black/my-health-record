@@ -11,7 +11,7 @@ CREATE TABLE user_account (
 
     -- Person / HumanName
     given_name      VARCHAR(100) NOT NULL,
-    family_name     VARCHAR(50) NOT NULL,
+    family_name     VARCHAR(50),
     second_family_name VARCHAR(50),
 
     -- Person / Identifier (e.g. DNI)

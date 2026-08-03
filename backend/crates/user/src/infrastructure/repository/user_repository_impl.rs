@@ -20,7 +20,7 @@ pub struct UserAccount {
 
     pub given_name: String,
 
-    pub family_name: String,
+    pub family_name: Option<String>,
 
     pub second_family_name: Option<String>,
 

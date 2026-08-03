@@ -1,0 +1,61 @@
+// Database Markup Language (DBML) schema generated from ddl/table.sql
+
+Table user_account {
+  id uuid [pk]
+  first_name varchar(50) [not null]
+  last_name varchar(50) [not null]
+  second_last_name varchar(50)
+
+  Note: 'Cuenta de usuario del sistema'
+}
+
+Table clinic {
+  clinic_id uuid [pk, default: `uuidv7()`]
+  name varchar(100) [not null]
+  address text
+  phone_number varchar(15)
+  email varchar(100)
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  Note: 'Entidad legal y clínica'
+}
+
+Table patient {
+  patient_id uuid [default: `uuidv7()`]
+  clinic_id uuid [not null]
+  first_name varchar(50) [not null]
+  last_name varchar(50) [not null]
+  second_last_name varchar(50)
+  date_of_birth date [not null]
+  gender varchar(10)
+  phone_number varchar(15)
+  email varchar(100)
+  address text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (clinic_id, patient_id) [pk]
+  }
+
+  Note: 'Expediente del paciente (Partitioned by LIST on clinic_id)'
+}
+
+Table patient_search {
+  clinic_id uuid [not null]
+  patient_id uuid [not null]
+  full_name varchar(200) [not null]
+
+  indexes {
+    (clinic_id, patient_id) [pk]
+    full_name [type: gin, note: 'GIN index con gin_trgm_ops para trigramas']
+  }
+
+  Note: 'Tabla optimizada para búsqueda trigrama de pacientes (Partitioned by LIST on clinic_id)'
+}
+
+// Foreign Key Relationships
+Ref fk_patient_clinic: patient.clinic_id > clinic.clinic_id [delete: cascade]
+Ref fk_patient_search_clinic: patient_search.clinic_id > clinic.clinic_id [delete: cascade]
+Ref fk_patient_search_patient: patient_search.(clinic_id, patient_id) > patient.(clinic_id, patient_id) [delete: cascade]
