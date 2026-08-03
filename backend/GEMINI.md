@@ -7,7 +7,7 @@ Foundational mandates and operational workflows for "My Health Record" (Backend)
 2. **Rust Standards:**
     - **Edition:** Rust 2024.
     - **Style:** `rustfmt` (default) + `clippy` (`-D warnings`).
-    - **Naming:** Idiomatic (`PascalCase` for types/traits, `snake_case` for functions/vars/tests, `SCREAMING_SNAKE_CASE` for constants).
+    - **Naming & Conventions:** See `AGENTS.md` (Section 2: Encapsulamiento del Dominio y Convenciones de Código) for comprehensive naming rules and domain patterns.
 3. **Observability:** Use `tracing` macros (`info!`, `warn!`, `error!`), never `println!`. Logger initialized via `init_logger()`.
 4. **Dependency Management:** Declare new dependencies in the **workspace `Cargo.toml`** and reference them with `.workspace = true` in crate-level files.
 

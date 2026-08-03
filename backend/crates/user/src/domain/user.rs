@@ -226,8 +226,8 @@ impl HumanName {
     /// Smart Constructor principal: Garantiza que `text` siempre sea pre-calculado e inmutable.
     pub fn new(given: Vec<String>, family: Option<String>, second_family: Option<String>) -> Self {
         let text = match (&family, &second_family) {
-            (Some(f), Some(sec)) => format!("{} {} {}", given.join(" "), f, sec),
-            (Some(f), None) => format!("{} {}", given.join(" "), f),
+            (Some(family_name), Some(second_family_name)) => format!("{} {} {}", given.join(" "), family_name, second_family_name),
+            (Some(family_name), None) => format!("{} {}", given.join(" "), family_name),
             (None, _) => given.join(" "),
         };
         Self {
