@@ -106,7 +106,7 @@ impl UseCase for CreateUserUseCaseImpl {
             command.user_id,
             vec![command.first_name],
             command.last_name,
-            command.second_last_name.unwrap_or_default(),
+            command.second_last_name,
             identifier,
             command.create_clinic,
             command.email,

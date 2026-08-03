@@ -118,7 +118,7 @@ impl User {
         id: String,
         given: Vec<String>,
         family: Option<String>,
-        second_family: String,
+        second_family: Option<String>,
         identifier: Option<Identifier>,
         is_owner: bool,
         email: String,
@@ -129,7 +129,7 @@ impl User {
             Ok(id) if id.get_version() == Some(Version::SortRand) => {
                 let person = Person {
                     id,
-                    name: HumanName::new(given, family, Some(second_family)),
+                    name: HumanName::new(given, family, second_family),
                     telecom: vec![ContactPoint::email(email)],
                     identifier,
                     links: vec![],
@@ -226,7 +226,9 @@ impl HumanName {
     /// Smart Constructor principal: Garantiza que `text` siempre sea pre-calculado e inmutable.
     pub fn new(given: Vec<String>, family: Option<String>, second_family: Option<String>) -> Self {
         let text = match (&family, &second_family) {
-            (Some(family_name), Some(second_family_name)) => format!("{} {} {}", given.join(" "), family_name, second_family_name),
+            (Some(family_name), Some(second_family_name)) => {
+                format!("{} {} {}", given.join(" "), family_name, second_family_name)
+            }
             (Some(family_name), None) => format!("{} {}", given.join(" "), family_name),
             (None, _) => given.join(" "),
         };
@@ -240,7 +242,11 @@ impl HumanName {
 
     /// Builder fluente provisto por `bon` que reutiliza la lógica de `new()`.
     #[builder]
-    pub fn builder(given: Vec<String>, family: Option<String>, second_family: Option<String>) -> Self {
+    pub fn builder(
+        given: Vec<String>,
+        family: Option<String>,
+        second_family: Option<String>,
+    ) -> Self {
         Self::new(given, family, second_family)
     }
 }
