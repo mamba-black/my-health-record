@@ -1,19 +1,19 @@
+use crate::infrastructure::grpc::FILE_DESCRIPTOR_SET;
 use crate::infrastructure::grpc::patient_api_impl::PatientApiImpl;
 use crate::infrastructure::grpc::patient_api_server::PatientApiServer;
 use crate::infrastructure::grpc::user_api_impl::UserApiImpl;
 use crate::infrastructure::grpc::user_api_server::UserApiServer;
-use crate::infrastructure::grpc::FILE_DESCRIPTOR_SET;
 use app_core::domain::error::ClickCareError;
 use tonic::transport::Server;
 use tonic_web::GrpcWebLayer;
 
-pub mod log;
 pub mod grpc;
+pub mod log;
 
 pub async fn start_server(url: Option<String>) -> Result<(), ClickCareError> {
-    let addr = "[::1]:50051"
-        .parse()
-        .map_err(|e| ClickCareError::generic(format!("Error al parsear la direccion del servidor: {}", e)))?;
+    let addr = "[::1]:50051".parse().map_err(|e| {
+        ClickCareError::generic(format!("Error al parsear la direccion del servidor: {}", e))
+    })?;
 
     let reflection_server = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
@@ -35,4 +35,3 @@ pub async fn start_server(url: Option<String>) -> Result<(), ClickCareError> {
 
     Ok(())
 }
-

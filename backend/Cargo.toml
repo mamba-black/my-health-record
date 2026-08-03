@@ -30,7 +30,8 @@ strum_macros = "0.28.0"
 
 ## =====================================
 ## Base de datos
-toasty = { version = "0.8.0", features = ["postgresql"] }
+toasty = { version = "0.8.0", features = ["postgresql", "jiff"] }
+jiff = "0.2.23"
 sqlx = { version = "0.9.0", features = [
     "json",
     "postgres",

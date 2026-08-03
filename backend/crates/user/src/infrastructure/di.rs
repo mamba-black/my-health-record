@@ -4,14 +4,14 @@ use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::User;
 use crate::infrastructure::repository::clinic_repository_impl::ClinicRepositoryImpl;
 use crate::infrastructure::repository::emitter_impl::EmitterImpl;
-use crate::infrastructure::repository::user_repository_impl::UserRepositoryImpl;
+use crate::infrastructure::repository::user_repository_impl::{UserAccount, UserRepositoryImpl};
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;
+use log::error;
 use sqlx::PgPool;
 use std::env::var;
 use std::sync::Arc;
-use log::error;
-use toasty::Db;
+use toasty::{Db, models};
 use tokio::sync::Mutex;
 use tokio::sync::broadcast::channel;
 use tracing::debug;
@@ -96,20 +96,35 @@ async fn build_user_repository(dbtype: DBType) -> Result<Arc<dyn UserRepository>
                 error!("Error al crear el Pool para sqlx");
                 ClickCareError::generic(format!("Error en la conexion a la DB [{}] ({})", url, e))
             })?;
-            let db: Db = toasty::Db::builder().connect(url.as_str()).await.map_err(|e| {
-                error!("Error al crear el Pool para toasty: {e}");
-                ClickCareError::generic(format!("Error en la conexion a la Toasty DB [{}] ({})", url, e))
-            })?;
+            let db: Db = toasty::Db::builder()
+                // .register::<UserAccount>()
+                .models(models!(UserAccount))
+                .connect(url.as_str())
+                .await
+                .map_err(|e| {
+                    error!("Error al crear el Pool para toasty: {e}");
+                    ClickCareError::generic(format!(
+                        "Error en la conexion a la Toasty DB [{}] ({})",
+                        url, e
+                    ))
+                })?;
             Arc::new(UserRepositoryImpl { pool, db })
         }
         DBType::Postgres(None) => {
-            let url = var("PG_URL").unwrap_or("postgres://user:password@localhost:5432".to_string());
+            let url =
+                var("PG_URL").unwrap_or("postgres://user:password@localhost:5432".to_string());
             let pool = PgPool::connect(url.as_str()).await.map_err(|e| {
                 ClickCareError::generic(format!("Error en la conexion a la DB [{}] ({})", url, e))
             })?;
-            let db: Db = toasty::Db::builder().connect(url.as_str()).await.map_err(|e| {
-                ClickCareError::generic(format!("Error en la conexion a la Toasty DB [{}] ({})", url, e))
-            })?;
+            let db: Db = toasty::Db::builder()
+                .connect(url.as_str())
+                .await
+                .map_err(|e| {
+                    ClickCareError::generic(format!(
+                        "Error en la conexion a la Toasty DB [{}] ({})",
+                        url, e
+                    ))
+                })?;
             Arc::new(UserRepositoryImpl { pool, db })
         }
         DBType::Mock => Arc::new(MockUserRepositoryImpl {
@@ -131,7 +146,11 @@ pub struct MockUserRepositoryImpl {
 
 #[async_trait]
 impl UserRepository for MockUserRepositoryImpl {
-    async fn exist_user_by_document(&self, document_type: &str, document_value: &str) -> Result<bool, ClickCareError> {
+    async fn exist_user_by_document(
+        &self,
+        document_type: &str,
+        document_value: &str,
+    ) -> Result<bool, ClickCareError> {
         Ok(false)
     }
 

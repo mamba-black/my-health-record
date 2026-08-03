@@ -8,4 +8,3 @@ pub trait UseCase: Sync + Send {
 
     async fn execute(&self, command: Self::Command) -> Result<Self::Response, Self::Error>;
 }
-

@@ -1,4 +1,6 @@
+use crate::infrastructure;
 use crate::infrastructure::grpc::SignUpRequest;
+use crate::infrastructure::grpc::identifier::IdentifierType;
 use crate::infrastructure::grpc::user_api_server::UserApi;
 use crate::infrastructure::grpc::*;
 use app_core::domain::error::ClickCareError;
@@ -6,13 +8,11 @@ use std::sync::Arc;
 use tonic::*;
 use tracing::debug;
 use user::application::CreateUserUseCase;
-use user::application::command::{CreateUserCommand, CrueateUserError};
 use user::application::command::CrueateUserError::UnknownError;
+use user::application::command::{CreateUserCommand, CrueateUserError};
 use user::domain::user::Identifier::DNI;
 use user::infrastructure::di;
 use user::infrastructure::di::DBType;
-use crate::infrastructure;
-use crate::infrastructure::grpc::identifier::IdentifierType;
 
 pub struct UserApiImpl {
     create_user_use_case: Arc<dyn CreateUserUseCase>,
@@ -29,7 +29,6 @@ impl UserApiImpl {
 
 #[async_trait]
 impl UserApi for UserApiImpl {
-
     #[tracing::instrument(skip(self, sign_up_request))]
     async fn sign_up(
         &self,
@@ -44,7 +43,11 @@ impl UserApi for UserApiImpl {
             provider_name: sign_up_request.provider_name,
             provider_avatar_url: sign_up_request.provider_avatar_url,
             email: sign_up_request.email.clone(),
-            identifier: sign_up_request.identifier.and_then(|identifier| identifier.identifier_type.map(|IdentifierType::Dni(dni)| DNI(dni))),
+            identifier: sign_up_request.identifier.and_then(|identifier| {
+                identifier
+                    .identifier_type
+                    .map(|IdentifierType::Dni(dni)| DNI(dni))
+            }),
             first_name: sign_up_request.given_name,
             last_name: sign_up_request.family_name,
             second_last_name: sign_up_request.second_family_name,
@@ -123,6 +126,7 @@ mod test {
         birth_date: "".to_string(),
         display_name: None,
         create_clinic: false,
+        confirm_pending_presencial_link: None,
     });
 
     type TestResult = Result<(), ClickCareError>;
@@ -134,8 +138,12 @@ mod test {
             init_logger();
         });
         let user_repository = USER_REPOSITORY_MOCK
-                .get_or_init(|| async { Arc::new(MockUserRepositoryImpl { saved_users: Mutex::new(Vec::new()), }) })
-                .await;
+            .get_or_init(|| async {
+                Arc::new(MockUserRepositoryImpl {
+                    saved_users: Mutex::new(Vec::new()),
+                })
+            })
+            .await;
 
         let user_di = USER_DI
             .get_or_init(|| async {
@@ -201,8 +209,8 @@ mod test {
 
         match result {
             Ok(response) => {
-                let sign_up_response = *(response).get_ref();
-                assert_eq!(sign_up_response, SignUpResponse {});
+                let sign_up_response = response.get_ref();
+                assert_eq!(sign_up_response.user_id, Some(user_id.clone()));
             }
             Err(e) => {
                 info!("error: {}", e);

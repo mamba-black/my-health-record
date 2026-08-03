@@ -4,10 +4,25 @@ DROP TABLE IF EXISTS clinic;
 DROP TABLE IF EXISTS user_account;
 
 CREATE TABLE user_account (
-    id uuid PRIMARY KEY ,
-    first_name       VARCHAR(50) NOT NULL,
-    last_name        VARCHAR(50) NOT NULL,
-    second_last_name VARCHAR(50)
+    id              uuid PRIMARY KEY,
+    active          BOOLEAN NOT NULL DEFAULT TRUE,
+    is_owner        BOOLEAN NOT NULL DEFAULT FALSE,
+    provider_info   VARCHAR(50) NOT NULL DEFAULT 'Google',
+
+    -- Person / HumanName
+    given_name      VARCHAR(100) NOT NULL,
+    family_name     VARCHAR(50) NOT NULL,
+    second_family_name VARCHAR(50),
+
+    -- Person / Identifier (e.g. DNI)
+    document_type   VARCHAR(20),
+    document_value  VARCHAR(50),
+
+    -- Person / ContactPoint & Audit
+    email           VARCHAR(100),
+    phone           VARCHAR(20),
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 

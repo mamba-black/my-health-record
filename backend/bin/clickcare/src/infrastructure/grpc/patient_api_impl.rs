@@ -3,8 +3,7 @@ use crate::infrastructure::grpc::*;
 use tonic::*;
 
 #[derive(Default)]
-pub struct PatientApiImpl {
-}
+pub struct PatientApiImpl {}
 
 #[async_trait]
 impl PatientApi for PatientApiImpl {
@@ -40,15 +39,10 @@ impl PatientApi for PatientApiImpl {
         Ok(Response::new(patient_information))
     }
 
-    async fn save(
-        &self,
-        request: Request<Patient>,
-    ) -> Result<Response<Patient>, Status> {
+    async fn save(&self, request: Request<Patient>) -> Result<Response<Patient>, Status> {
         Ok(Response::new(request.into_inner()))
     }
 }
 
-
 #[cfg(test)]
-mod test {
-}
+mod test {}

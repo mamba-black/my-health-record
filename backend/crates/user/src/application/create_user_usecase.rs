@@ -1,6 +1,9 @@
-use std::sync::Arc;
-use crate::application::create_user_usecase::command::CrueateUserError::{UnknownError, UserAlreadyExists};
-use crate::application::create_user_usecase::command::{CreateUserCommand, CreateUserResponse, CrueateUserError};
+use crate::application::create_user_usecase::command::CrueateUserError::{
+    UnknownError, UserAlreadyExists,
+};
+use crate::application::create_user_usecase::command::{
+    CreateUserCommand, CreateUserResponse, CrueateUserError,
+};
 use crate::domain::repository::clinic_repository::ClinicRepository;
 use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::Identifier::DNI;
@@ -9,11 +12,12 @@ use app_core::application::UseCase;
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;
 use log::error;
+use std::sync::Arc;
 
 pub mod command {
-    use app_core::domain::error::ClickCareError;
     use crate::application::command::CrueateUserError::UnknownError;
     use crate::domain::user::Identifier;
+    use app_core::domain::error::ClickCareError;
 
     #[derive(Debug)]
     pub struct CreateUserCommand {
@@ -50,11 +54,10 @@ pub mod command {
     }
 }
 
-pub trait CreateUserUseCase: UseCase<
-    Command = CreateUserCommand,
-    Response = CreateUserResponse,
-    Error = CrueateUserError,
-> {}
+pub trait CreateUserUseCase:
+    UseCase<Command = CreateUserCommand, Response = CreateUserResponse, Error = CrueateUserError>
+{
+}
 
 pub(crate) struct CreateUserUseCaseImpl {
     pub(crate) user_repository: Arc<dyn UserRepository>,
@@ -70,7 +73,6 @@ impl UseCase for CreateUserUseCaseImpl {
     type Error = CrueateUserError;
 
     async fn execute(&self, command: Self::Command) -> Result<Self::Response, Self::Error> {
-
         let mut identifier: Option<Identifier> = None;
         let exist_user = match &command.identifier {
             Some(DNI(value)) => {
@@ -78,15 +80,26 @@ impl UseCase for CreateUserUseCaseImpl {
                 self.user_repository
                     .exist_user_by_document("DNI", value)
                     .await
-                    .map_err(|e| UnknownError(ClickCareError::generic(format!("User with document ID {}", value))))?
-            },
-            _ => false
+                    .map_err(|e| {
+                        UnknownError(ClickCareError::generic(format!(
+                            "User with document ID {}",
+                            value
+                        )))
+                    })?
+            }
+            _ => false,
         };
 
         if exist_user {
-            error!("User with document ID {:?} already exists", command.identifier);
-            let msg = format!("User with document ID {:?} already exists", command.identifier);
-            return Err(UserAlreadyExists(ClickCareError::generic(msg)))
+            error!(
+                "User with document ID {:?} already exists",
+                command.identifier
+            );
+            let msg = format!(
+                "User with document ID {:?} already exists",
+                command.identifier
+            );
+            return Err(UserAlreadyExists(ClickCareError::generic(msg)));
         }
 
         let user = User::new(
@@ -99,19 +112,20 @@ impl UseCase for CreateUserUseCaseImpl {
             command.email,
         )?;
 
-        self.user_repository
-            .save_user(&user)
-            .await?;
+        self.user_repository.save_user(&user).await?;
 
         if user.is_owner {
             self.clinic_repository
                 .create_clinic_for_user(&user)
                 .await
-                .map_err(|e| UnknownError(ClickCareError::generic(format!("Error en creoar la clinica para el usuario ({})", e))))?;
+                .map_err(|e| {
+                    UnknownError(ClickCareError::generic(format!(
+                        "Error en creoar la clinica para el usuario ({})",
+                        e
+                    )))
+                })?;
         }
 
         Ok(CreateUserResponse {})
     }
 }
-
-

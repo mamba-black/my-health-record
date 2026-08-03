@@ -1,5 +1,5 @@
 use app_core::domain::error::ClickCareError;
-use bon::{bon, Builder};
+use bon::{Builder, bon};
 use derive_getters::Getters;
 use log::{debug, error};
 use std::str::FromStr;
@@ -308,9 +308,3 @@ impl ContactPoint {
         }
     }
 }
-
-
-
-
-
-

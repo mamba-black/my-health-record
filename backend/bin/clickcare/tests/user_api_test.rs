@@ -1,17 +1,17 @@
-use std::path::PathBuf;
+use clickcare::infrastructure::grpc::user_api_impl::UserApiImpl;
+use clickcare::infrastructure::grpc::user_api_server::UserApiServer;
+use clickcare::infrastructure::log::init_logger;
 use dotenvy::dotenv;
 use dtor::dtor;
 use log::info;
-use clickcare::infrastructure::grpc::user_api_impl::UserApiImpl;
-use clickcare::infrastructure::grpc::user_api_server::UserApiServer;
 use rstest::*;
+use std::path::PathBuf;
 use testcontainers::runners::AsyncRunner;
 use testcontainers::{ContainerAsync, ImageExt};
 use testcontainers_modules::postgres;
 use tokio::net::TcpListener;
 use tokio::sync::OnceCell;
 use tonic::transport::Server;
-use clickcare::infrastructure::log::init_logger;
 
 struct TestEnv {
     grpc_addr: String,
@@ -31,8 +31,9 @@ async fn grpc_server_addr() -> &'static str {
 
                 let user = "admin";
                 let password = "admin123";
-                let timestamp = chrono::Utc::now().format("%Y%m%d%H%M%S").to_string();
-                let schema_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ddl/table.sql");
+                let timestamp = jiff::Timestamp::now().strftime("%Y%m%d%H%M%S").to_string();
+                let schema_path =
+                    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ddl/table.sql");
                 info!("schema_path: {:?}", schema_path);
 
                 let container = postgres::Postgres::default()
@@ -40,10 +41,7 @@ async fn grpc_server_addr() -> &'static str {
                     .with_password(password)
                     .with_tag("18")
                     .with_container_name(format!("clickcare-test-{}", timestamp))
-                    .with_copy_to(
-                            "/docker-entrypoint-initdb.d/001_schema.sql",
-                            schema_path,
-                    )
+                    .with_copy_to("/docker-entrypoint-initdb.d/001_schema.sql", schema_path)
                     .start()
                     .await
                     .unwrap();
@@ -84,7 +82,10 @@ async fn grpc_server_addr() -> &'static str {
 #[dtor(unsafe)]
 fn shutdown() {
     if let Some(env) = TEST_ENV.get() {
-        info!("Shutting down test environment with gRPC server at {}", env.grpc_addr);
+        info!(
+            "Shutting down test environment with gRPC server at {}",
+            env.grpc_addr
+        );
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
             // Aquí podrías agregar lógica para limpiar la base de datos o realizar otras tareas de limpieza si es necesario.
@@ -94,19 +95,17 @@ fn shutdown() {
 }
 
 mod sign_up {
-    use log::info;
-    use rstest::rstest;
+    use crate::grpc_server_addr;
     use clickcare::infrastructure::grpc::SignUpRequest;
     use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
-    use crate::grpc_server_addr;
+    use log::info;
+    use rstest::rstest;
 
     // ---- Happy path -------------------------------------------------------
 
     #[rstest]
     #[tokio::test]
-    async fn sign_up_succeeds_with_valid_uuid_v7(
-        #[future(awt)] grpc_server_addr: &'static str,
-    ) {
+    async fn sign_up_succeeds_with_valid_uuid_v7(#[future(awt)] grpc_server_addr: &'static str) {
         let mut client = UserApiClient::connect(grpc_server_addr)
             .await
             .expect("Fallo al conectar");
@@ -129,11 +128,11 @@ mod sign_up {
     #[rstest]
     #[tokio::test]
     #[ignore = "TODO: requiere UserRepositoryImpl real (save_user) + lectura"]
-    async fn sign_up_persists_user_in_database(
-        #[future(awt)] grpc_server_addr: &'static str,
-    ) {
+    async fn sign_up_persists_user_in_database(#[future(awt)] grpc_server_addr: &'static str) {
         let _ = grpc_server_addr;
-        todo!("tras un sign_up exitoso, leer el usuario por id y verificar que se guardó con los datos enviados");
+        todo!(
+            "tras un sign_up exitoso, leer el usuario por id y verificar que se guardó con los datos enviados"
+        );
     }
 
     #[rstest]
@@ -143,7 +142,9 @@ mod sign_up {
         #[future(awt)] grpc_server_addr: &'static str,
     ) {
         let _ = grpc_server_addr;
-        todo!("sign_up con create_clinic=true -> verificar que se creó la clínica asociada al usuario");
+        todo!(
+            "sign_up con create_clinic=true -> verificar que se creó la clínica asociada al usuario"
+        );
     }
 
     // ---- Validación de entrada -------------------------------------------
@@ -178,11 +179,11 @@ mod sign_up {
     #[rstest]
     #[tokio::test]
     #[ignore = "TODO: requiere validación de email en el caso de uso"]
-    async fn sign_up_fails_when_email_is_invalid(
-        #[future(awt)] grpc_server_addr: &'static str,
-    ) {
+    async fn sign_up_fails_when_email_is_invalid(#[future(awt)] grpc_server_addr: &'static str) {
         let _ = grpc_server_addr;
-        todo!("enviar email sin formato válido (ej. 'no-es-email') -> esperar status InvalidArgument");
+        todo!(
+            "enviar email sin formato válido (ej. 'no-es-email') -> esperar status InvalidArgument"
+        );
     }
 
     #[rstest]
@@ -192,7 +193,9 @@ mod sign_up {
         #[future(awt)] grpc_server_addr: &'static str,
     ) {
         let _ = grpc_server_addr;
-        todo!("enviar SignUpRequest con first_name/last_name/document_id vacíos -> esperar InvalidArgument");
+        todo!(
+            "enviar SignUpRequest con first_name/last_name/document_id vacíos -> esperar InvalidArgument"
+        );
     }
 
     // ---- Autenticación ----------------------------------------------------
@@ -200,9 +203,7 @@ mod sign_up {
     #[rstest]
     #[tokio::test]
     #[ignore = "TODO: requiere verificación del id_token (auth)"]
-    async fn sign_up_fails_when_id_token_is_invalid(
-        #[future(awt)] grpc_server_addr: &'static str,
-    ) {
+    async fn sign_up_fails_when_id_token_is_invalid(#[future(awt)] grpc_server_addr: &'static str) {
         let _ = grpc_server_addr;
         todo!("enviar id_token inválido/expirado -> esperar status Unauthenticated");
     }
@@ -212,9 +213,7 @@ mod sign_up {
     #[rstest]
     #[tokio::test]
     #[ignore = "TODO: requiere UserRepositoryImpl real (exist_user)"]
-    async fn sign_up_fails_when_user_already_exists(
-        #[future(awt)] grpc_server_addr: &'static str,
-    ) {
+    async fn sign_up_fails_when_user_already_exists(#[future(awt)] grpc_server_addr: &'static str) {
         let _ = grpc_server_addr;
         todo!(
             "registrar un user_id v7, reintentar el mismo user_id -> esperar status AlreadyExists"
@@ -224,11 +223,11 @@ mod sign_up {
 
 mod sign_in {
     // Imports que usarán los tests cuando se implementen (hoy son stubs).
+    use crate::grpc_server_addr;
     #[allow(unused_imports)]
     use clickcare::infrastructure::grpc::SignInRequest;
     #[allow(unused_imports)]
     use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
-    use crate::grpc_server_addr;
     use rstest::rstest;
 
     #[rstest]
@@ -238,15 +237,15 @@ mod sign_in {
         #[future(awt)] grpc_server_addr: &'static str,
     ) {
         let _ = grpc_server_addr;
-        todo!("registrar un usuario y luego sign_in con id_token+provider_id válidos -> esperar Ok");
+        todo!(
+            "registrar un usuario y luego sign_in con id_token+provider_id válidos -> esperar Ok"
+        );
     }
 
     #[rstest]
     #[tokio::test]
     #[ignore = "TODO: SignIn no implementado en UserApiImpl"]
-    async fn sign_in_fails_when_user_not_found(
-        #[future(awt)] grpc_server_addr: &'static str,
-    ) {
+    async fn sign_in_fails_when_user_not_found(#[future(awt)] grpc_server_addr: &'static str) {
         let _ = grpc_server_addr;
         todo!("sign_in con un provider_id que no existe -> esperar status NotFound");
     }
@@ -254,9 +253,7 @@ mod sign_in {
     #[rstest]
     #[tokio::test]
     #[ignore = "TODO: SignIn no implementado + verificación del id_token"]
-    async fn sign_in_fails_when_id_token_is_invalid(
-        #[future(awt)] grpc_server_addr: &'static str,
-    ) {
+    async fn sign_in_fails_when_id_token_is_invalid(#[future(awt)] grpc_server_addr: &'static str) {
         let _ = grpc_server_addr;
         todo!("sign_in con id_token inválido/expirado -> esperar status Unauthenticated");
     }

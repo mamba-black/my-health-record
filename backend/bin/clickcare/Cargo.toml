@@ -11,7 +11,6 @@ clinic.workspace = true
 clinic_admin.workspace = true
 patient.workspace = true
 
-chrono.workspace = true
 ulid.workspace = true
 uuid.workspace = true
 dotenvy.workspace = true
@@ -55,3 +54,4 @@ dtor.workspace = true
 testcontainers.workspace = true
 testcontainers-modules.workspace = true
 postgres.workspace = true
+jiff.workspace = true

@@ -1,11 +1,11 @@
 use opentelemetry::trace::TracerProvider as _;
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::trace::SdkTracerProvider;
 use opentelemetry_sdk::Resource;
+use opentelemetry_sdk::trace::SdkTracerProvider;
+use tracing_subscriber::EnvFilter;
+use tracing_subscriber::Registry;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::Registry;
-use tracing_subscriber::EnvFilter;
 use tracing_subscriber::util::SubscriberInitExt as _;
 
 pub fn init_logger() {
@@ -17,9 +17,7 @@ pub fn init_logger() {
         .expect("Error al construir el exportador OTLP");
 
     // 2. Crear el recurso del servicio de forma estándar para OTel 0.32
-    let resource = Resource::builder()
-        .with_service_name("clickcare")
-        .build();
+    let resource = Resource::builder().with_service_name("clickcare").build();
 
     // 3. Crear el SdkTracerProvider usando el SdkTracerProviderBuilder moderno
     let tracer_provider = SdkTracerProvider::builder()
@@ -36,13 +34,13 @@ pub fn init_logger() {
     let telemetry_layer = tracing_opentelemetry::layer().with_tracer(tracer);
 
     // 6. Crear el formateador para la consola clásica (fmt)
-    let fmt_layer = tracing_subscriber::fmt::layer()
-        .with_span_events( FmtSpan::CLOSE); //FmtSpan::ENTER | FmtSpan::EXIT |
+    let fmt_layer = tracing_subscriber::fmt::layer().with_span_events(FmtSpan::CLOSE); //FmtSpan::ENTER | FmtSpan::EXIT |
 
     // 7. Unir y registrar todos los layers
 
-    let env_filter_layer = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("debug,opentelemetry=info,opentelemetry_sdk=info,h2=info,bollard=info"));
+    let env_filter_layer = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+        EnvFilter::new("debug,opentelemetry=info,opentelemetry_sdk=info,h2=info,bollard=info")
+    });
     let subscriber = Registry::default()
         .with(env_filter_layer)
         .with(telemetry_layer)
