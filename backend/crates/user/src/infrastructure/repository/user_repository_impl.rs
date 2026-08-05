@@ -55,7 +55,7 @@ impl UserRepository for UserRepositoryImpl {
         debug!("user_id: {}", document_value);
         // FIXME: Corregir esto para buscar por documento
         let exist = toasty::sql::query(
-            "select 1 from user_account where document_type = ?1 and document_value = ?2",
+            "select 1 from user_account where document_type = $1 and document_value = $2",
         )
         .bind(document_type)
         .bind(document_value)

@@ -1,10 +1,18 @@
 # language: es
 Característica: Caso de Uso 1 - Registro progresivo de usuario y datos obligatorios para cita médica
 
-  Escenario: Registro exitoso con un UUID v7 válido
+  Esquema del escenario: Registro exitoso de usuario con diferentes grados de completitud de perfil
     Dado un entorno activo con servicio gRPC de usuario y base de datos
-    Cuando se envía una solicitud de registro con ID "auto", email "juan.perez@example.com" y nombre "Juan"
-    Entonces la respuesta de registro es exitosa y el usuario con nombre "Juan" se persiste en la base de datos
+    Cuando se envía una solicitud de registro con ID "<id>", email "<email>", nombre "<nombre>", primer apellido "<primer_apellido>", segundo apellido "<segundo_apellido>", DNI "<dni>", teléfono "<telefono>", fecha nacimiento "<fecha_nacimiento>" y crear clínica "<crear_clinica>"
+    Entonces la respuesta de registro es exitosa y el usuario con nombre "<nombre>" se persiste en la base de datos
+
+    Ejemplos:
+      | id   | email                     | nombre | primer_apellido | segundo_apellido | dni      | telefono  | fecha_nacimiento | crear_clinica | caso_de_uso                                   |
+      | auto | juan.minimo@example.com   | Juan   | -               | -                | -        | -         | -                | false         | 1. Perfil Mínimo OIDC (Solo nombre y correo)  |
+      | auto | maria.hispana@example.com | María  | Pérez           | Gómez            | -        | -         | -                | false         | 2. Perfil Hispanos (2 apellidos sin DNI)      |
+      | auto | carlos.dni@example.com    | Carlos | López           | Torres           | 77778888 | 999888777 | 1990-05-15       | false         | 3. Perfil Completo Ley 30024 (DNI + Teléfono) |
+      | auto | ana.doctora@example.com   | Ana    | Ramírez         | Salazar          | 10000002 | 911222333 | 1985-11-20       | true          | 4. Registro con Inicialización de Clínica     |
+      | auto | carlos.dni@example.com    | Carlos |                 | Torres           | 77778888 | 999888777 | 1990-05-15       | false         | 5. Perfil con segundo apellido                |
 
   Escenario: Registro fallido cuando el ID de usuario no es UUID v7
     Dado un entorno activo con servicio gRPC de usuario y base de datos

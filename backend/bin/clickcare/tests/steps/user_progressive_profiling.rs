@@ -30,41 +30,80 @@ pub async fn given_running_service_and_db() {
 // ---- When Steps ------------------------------------------------------------
 
 #[when(
-    "se envía una solicitud de registro con ID \"{user_id_str}\", email \"{email}\" y nombre \"{given_name}\""
+    "se envía una solicitud de registro con ID \"{id}\", email \"{email}\", nombre \"{nombre}\", primer apellido \"{primer_apellido}\", segundo apellido \"{segundo_apellido}\", DNI \"{dni}\", teléfono \"{telefono}\", fecha nacimiento \"{fecha_nacimiento}\" y crear clínica \"{crear_clinica}\""
 )]
 pub async fn when_sign_up_request_sent(
     sign_up_context: &mut SignUpContext,
-    user_id_str: String,
+    id: String,
     email: String,
-    given_name: String,
+    nombre: String,
+    primer_apellido: String,
+    segundo_apellido: String,
+    dni: String,
+    telefono: String,
+    fecha_nacimiento: String,
+    crear_clinica: String,
 ) {
     let env = test_env().await;
     let mut client = UserApiClient::connect(env.grpc_addr.clone())
         .await
         .expect("Fallo al conectar con el servidor gRPC");
 
-    let user_id = if user_id_str == "auto" || user_id_str.is_empty() {
+    let user_id = if id == "auto" || id.is_empty() {
         uuid::Uuid::now_v7()
     } else {
-        uuid::Uuid::parse_str(&user_id_str).unwrap_or_else(|_| uuid::Uuid::now_v7())
+        uuid::Uuid::parse_str(&id).unwrap_or_else(|_| uuid::Uuid::now_v7())
     };
 
     let nonce_short = &uuid::Uuid::now_v7().to_string()[..8];
     let unique_email = email.replace('@', &format!("-{}@", nonce_short));
 
+    let identifier = if !dni.is_empty() && dni != "-" {
+        static DNI_COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        let offset = DNI_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let base = 80000000 + (jiff::Timestamp::now().as_nanosecond() % 10000000) as u32;
+        let unique_dni = format!("{:08}", base + offset);
+        Some(clickcare::infrastructure::grpc::Identifier {
+            identifier_type: Some(
+                clickcare::infrastructure::grpc::identifier::IdentifierType::Dni(unique_dni),
+            ),
+        })
+    } else {
+        None
+    };
+
+    let family_name = if primer_apellido.is_empty() || primer_apellido == "-" {
+        None
+    } else {
+        Some(primer_apellido)
+    };
+    let second_family_name = if segundo_apellido.is_empty() || segundo_apellido == "-" {
+        None
+    } else {
+        Some(segundo_apellido)
+    };
+    let phone = if telefono == "-" { String::new() } else { telefono };
+    let birth_date = if fecha_nacimiento == "-" { String::new() } else { fecha_nacimiento };
+    let create_clinic = crear_clinica.parse::<bool>().unwrap_or(false);
+
     let sign_up_request = SignUpRequest {
         id_token: "test-token".into(),
         user_id: user_id.to_string(),
         email: unique_email,
-        given_name,
-        family_name: None,
+        identifier,
+        given_name: nombre,
+        family_name,
+        second_family_name,
+        phone,
+        birth_date,
+        create_clinic,
         ..Default::default()
     };
     let request = tonic::Request::new(sign_up_request.clone());
 
     let response = client.sign_up(request).await;
 
-    info!("Response sign_up valid UUID v7: {:?}", response);
+    info!("Response sign_up table row: {:?}", response);
     sign_up_context.user_id = Some(user_id);
     sign_up_context.request = Some(sign_up_request);
     sign_up_context.response_ok = Some(response.is_ok());
@@ -126,11 +165,13 @@ pub async fn then_sign_up_successful_and_persisted(
     let user_id = sign_up_context
         .user_id
         .expect("Falta el User ID en el contexto");
-    let req_email = sign_up_context
+    let req = sign_up_context
         .request
         .as_ref()
-        .map(|r| r.email.clone())
         .expect("Falta la Request en el contexto");
+    let req_email = req.email.clone();
+    let req_family_name = req.family_name.clone();
+    let req_second_family_name = req.second_family_name.clone();
 
     let pg_conn = env.pg_connection_string.clone();
 
@@ -140,7 +181,7 @@ pub async fn then_sign_up_successful_and_persisted(
 
         let row = db_client
             .query_one(
-                "SELECT id, email, active, given_name, family_name FROM user_account WHERE id = $1",
+                "SELECT id, email, active, given_name, family_name, second_family_name FROM user_account WHERE id = $1",
                 &[&user_id],
             )
             .expect("No se encontró el usuario registrado en la base de datos");
@@ -150,11 +191,13 @@ pub async fn then_sign_up_successful_and_persisted(
         let db_active: bool = row.get("active");
         let given_name: String = row.get("given_name");
         let family_name: Option<String> = row.get("family_name");
+        let second_family_name: Option<String> = row.get("second_family_name");
 
         assert_eq!(db_id, user_id);
         assert_eq!(db_email, req_email);
         assert_eq!(given_name, expected_given_name);
-        assert_eq!(family_name, None);
+        assert_eq!(family_name, req_family_name);
+        assert_eq!(second_family_name, req_second_family_name);
         assert!(db_active);
     })
     .await
@@ -184,5 +227,3 @@ pub async fn then_sign_up_fails_with_invalid_uuid_v7_error(
         expected_error_substr
     );
 }
-
-// 2026-08-05T12:13:27.926469Z DEBUG user_api_test::steps::user_sign_up_steps: sign_up_context: SignUpContext { user_id: None, request: None, response_ok: Some(false), response_status: Some(Status { code: Unknown, message: "ClickCareError: El id no es un UUID V7, id: 113e464c-db18-4a0f-96b6-2400f63d0613 (en crates/user/src/domain/user.rs:146)", metadata: MetadataMap { headers: {"content-type": "application/grpc", "date": "Wed, 05 Aug 2026 12:13:27 GMT"} }, source: None }) }
