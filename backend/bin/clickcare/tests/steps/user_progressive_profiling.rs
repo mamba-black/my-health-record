@@ -29,22 +29,36 @@ pub async fn given_running_service_and_db() {
 
 // ---- When Steps ------------------------------------------------------------
 
-#[when("se envía una solicitud de registro con un UUID v7 válido")]
-pub async fn when_sign_up_request_sent(sign_up_context: &mut SignUpContext) {
+#[when(
+    "se envía una solicitud de registro con ID \"{user_id_str}\", email \"{email}\", nombre \"{given_name}\" y apellido \"{family_name}\""
+)]
+pub async fn when_sign_up_request_sent(
+    sign_up_context: &mut SignUpContext,
+    user_id_str: String,
+    email: String,
+    given_name: String,
+    family_name: String,
+) {
     let env = test_env().await;
     let mut client = UserApiClient::connect(env.grpc_addr.clone())
         .await
         .expect("Fallo al conectar con el servidor gRPC");
 
-    let user_id = uuid::Uuid::now_v7();
-    let email = format!("test-{}@example.com", user_id);
+    let user_id = if user_id_str == "auto" || user_id_str.is_empty() {
+        uuid::Uuid::now_v7()
+    } else {
+        uuid::Uuid::parse_str(&user_id_str).unwrap_or_else(|_| uuid::Uuid::now_v7())
+    };
+
+    let nonce_short = &uuid::Uuid::now_v7().to_string()[..8];
+    let unique_email = email.replace('@', &format!("-{}@", nonce_short));
 
     let sign_up_request = SignUpRequest {
         id_token: "test-token".into(),
         user_id: user_id.to_string(),
-        email,
-        given_name: "Juan".into(),
-        family_name: Some("Pérez".into()),
+        email: unique_email,
+        given_name,
+        family_name: Some(family_name),
         ..Default::default()
     };
     let request = tonic::Request::new(sign_up_request.clone());
@@ -60,20 +74,26 @@ pub async fn when_sign_up_request_sent(sign_up_context: &mut SignUpContext) {
     }
 }
 
-#[when("se envía una solicitud de registro con un UUID v4 inválido")]
-pub async fn when_sign_up_request_invalid_uuid_v4_sent(sign_up_context: &mut SignUpContext) {
+#[when(
+    "se envía una solicitud de registro con un UUID v4 inválido \"{user_id_str}\" y email \"{email}\""
+)]
+pub async fn when_sign_up_request_invalid_uuid_v4_sent(
+    sign_up_context: &mut SignUpContext,
+    user_id_str: String,
+    email: String,
+) {
     let env = test_env().await;
     let mut client = UserApiClient::connect(env.grpc_addr.clone())
         .await
         .expect("Fallo al conectar con el servidor gRPC");
 
-    let user_id_v4 = uuid::Uuid::new_v4();
-    let email = format!("test-invalid-{}@example.com", user_id_v4);
+    let nonce_short = &uuid::Uuid::new_v4().to_string()[..8];
+    let unique_email = email.replace('@', &format!("-{}@", nonce_short));
 
     let request = tonic::Request::new(SignUpRequest {
         id_token: "test-token".into(),
-        user_id: user_id_v4.to_string(),
-        email,
+        user_id: user_id_str,
+        email: unique_email,
         ..Default::default()
     });
 
@@ -88,8 +108,14 @@ pub async fn when_sign_up_request_invalid_uuid_v4_sent(sign_up_context: &mut Sig
 
 // ---- Then Steps ------------------------------------------------------------
 
-#[then("la respuesta de registro es exitosa y el usuario se persiste en la base de datos")]
-pub async fn then_sign_up_successful_and_persisted(sign_up_context: &SignUpContext) {
+#[then(
+    "la respuesta de registro es exitosa y el usuario con nombre \"{expected_given_name}\" y apellido \"{expected_family_name}\" se persiste en la base de datos"
+)]
+pub async fn then_sign_up_successful_and_persisted(
+    sign_up_context: &SignUpContext,
+    expected_given_name: String,
+    expected_family_name: String,
+) {
     debug!("sign_up_context: {:?}", sign_up_context);
 
     let env = test_env().await;
@@ -102,15 +128,13 @@ pub async fn then_sign_up_successful_and_persisted(sign_up_context: &SignUpConte
     let user_id = sign_up_context
         .user_id
         .expect("Falta el User ID en el contexto");
-    let sign_up_request = sign_up_context
+    let req_email = sign_up_context
         .request
         .as_ref()
+        .map(|r| r.email.clone())
         .expect("Falta la Request en el contexto");
 
     let pg_conn = env.pg_connection_string.clone();
-    let email = sign_up_request.email.clone();
-    let given_name_req = sign_up_request.given_name.clone();
-    let family_name_req = sign_up_request.family_name.clone();
 
     tokio::task::spawn_blocking(move || {
         let mut db_client = ::postgres::Client::connect(&pg_conn, ::postgres::NoTls)
@@ -130,17 +154,20 @@ pub async fn then_sign_up_successful_and_persisted(sign_up_context: &SignUpConte
         let family_name: Option<String> = row.get("family_name");
 
         assert_eq!(db_id, user_id);
-        assert_eq!(db_email, email);
-        assert_eq!(given_name, given_name_req);
-        assert_eq!(family_name, family_name_req);
+        assert_eq!(db_email, req_email);
+        assert_eq!(given_name, expected_given_name);
+        assert_eq!(family_name, Some(expected_family_name));
         assert!(db_active);
     })
     .await
     .expect("Fallo la tarea asíncrona de consulta a PostgreSQL");
 }
 
-#[then("la respuesta de registro devuelve un error indicando UUID v7 inválido")]
-pub async fn then_sign_up_fails_with_invalid_uuid_v7_error(sign_up_context: &SignUpContext) {
+#[then("la respuesta de registro devuelve un error indicando \"{expected_error_substr}\"")]
+pub async fn then_sign_up_fails_with_invalid_uuid_v7_error(
+    sign_up_context: &SignUpContext,
+    expected_error_substr: String,
+) {
     debug!("sign_up_context: {:?}", sign_up_context);
     assert!(
         !sign_up_context.response_ok.unwrap_or(true),
@@ -153,9 +180,10 @@ pub async fn then_sign_up_fails_with_invalid_uuid_v7_error(sign_up_context: &Sig
         .expect("Se esperaba un Status de error gRPC en el contexto");
 
     assert!(
-        status.message().contains("no es un UUID V7"),
-        "Mensaje de error inesperado: {}",
-        status.message()
+        status.message().contains(&expected_error_substr),
+        "Mensaje de error inesperado: {}, se esperaba contenga: {}",
+        status.message(),
+        expected_error_substr
     );
 }
 
