@@ -80,7 +80,7 @@ impl UseCase for CreateUserUseCaseImpl {
                 self.user_repository
                     .exist_user_by_document("DNI", value)
                     .await
-                    .map_err(|e| {
+                    .map_err(|_e| {
                         UnknownError(ClickCareError::generic(format!(
                             "User with document ID {}",
                             value

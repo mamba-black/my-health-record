@@ -19,6 +19,7 @@ use tracing::debug;
 
 pub struct DI {
     pub create_user_use_case: Arc<dyn CreateUserUseCase>,
+    #[allow(dead_code)]
     user_repository: Arc<dyn UserRepository>,
 }
 
@@ -43,7 +44,7 @@ pub async fn new(dbtype: DBType) -> Result<DI, ClickCareError> {
 /// solo aquellas dependencias presentes en `overrides`.
 ///
 /// # Ejemplo en tests
-/// ```rust
+/// ```ignore
 /// let di = new_with_overrides(
 ///     DBType::Postgres,
 ///     DIOverrides {
@@ -52,6 +53,7 @@ pub async fn new(dbtype: DBType) -> Result<DI, ClickCareError> {
 ///     },
 /// ).await?;
 /// ```
+
 pub async fn new_with_overrides(
     dbtype: DBType,
     overrides: DIOverrides,
@@ -148,8 +150,8 @@ pub struct MockUserRepositoryImpl {
 impl UserRepository for MockUserRepositoryImpl {
     async fn exist_user_by_document(
         &self,
-        document_type: &str,
-        document_value: &str,
+        _document_type: &str,
+        _document_value: &str,
     ) -> Result<bool, ClickCareError> {
         Ok(false)
     }

@@ -1,4 +1,3 @@
-use crate::infrastructure;
 use crate::infrastructure::grpc::SignUpRequest;
 use crate::infrastructure::grpc::identifier::IdentifierType;
 use crate::infrastructure::grpc::user_api_server::UserApi;
@@ -8,7 +7,6 @@ use std::sync::Arc;
 use tonic::*;
 use tracing::debug;
 use user::application::CreateUserUseCase;
-use user::application::command::CrueateUserError::UnknownError;
 use user::application::command::{CreateUserCommand, CrueateUserError};
 use user::domain::user::Identifier::DNI;
 use user::infrastructure::di;

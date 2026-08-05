@@ -40,6 +40,7 @@ pub struct UserAccount {
 }
 
 pub(crate) struct UserRepositoryImpl {
+    #[allow(dead_code)]
     pub(crate) pool: PgPool,
     pub(crate) db: Db,
 }
@@ -68,7 +69,7 @@ impl UserRepository for UserRepositoryImpl {
             ClickCareError::generic(e.to_string())
         })?;
         error!("Resultado: {:?}", exist);
-        Ok(exist.len() > 0)
+        Ok(!exist.is_empty())
     }
     async fn find_user_by_id(&self, _user_id: &str) -> Result<User, ClickCareError> {
         // Aquí iría la lógica para buscar un usuario en la base de datos

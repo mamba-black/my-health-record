@@ -1,3 +1,5 @@
+#![allow(clippy::enum_variant_names)]
+
 pub mod patient_api_impl;
 pub mod user_api_impl;
 

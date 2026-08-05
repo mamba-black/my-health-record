@@ -1,3 +1,6 @@
+mod scenarios;
+mod steps;
+
 use clickcare::infrastructure::grpc::user_api_impl::UserApiImpl;
 use clickcare::infrastructure::grpc::user_api_server::UserApiServer;
 use clickcare::infrastructure::log::init_logger;
@@ -12,26 +15,32 @@ use testcontainers_modules::postgres;
 use tokio::net::TcpListener;
 use tokio::sync::OnceCell;
 use tonic::transport::Server;
+use tracing::debug;
 
-struct TestEnv {
-    grpc_addr: String,
-    pg_connection_string: String,
+pub struct TestEnv {
+    pub grpc_addr: String,
+    pub pg_connection_string: String,
     // Mantiene el contenedor vivo durante toda la suite.
-    _container: ContainerAsync<postgres::Postgres>,
+    pub _container: ContainerAsync<postgres::Postgres>,
 }
 
 static TEST_ENV: OnceCell<TestEnv> = OnceCell::const_new();
 
 #[fixture]
-async fn test_env() -> &'static TestEnv {
+pub async fn test_env() -> &'static TestEnv {
+    debug!("llamando a test_env()");
     TEST_ENV
         .get_or_init(|| async {
             init_logger();
             dotenv().ok();
 
+            log::debug!("== INICIANDO LOS CONTENEDORES == --------------------------------");
             let user = "admin";
             let password = "admin123";
-            let timestamp = jiff::Timestamp::now().strftime("%Y%m%d%H%M%S").to_string();
+            let timestamp = jiff::Timestamp::now()
+                .strftime("%Y%m%d%H%M%S%f")
+                .to_string();
+            let container_name = format!("clickcare-test-{}", timestamp);
             let schema_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ddl/table.sql");
             info!("schema_path: {:?}", schema_path);
 
@@ -39,7 +48,7 @@ async fn test_env() -> &'static TestEnv {
                 .with_user(user)
                 .with_password(password)
                 .with_tag("18")
-                .with_container_name(format!("clickcare-test-{}", timestamp))
+                .with_container_name(container_name)
                 .with_copy_to("/docker-entrypoint-initdb.d/001_schema.sql", schema_path)
                 .start()
                 .await
@@ -66,6 +75,9 @@ async fn test_env() -> &'static TestEnv {
                     .await
                     .unwrap();
             });
+            log::debug!(
+                "== CONTENEDORES Y SERVIDOR LISTOS == ------------------------------------"
+            );
 
             TestEnv {
                 grpc_addr: format!("http://{}", addr),
@@ -85,7 +97,6 @@ fn shutdown() {
         );
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            // Aquí podrías agregar lógica para limpiar la base de datos o realizar otras tareas de limpieza si es necesario.
             let _ = env._container.stop().await;
         });
     }
@@ -93,66 +104,9 @@ fn shutdown() {
 
 mod sign_up {
     use crate::{TestEnv, test_env};
-    use clickcare::infrastructure::grpc::SignUpRequest;
-    use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
-    use log::info;
-    use rstest::rstest;
+    use rstest::*;
 
-    // ---- Happy path -------------------------------------------------------
-
-    #[rstest]
-    #[tokio::test]
-    async fn sign_up_succeeds_with_valid_uuid_v7(#[future(awt)] test_env: &'static TestEnv) {
-        let mut client = UserApiClient::connect(test_env.grpc_addr.clone())
-            .await
-            .expect("Fallo al conectar");
-
-        let user_id = uuid::Uuid::now_v7();
-
-        let sign_up_request = SignUpRequest {
-            id_token: "test-token".into(),
-            user_id: user_id.to_string(),
-            email: "test@example.com".into(),
-            given_name: "Juan".into(),
-            family_name: Some("Pérez".into()),
-            ..Default::default()
-        };
-        let request = tonic::Request::new(sign_up_request.clone());
-
-        let response = client.sign_up(request).await;
-
-        info!("Response: {:?}", response);
-        assert!(response.is_ok());
-        let _inner = response.unwrap().into_inner();
-
-        // Validar contenido del response
-        let pg_conn = test_env.pg_connection_string.clone();
-        tokio::task::spawn_blocking(move || {
-            let mut db_client = ::postgres::Client::connect(&pg_conn, ::postgres::NoTls)
-                .expect("Failed to connect to database");
-
-            let row = db_client
-                .query_one(
-                    "SELECT id, email, active, given_name, family_name FROM user_account WHERE id = $1",
-                    &[&user_id],
-                )
-                .expect("Failed to execute query or user not found");
-
-            let db_id: uuid::Uuid = row.get("id");
-            let db_email: String = row.get("email");
-            let db_active: bool = row.get("active");
-            let given_name: String = row.get("given_name");
-            let family_name: Option<String> = row.get("family_name");
-
-            assert_eq!(db_id, user_id);
-            assert_eq!(db_email, sign_up_request.email);
-            assert_eq!(given_name, sign_up_request.given_name);
-            assert_eq!(family_name, sign_up_request.family_name);
-            assert!(db_active);
-        })
-        .await
-        .expect("Task failed");
-    }
+    // ---- Happy path (BDD Feature Scenarios) ---------------------------------
 
     #[rstest]
     #[tokio::test]
@@ -177,31 +131,6 @@ mod sign_up {
     }
 
     // ---- Validación de entrada -------------------------------------------
-
-    #[rstest]
-    #[tokio::test]
-    async fn sign_up_fails_when_user_id_is_not_uuid_v7(#[future(awt)] test_env: &'static TestEnv) {
-        let mut client = UserApiClient::connect(test_env.grpc_addr.clone())
-            .await
-            .expect("Fallo al conectar");
-
-        let request = tonic::Request::new(SignUpRequest {
-            id_token: "test-token".into(),
-            user_id: uuid::Uuid::new_v4().to_string(),
-            email: "test@example.com".into(),
-            ..Default::default()
-        });
-
-        let response = client.sign_up(request).await;
-
-        info!("Response: {:?}", response);
-        let status = response.expect_err("se esperaba un error por UUID no-v7");
-        assert!(
-            status.message().contains("no es un UUID V7"),
-            "mensaje inesperado: {}",
-            status.message()
-        );
-    }
 
     #[rstest]
     #[tokio::test]
@@ -249,7 +178,6 @@ mod sign_up {
 }
 
 mod sign_in {
-    // Imports que usarán los tests cuando se implementen (hoy son stubs).
     use crate::{TestEnv, test_env};
     #[allow(unused_imports)]
     use clickcare::infrastructure::grpc::SignInRequest;
