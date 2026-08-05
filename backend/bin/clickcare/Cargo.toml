@@ -57,3 +57,4 @@ testcontainers.workspace = true
 testcontainers-modules.workspace = true
 postgres.workspace = true
 jiff.workspace = true
+libc.workspace = true

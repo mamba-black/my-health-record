@@ -5,14 +5,13 @@ use clickcare::infrastructure::grpc::user_api_impl::UserApiImpl;
 use clickcare::infrastructure::grpc::user_api_server::UserApiServer;
 use clickcare::infrastructure::log::init_logger;
 use dotenvy::dotenv;
-use dtor::dtor;
 use log::info;
 use rstest::*;
 use std::path::PathBuf;
+use testcontainers::ImageExt;
 use testcontainers::runners::AsyncRunner;
-use testcontainers::{ContainerAsync, ImageExt};
 use testcontainers_modules::postgres;
-use tokio::net::TcpListener;
+use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::OnceCell;
 use tonic::transport::Server;
 use tracing::debug;
@@ -20,8 +19,6 @@ use tracing::debug;
 pub struct TestEnv {
     pub grpc_addr: String,
     pub pg_connection_string: String,
-    // Mantiene el contenedor vivo durante toda la suite.
-    pub _container: ContainerAsync<postgres::Postgres>,
 }
 
 static TEST_ENV: OnceCell<TestEnv> = OnceCell::const_new();
@@ -34,72 +31,152 @@ pub async fn test_env() -> &'static TestEnv {
             init_logger();
             dotenv().ok();
 
-            log::debug!("== INICIANDO LOS CONTENEDORES == --------------------------------");
-            let user = "admin";
-            let password = "admin123";
-            let timestamp = jiff::Timestamp::now()
-                .strftime("%Y%m%d%H%M%S%f")
-                .to_string();
-            let container_name = format!("clickcare-test-{}", timestamp);
-            let schema_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ddl/table.sql");
-            info!("schema_path: {:?}", schema_path);
+            let pg_cache_path = std::env::temp_dir().join("clickcare_pg_env.txt");
+            let pg_lock_path = std::env::temp_dir().join("clickcare_pg.lock");
 
-            let container = postgres::Postgres::default()
-                .with_user(user)
-                .with_password(password)
-                .with_tag("18")
-                .with_container_name(container_name)
-                .with_copy_to("/docker-entrypoint-initdb.d/001_schema.sql", schema_path)
-                .start()
-                .await
-                .unwrap();
-            info!("Container INICIADO");
+            async fn check_pg_active(pg_conn: &str) -> bool {
+                let clean = pg_conn.trim();
+                if let Some(pos) = clean.rfind(':') {
+                    if let Some(slash_pos) = clean[pos + 1..].find('/') {
+                        let port_str = &clean[pos + 1..pos + 1 + slash_pos];
+                        if let Ok(port) = port_str.parse::<u16>() {
+                            return TcpStream::connect(format!("127.0.0.1:{port}"))
+                                .await
+                                .is_ok();
+                        }
+                    }
+                }
+                false
+            }
 
-            let host_port = container.get_host_port_ipv4(5432).await.unwrap();
-            let connection_string = format!(
-                "postgres://{}:{}@127.0.0.1:{host_port}/postgres",
-                user, password
-            );
+            // 1. Compartir una única instancia de Postgres entre todos los procesos
+            let pg_connection_string: String = loop {
+                if let Ok(cached_pg) = std::fs::read_to_string(&pg_cache_path) {
+                    let pg_conn = cached_pg.trim().to_string();
+                    if check_pg_active(&pg_conn).await {
+                        info!("Reutilizando contenedor de Postgres activo en {pg_conn}");
+                        break pg_conn;
+                    }
+                }
 
-            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-            let addr = listener.local_addr().unwrap();
+                let lock_file = std::fs::OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .create(true)
+                    .open(&pg_lock_path)
+                    .expect("Fallo al abrir lock de Postgres");
 
-            let service = UserApiImpl::new(Some(connection_string.clone()))
-                .await
-                .unwrap();
+                #[cfg(unix)]
+                unsafe {
+                    use std::os::unix::io::AsRawFd;
+                    libc::flock(lock_file.as_raw_fd(), libc::LOCK_EX);
+                }
 
-            tokio::spawn(async move {
-                Server::builder()
-                    .add_service(UserApiServer::new(service))
-                    .serve_with_incoming(tokio_stream::wrappers::TcpListenerStream::new(listener))
+                if let Ok(cached_pg) = std::fs::read_to_string(&pg_cache_path) {
+                    let pg_conn = cached_pg.trim().to_string();
+                    if check_pg_active(&pg_conn).await {
+                        #[cfg(unix)]
+                        unsafe {
+                            use std::os::unix::io::AsRawFd;
+                            libc::flock(lock_file.as_raw_fd(), libc::LOCK_UN);
+                        }
+                        break pg_conn;
+                    }
+                }
+
+                log::debug!("== INICIANDO CONTENEDOR POSTGRES COMPARTIDO ==");
+                let user = "admin";
+                let password = "admin123";
+                let schema_path =
+                    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../ddl/table.sql");
+                info!("schema_path: {:?}", schema_path);
+
+                let timestamp = jiff::Timestamp::now()
+                    .strftime("%Y%m%d%H%M%S%f")
+                    .to_string();
+                let container_name = format!("clickcare-test-{}", timestamp);
+
+                let c = postgres::Postgres::default()
+                    .with_user(user)
+                    .with_password(password)
+                    .with_tag("18")
+                    .with_container_name(container_name.clone())
+                    .with_copy_to("/docker-entrypoint-initdb.d/001_schema.sql", schema_path)
+                    .start()
                     .await
                     .unwrap();
-            });
-            log::debug!(
-                "== CONTENEDORES Y SERVIDOR LISTOS == ------------------------------------"
-            );
+                info!("Container INICIADO");
+
+                let host_port = c.get_host_port_ipv4(5432).await.unwrap();
+                let pg_conn = format!(
+                    "postgres://{}:{}@127.0.0.1:{host_port}/postgres",
+                    user, password
+                );
+
+                let _ = std::fs::write(&pg_cache_path, &pg_conn);
+
+                #[cfg(unix)]
+                unsafe {
+                    use std::os::unix::io::AsRawFd;
+                    libc::flock(lock_file.as_raw_fd(), libc::LOCK_UN);
+                }
+
+                // Programar la autodestrucción del contenedor y archivos en /tmp tras 10 segundos
+                let cleanup_cmd = format!(
+                    "sleep 10 && podman rm -f {} && rm -f {} {}",
+                    container_name,
+                    pg_cache_path.display(),
+                    pg_lock_path.display()
+                );
+                let _ = std::process::Command::new("sh")
+                    .arg("-c")
+                    .arg(format!("({}) >/dev/null 2>&1 &", cleanup_cmd))
+                    .spawn();
+
+                std::mem::forget(c);
+
+                break pg_conn;
+            };
+
+            // 2. Cada proceso de test inicia su propio servidor gRPC local (<1ms) conectado a la misma DB
+            let server_rt = tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .unwrap();
+
+            let conn_str = pg_connection_string.clone();
+            let grpc_addr = server_rt
+                .spawn(async move {
+                    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+                    let addr = listener.local_addr().unwrap();
+                    let grpc_addr = format!("http://{}", addr);
+
+                    let service = UserApiImpl::new(Some(conn_str)).await.unwrap();
+
+                    tokio::spawn(async move {
+                        Server::builder()
+                            .add_service(UserApiServer::new(service))
+                            .serve_with_incoming(tokio_stream::wrappers::TcpListenerStream::new(
+                                listener,
+                            ))
+                            .await
+                            .unwrap();
+                    });
+
+                    grpc_addr
+                })
+                .await
+                .unwrap();
+            Box::leak(Box::new(server_rt));
+
+            log::debug!("== SERVIDOR gRPC LISTO EN {} ==", grpc_addr);
 
             TestEnv {
-                grpc_addr: format!("http://{}", addr),
-                pg_connection_string: connection_string,
-                _container: container,
+                grpc_addr,
+                pg_connection_string,
             }
         })
         .await
-}
-
-#[dtor(unsafe)]
-fn shutdown() {
-    if let Some(env) = TEST_ENV.get() {
-        info!(
-            "Shutting down test environment with gRPC server at {}",
-            env.grpc_addr
-        );
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            let _ = env._container.stop().await;
-        });
-    }
 }
 
 mod sign_up {

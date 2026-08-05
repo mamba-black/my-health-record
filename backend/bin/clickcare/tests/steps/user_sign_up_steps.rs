@@ -99,7 +99,6 @@ pub async fn then_sign_up_successful_and_persisted(sign_up_context: &SignUpConte
         sign_up_context.response_status
     );
 
-
     let user_id = sign_up_context
         .user_id
         .expect("Falta el User ID en el contexto");

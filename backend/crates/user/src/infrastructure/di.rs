@@ -53,7 +53,6 @@ pub async fn new(dbtype: DBType) -> Result<DI, ClickCareError> {
 ///     },
 /// ).await?;
 /// ```
-
 pub async fn new_with_overrides(
     dbtype: DBType,
     overrides: DIOverrides,
