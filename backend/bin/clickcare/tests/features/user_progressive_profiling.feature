@@ -3,8 +3,8 @@ Característica: Caso de Uso 1 - Registro progresivo de usuario y datos obligato
 
   Escenario: Registro exitoso con un UUID v7 válido
     Dado un entorno activo con servicio gRPC de usuario y base de datos
-    Cuando se envía una solicitud de registro con ID "auto", email "juan.perez@example.com", nombre "Juan" y apellido "Pérez"
-    Entonces la respuesta de registro es exitosa y el usuario con nombre "Juan" y apellido "Pérez" se persiste en la base de datos
+    Cuando se envía una solicitud de registro con ID "auto", email "juan.perez@example.com" y nombre "Juan"
+    Entonces la respuesta de registro es exitosa y el usuario con nombre "Juan" se persiste en la base de datos
 
   Escenario: Registro fallido cuando el ID de usuario no es UUID v7
     Dado un entorno activo con servicio gRPC de usuario y base de datos

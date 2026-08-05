@@ -30,14 +30,13 @@ pub async fn given_running_service_and_db() {
 // ---- When Steps ------------------------------------------------------------
 
 #[when(
-    "se envía una solicitud de registro con ID \"{user_id_str}\", email \"{email}\", nombre \"{given_name}\" y apellido \"{family_name}\""
+    "se envía una solicitud de registro con ID \"{user_id_str}\", email \"{email}\" y nombre \"{given_name}\""
 )]
 pub async fn when_sign_up_request_sent(
     sign_up_context: &mut SignUpContext,
     user_id_str: String,
     email: String,
     given_name: String,
-    family_name: String,
 ) {
     let env = test_env().await;
     let mut client = UserApiClient::connect(env.grpc_addr.clone())
@@ -58,7 +57,7 @@ pub async fn when_sign_up_request_sent(
         user_id: user_id.to_string(),
         email: unique_email,
         given_name,
-        family_name: Some(family_name),
+        family_name: None,
         ..Default::default()
     };
     let request = tonic::Request::new(sign_up_request.clone());
@@ -109,12 +108,11 @@ pub async fn when_sign_up_request_invalid_uuid_v4_sent(
 // ---- Then Steps ------------------------------------------------------------
 
 #[then(
-    "la respuesta de registro es exitosa y el usuario con nombre \"{expected_given_name}\" y apellido \"{expected_family_name}\" se persiste en la base de datos"
+    "la respuesta de registro es exitosa y el usuario con nombre \"{expected_given_name}\" se persiste en la base de datos"
 )]
 pub async fn then_sign_up_successful_and_persisted(
     sign_up_context: &SignUpContext,
     expected_given_name: String,
-    expected_family_name: String,
 ) {
     debug!("sign_up_context: {:?}", sign_up_context);
 
@@ -156,7 +154,7 @@ pub async fn then_sign_up_successful_and_persisted(
         assert_eq!(db_id, user_id);
         assert_eq!(db_email, req_email);
         assert_eq!(given_name, expected_given_name);
-        assert_eq!(family_name, Some(expected_family_name));
+        assert_eq!(family_name, None);
         assert!(db_active);
     })
     .await
