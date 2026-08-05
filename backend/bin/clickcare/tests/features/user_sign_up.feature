@@ -1,11 +1,12 @@
-Feature: User Sign Up
+# language: es
+Característica: Registro de usuario
 
-  Scenario: Sign up succeeds with valid UUID v7
-    Given a running gRPC user service and database environment
-    When a sign up request with a valid UUID v7 is sent
-    Then the sign up response is successful and the user is persisted in the database
+  Escenario: Registro exitoso con un UUID v7 válido
+    Dado un entorno activo con servicio gRPC de usuario y base de datos
+    Cuando se envía una solicitud de registro con un UUID v7 válido
+    Entonces la respuesta de registro es exitosa y el usuario se persiste en la base de datos
 
-  Scenario: Sign up fails when user ID is not UUID v7
-    Given a running gRPC user service and database environment
-    When a sign up request with an invalid UUID v4 is sent
-    Then the sign up response returns an error indicating invalid UUID v7
+  Escenario: Registro fallido cuando el ID de usuario no es UUID v7
+    Dado un entorno activo con servicio gRPC de usuario y base de datos
+    Cuando se envía una solicitud de registro con un UUID v4 inválido
+    Entonces la respuesta de registro devuelve un error indicando UUID v7 inválido

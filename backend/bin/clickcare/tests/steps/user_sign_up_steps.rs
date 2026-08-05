@@ -22,14 +22,14 @@ pub fn sign_up_context() -> SignUpContext {
 
 // ---- Given Steps -----------------------------------------------------------
 
-#[given("a running gRPC user service and database environment")]
+#[given("un entorno activo con servicio gRPC de usuario y base de datos")]
 pub async fn given_running_service_and_db() {
     let _ = test_env().await;
 }
 
 // ---- When Steps ------------------------------------------------------------
 
-#[when("a sign up request with a valid UUID v7 is sent")]
+#[when("se envía una solicitud de registro con un UUID v7 válido")]
 pub async fn when_sign_up_request_sent(sign_up_context: &mut SignUpContext) {
     let env = test_env().await;
     let mut client = UserApiClient::connect(env.grpc_addr.clone())
@@ -60,7 +60,7 @@ pub async fn when_sign_up_request_sent(sign_up_context: &mut SignUpContext) {
     }
 }
 
-#[when("a sign up request with an invalid UUID v4 is sent")]
+#[when("se envía una solicitud de registro con un UUID v4 inválido")]
 pub async fn when_sign_up_request_invalid_uuid_v4_sent(sign_up_context: &mut SignUpContext) {
     let env = test_env().await;
     let mut client = UserApiClient::connect(env.grpc_addr.clone())
@@ -88,7 +88,7 @@ pub async fn when_sign_up_request_invalid_uuid_v4_sent(sign_up_context: &mut Sig
 
 // ---- Then Steps ------------------------------------------------------------
 
-#[then("the sign up response is successful and the user is persisted in the database")]
+#[then("la respuesta de registro es exitosa y el usuario se persiste en la base de datos")]
 pub async fn then_sign_up_successful_and_persisted(sign_up_context: &SignUpContext) {
     debug!("sign_up_context: {:?}", sign_up_context);
 
@@ -139,7 +139,7 @@ pub async fn then_sign_up_successful_and_persisted(sign_up_context: &SignUpConte
     .expect("Fallo la tarea asíncrona de consulta a PostgreSQL");
 }
 
-#[then("the sign up response returns an error indicating invalid UUID v7")]
+#[then("la respuesta de registro devuelve un error indicando UUID v7 inválido")]
 pub async fn then_sign_up_fails_with_invalid_uuid_v7_error(sign_up_context: &SignUpContext) {
     debug!("sign_up_context: {:?}", sign_up_context);
     assert!(
