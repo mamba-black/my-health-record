@@ -1,10 +1,15 @@
 # language: es
-Característica: Registro progresivo de usuario y datos obligatorios para cita médica
+Característica: Caso de Uso 1 - Registro progresivo de usuario y datos obligatorios para cita médica
 
-  Escenario: Registro inicial con datos mínimos sin DNI
-    Dado un usuario que inicia sesión o se registra con proveedor OAuth u correo
-    Cuando envía sus datos iniciales de registro sin DNI ni teléfono
-    Entonces la cuenta de usuario es creada activamente con perfil mínimo
+  Escenario: Registro exitoso con un UUID v7 válido
+    Dado un entorno activo con servicio gRPC de usuario y base de datos
+    Cuando se envía una solicitud de registro con un UUID v7 válido
+    Entonces la respuesta de registro es exitosa y el usuario se persiste en la base de datos
+
+  Escenario: Registro fallido cuando el ID de usuario no es UUID v7
+    Dado un entorno activo con servicio gRPC de usuario y base de datos
+    Cuando se envía una solicitud de registro con un UUID v4 inválido
+    Entonces la respuesta de registro devuelve un error indicando UUID v7 inválido
 
   Escenario: Exigencia obligatoria de DNI y teléfono al agendar cita médica
     Dado un usuario registrado con perfil mínimo

@@ -1,1 +1,1 @@
-pub mod user_sign_up_scenarios;
+pub mod user_progressive_profiling;

@@ -1,1 +1,1 @@
-pub mod user_sign_up_steps;
+pub mod user_progressive_profiling;
