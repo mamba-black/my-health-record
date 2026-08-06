@@ -227,3 +227,41 @@ pub async fn then_sign_up_fails_with_invalid_uuid_v7_error(
         expected_error_substr
     );
 }
+
+// ---- Appointment Booking Progressive Steps (Pending Clinic Integration) ----
+
+#[given("un usuario registrado con perfil mínimo email \"{email}\" sin DNI ni teléfono")]
+pub async fn given_user_registered_without_dni_and_phone(email: String) {
+    let _ = email;
+}
+
+#[given("un usuario registrado con perfil mínimo email \"{email}\"")]
+pub async fn given_user_registered_minimal(email: String) {
+    let _ = email;
+}
+
+#[when("el usuario intenta agendar una cita médica sin proporcionar DNI ni teléfono")]
+pub async fn when_user_tries_booking_without_dni_and_phone() {
+    // Stub
+}
+
+#[when(
+    "el usuario completa su perfil ingresando DNI \"{dni}\" y teléfono \"{telefono}\" al agendar una cita médica"
+)]
+pub async fn when_user_completes_profile_and_books(dni: String, telefono: String) {
+    let _ = (dni, telefono);
+}
+
+#[then(
+    "el sistema rechaza la reserva exigiendo la captura obligatoria de DNI y teléfono según la Ley N° 30024"
+)]
+pub async fn then_system_rejects_booking_demanding_dni_and_phone() {
+    // Stub
+}
+
+#[then(
+    "la reserva de la cita médica se procesa exitosamente y queda guardada en estado \"{estado}\""
+)]
+pub async fn then_appointment_saved_in_status(estado: String) {
+    let _ = estado;
+}

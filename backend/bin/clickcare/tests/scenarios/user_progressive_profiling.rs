@@ -42,3 +42,25 @@ async fn sign_up_succeeds_with_various_profiles(
 async fn sign_up_fails_when_user_id_is_not_uuid_v7(sign_up_context: SignUpContext) {
     let _ = sign_up_context;
 }
+
+#[scenario(
+    path = "tests/features/user_progressive_profiling.feature",
+    name = "Intento fallido de reserva de cita por falta de DNI y teléfono requeridos por Ley N° 30024"
+)]
+#[tokio::test]
+#[ignore = "TODO: Requiere integración con servicio de citas (crates/clinic)"]
+async fn appointment_booking_fails_without_dni_and_phone(sign_up_context: SignUpContext) {
+    let _ = sign_up_context;
+}
+
+#[scenario(
+    path = "tests/features/user_progressive_profiling.feature",
+    name = "Reserva exitosa de cita médica al completar progresivamente el DNI y teléfono"
+)]
+#[tokio::test]
+#[ignore = "TODO: Requiere integración con servicio de citas (crates/clinic)"]
+async fn appointment_booking_succeeds_after_providing_dni_and_phone(
+    sign_up_context: SignUpContext,
+) {
+    let _ = sign_up_context;
+}
