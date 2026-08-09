@@ -7,7 +7,7 @@ use std::sync::Arc;
 use tonic::*;
 use tracing::debug;
 use user::application::CreateUserUseCase;
-use user::application::command::{CreateUserCommand, CrueateUserError};
+use user::application::command::{CreateUserCommand, CreateUserError};
 use user::domain::user::Identifier::DNI;
 use user::infrastructure::di;
 use user::infrastructure::di::DBType;
@@ -72,8 +72,8 @@ impl UserApi for UserApiImpl {
                 })
             })
             .map_err(|err| match err {
-                CrueateUserError::UserAlreadyExists(e) => Status::already_exists(e.to_string()),
-                CrueateUserError::UnknownError(e) => Status::unknown(e.to_string()),
+                CreateUserError::UserAlreadyExists(e) => Status::already_exists(e.to_string()),
+                CreateUserError::UnknownError(e) => Status::unknown(e.to_string()),
             })
     }
 

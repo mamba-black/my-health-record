@@ -1,8 +1,8 @@
-use crate::application::create_user_usecase::command::CrueateUserError::{
+use crate::application::create_user_usecase::command::CreateUserError::{
     UnknownError, UserAlreadyExists,
 };
 use crate::application::create_user_usecase::command::{
-    CreateUserCommand, CreateUserResponse, CrueateUserError,
+    CreateUserCommand, CreateUserError, CreateUserResponse,
 };
 use crate::domain::repository::clinic_repository::ClinicRepository;
 use crate::domain::repository::user_repository::UserRepository;
@@ -15,7 +15,7 @@ use log::error;
 use std::sync::Arc;
 
 pub mod command {
-    use crate::application::command::CrueateUserError::UnknownError;
+    use crate::application::create_user_usecase::command::CreateUserError::UnknownError;
     use crate::domain::user::Identifier;
     use app_core::domain::error::ClickCareError;
 
@@ -42,12 +42,12 @@ pub mod command {
 
     pub struct CreateUserResponse {}
 
-    pub enum CrueateUserError {
+    pub enum CreateUserError {
         UserAlreadyExists(ClickCareError),
         UnknownError(ClickCareError),
     }
 
-    impl From<ClickCareError> for CrueateUserError {
+    impl From<ClickCareError> for CreateUserError {
         fn from(value: ClickCareError) -> Self {
             UnknownError(value)
         }
@@ -55,7 +55,7 @@ pub mod command {
 }
 
 pub trait CreateUserUseCase:
-    UseCase<Command = CreateUserCommand, Response = CreateUserResponse, Error = CrueateUserError>
+    UseCase<Command = CreateUserCommand, Response = CreateUserResponse, Error = CreateUserError>
 {
 }
 
@@ -70,7 +70,7 @@ impl CreateUserUseCase for CreateUserUseCaseImpl {}
 impl UseCase for CreateUserUseCaseImpl {
     type Command = CreateUserCommand;
     type Response = CreateUserResponse;
-    type Error = CrueateUserError;
+    type Error = CreateUserError;
 
     async fn execute(&self, command: Self::Command) -> Result<Self::Response, Self::Error> {
         let mut identifier: Option<Identifier> = None;

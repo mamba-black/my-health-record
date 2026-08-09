@@ -82,8 +82,16 @@ pub async fn when_sign_up_request_sent(
     } else {
         Some(segundo_apellido)
     };
-    let phone = if telefono == "-" { String::new() } else { telefono };
-    let birth_date = if fecha_nacimiento == "-" { String::new() } else { fecha_nacimiento };
+    let phone = if telefono == "-" {
+        String::new()
+    } else {
+        telefono
+    };
+    let birth_date = if fecha_nacimiento == "-" {
+        String::new()
+    } else {
+        fecha_nacimiento
+    };
     let create_clinic = crear_clinica.parse::<bool>().unwrap_or(false);
 
     let sign_up_request = SignUpRequest {
