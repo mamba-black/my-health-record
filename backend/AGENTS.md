@@ -2,22 +2,22 @@
 
 ## Descripción del Proyecto
 
-**My Health Record (Backend)** es un servicio de backend en Rust 2024 para la gestión de salud que sigue la **Arquitectura Cebolla (Onion Architecture)** y un **Cargo Workspace Jerárquico (*Nested Crates*)** estrictamente alineado con el estándar **HL7 FHIR R4**. Proporciona una API gRPC de alto rendimiento (utilizando `tonic` y `axum`) con soporte gRPC-Web, manejando el ecosistema ampliado de contextos acotados del dominio (usuarios e identidad, administración, citas, historia clínica, diagnósticos, farmacia, coberturas, facturación, archivo legal y comunicaciones).
+**My Health Record (Backend)** es un servicio de backend en Rust 2024 para la gestión de salud que sigue la **Arquitectura Cebolla (Onion Architecture)** y un **Cargo Workspace por Contextos Acotados (*Bounded Context Crates*)** estrictamente alineado con el estándar **HL7 FHIR R4**. Proporciona una API gRPC de alto rendimiento (utilizando `tonic` y `axum`) con soporte gRPC-Web, manejando el ecosistema ampliado de contextos acotados del dominio (usuarios e identidad, administración, citas, historia clínica, diagnósticos, farmacia, coberturas, facturación, archivo legal y comunicaciones).
 
 ---
 
 ## 1. Principios Arquitectónicos y Directivas de Memoria
 
 ### 1.1. Diseño Guiado por el Dominio (DDD) y Alineación con HL7 FHIR
-- **Documento de Referencia Principal del Dominio**: La especificación completa del modelo de dominio FHIR por contextos acotados, sub-crates jerárquicos y grupos funcionales del ecosistema ampliado está detallada en [`ClickCare - Modelo de Dominio FHIR por Contextos Acotados.md`](file:///home/miuler/proyectos/my-health-record/backend/ClickCare%20-%20Modelo%20de%20Dominio%20FHIR%20por%20Contextos%20Acotados.md).
+- **Documento de Referencia Principal del Dominio**: La especificación completa del modelo de dominio FHIR por contextos acotados, módulos de dominio y grupos funcionales del ecosistema ampliado está detallada en [`ClickCare - Modelo de Dominio FHIR por Contextos Acotados.md`](file:///home/miuler/proyectos/my-health-record/backend/ClickCare%20-%20Modelo%20de%20Dominio%20FHIR%20por%20Contextos%20Acotados.md).
 - **Protección y Límites del Dominio**: Adherencia estricta a los principios de DDD para proteger el dominio y mantener los contextos acotados aislados, asegurando que la lógica de negocio y sus invariantes estén protegidos contra filtraciones de infraestructura o externas. Los límites y entidades del dominio se modelan siguiendo las especificaciones de **HL7 FHIR R4** como guía principal siempre que sea posible.
-- **Arquitectura de Crates Jerárquicos (*Nested Crates*), Grupos FHIR y Desacoplamiento (C4 Nivel 2)**:
-  En el modelo C4 Nivel 2, un **Contenedor** representa una unidad ejecutable y desplegable de software o almacenamiento de datos. En Rust, este sistema se estructura mediante un **Cargo Workspace Jerárquico** (*Nested Crates*), donde cada Bounded Context es un **Crate Padre (Contenedor)** que agrupa **Sub-crates de Entidad** para cada agregado principal de FHIR.
+- **Arquitectura de Crates por Bounded Contexts y Módulos de Dominio (C4 Nivel 2)**:
+  En el modelo C4 Nivel 2, un **Contenedor** representa una unidad ejecutable y desplegable de software o almacenamiento de datos. En Rust, este sistema se estructura mediante un **Cargo Workspace por Contextos Acotados** (`members = ["crates/*"]`), donde cada Bounded Context es un **Crate de Rust (`crates/<dominio>`)** que agrupa sus **Módulos de Entidades y Agregados (`src/domain/`)** para cada recurso principal de FHIR. Esto elimina la sobreingeniería de crear sub-crates físicas por entidad y permite ejecutar consultas unificadas con `JOIN` y transacciones de base de datos nativas dentro del mismo contexto acotado.
 
 ```mermaid
 flowchart TB
     classDef container fill:#2d3748,stroke:#4a5568,stroke-width:2px,color:#fff;
-    classDef entityCrate fill:#1a202c,stroke:#718096,stroke-width:1px,color:#cbd5e0;
+    classDef domainMod fill:#1a202c,stroke:#718096,stroke-width:1px,color:#cbd5e0;
     classDef db fill:#0d1117,stroke:#4a5568,stroke-width:1.5px,color:#cbd5e0;
 
     subgraph Boundaries["ClickCare - Ecosistema Ampliado FHIR (Cargo Workspace)"]
@@ -25,142 +25,142 @@ flowchart TB
         subgraph Domain_User["crates/user (Identity & Security)"]
             direction TB
             UserC["<b>Auth & Account</b><br/><i>Gestión de credenciales e identidades.</i><br/>──────<br/><b>[Foundation / Security]</b><br/>• User / Auth Account<br/>• Person"]:::container
-            UC_Auth["crates/user/auth_account"]:::entityCrate
-            UC_Person["crates/user/person"]:::entityCrate
+            UM_Auth["src/domain/auth_account.rs"]:::domainMod
+            UM_Person["src/domain/person.rs"]:::domainMod
             UserDB[("User DB")]:::db
-            UserC --- UC_Auth
-            UserC --- UC_Person
+            UserC --- UM_Auth
+            UserC --- UM_Person
             UserC --- UserDB
         end
 
         subgraph Domain_Administration["crates/administration (Gestión Administrativa)"]
             direction TB
             AdminC["<b>Gestión Administrativa</b><br/><i>Actores de salud, locaciones e infraestructura.</i><br/>──────<br/><b>[FHIR Individuals & Entities]</b><br/>• Patient<br/>• Practitioner<br/>• Location<br/>• HealthcareService"]:::container
-            AC_Patient["crates/administration/patient"]:::entityCrate
-            AC_Practitioner["crates/administration/practitioner"]:::entityCrate
-            AC_Location["crates/administration/location"]:::entityCrate
-            AC_Service["crates/administration/healthcare_service"]:::entityCrate
+            AM_Patient["src/domain/patient.rs"]:::domainMod
+            AM_Practitioner["src/domain/practitioner.rs"]:::domainMod
+            AM_Location["src/domain/location.rs"]:::domainMod
+            AM_Service["src/domain/healthcare_service.rs"]:::domainMod
             AdminDB[("Administration DB")]:::db
-            AdminC --- AC_Patient
-            AdminC --- AC_Practitioner
-            AdminC --- AC_Location
-            AdminC --- AC_Service
+            AdminC --- AM_Patient
+            AdminC --- AM_Practitioner
+            AdminC --- AM_Location
+            AdminC --- AM_Service
             AdminC --- AdminDB
         end
 
         subgraph Domain_Scheduling["crates/scheduling (Reserva de Citas)"]
             direction TB
             SchedC["<b>Reserva de Citas</b><br/><i>Agendas, disponibilidad y flujo de citas.</i><br/>──────<br/><b>[FHIR Workflow]</b><br/>• Schedule<br/>• Slot<br/>• Appointment"]:::container
-            SC_Schedule["crates/scheduling/schedule"]:::entityCrate
-            SC_Slot["crates/scheduling/slot"]:::entityCrate
-            SC_Appointment["crates/scheduling/appointment"]:::entityCrate
+            SM_Schedule["src/domain/schedule.rs"]:::domainMod
+            SM_Slot["src/domain/slot.rs"]:::domainMod
+            SM_Appointment["src/domain/appointment.rs"]:::domainMod
             SchedDB[("Scheduling DB")]:::db
-            SchedC --- SC_Schedule
-            SchedC --- SC_Slot
-            SchedC --- SC_Appointment
+            SchedC --- SM_Schedule
+            SchedC --- SM_Slot
+            SchedC --- SM_Appointment
             SchedC --- SchedDB
         end
 
         subgraph Domain_Clinical["crates/clinical (Historia Clínica)"]
             direction TB
             ClinicalC["<b>Historia Clínica</b><br/><i>Encuentros, diagnósticos, alergias y recetas.</i><br/>──────<br/><b>[FHIR Management / Summary / Care / Forms]</b><br/>• Encounter<br/>• Condition<br/>• AllergyIntolerance<br/>• CarePlan<br/>• MedicationRequest<br/>• Questionnaire"]:::container
-            CC_Encounter["crates/clinical/encounter"]:::entityCrate
-            CC_Condition["crates/clinical/condition"]:::entityCrate
-            CC_Allergy["crates/clinical/allergy_intolerance"]:::entityCrate
-            CC_CarePlan["crates/clinical/care_plan"]:::entityCrate
-            CC_MedReq["crates/clinical/medication_request"]:::entityCrate
-            CC_Quest["crates/clinical/questionnaire"]:::entityCrate
+            CM_Encounter["src/domain/encounter.rs"]:::domainMod
+            CM_Condition["src/domain/condition.rs"]:::domainMod
+            CM_Allergy["src/domain/allergy_intolerance.rs"]:::domainMod
+            CM_CarePlan["src/domain/care_plan.rs"]:::domainMod
+            CM_MedReq["src/domain/medication_request.rs"]:::domainMod
+            CM_Quest["src/domain/questionnaire.rs"]:::domainMod
             ClinicalDB[("Clinical DB")]:::db
-            ClinicalC --- CC_Encounter
-            ClinicalC --- CC_Condition
-            ClinicalC --- CC_Allergy
-            ClinicalC --- CC_CarePlan
-            ClinicalC --- CC_MedReq
-            ClinicalC --- CC_Quest
+            ClinicalC --- CM_Encounter
+            ClinicalC --- CM_Condition
+            ClinicalC --- CM_Allergy
+            ClinicalC --- CM_CarePlan
+            ClinicalC --- CM_MedReq
+            ClinicalC --- CM_Quest
             ClinicalC --- ClinicalDB
         end
 
         subgraph Domain_Diagnostics["crates/diagnostics (Laboratorio e Imágenes)"]
             direction TB
             DiagC["<b>Laboratorio e Imágenes</b><br/><i>Órdenes clínicas, hallazgos y estudios radiológicos.</i><br/>──────<br/><b>[FHIR Diagnostics]</b><br/>• ServiceRequest<br/>• Observation<br/>• DiagnosticReport<br/>• ImagingStudy<br/>• Specimen"]:::container
-            DC_ServiceReq["crates/diagnostics/service_request"]:::entityCrate
-            DC_Observation["crates/diagnostics/observation"]:::entityCrate
-            DC_Report["crates/diagnostics/diagnostic_report"]:::entityCrate
-            DC_Imaging["crates/diagnostics/imaging_study"]:::entityCrate
-            DC_Specimen["crates/diagnostics/specimen"]:::entityCrate
+            DM_ServiceReq["src/domain/service_request.rs"]:::domainMod
+            DM_Observation["src/domain/observation.rs"]:::domainMod
+            DM_Report["src/domain/diagnostic_report.rs"]:::domainMod
+            DM_Imaging["src/domain/imaging_study.rs"]:::domainMod
+            DM_Specimen["src/domain/specimen.rs"]:::domainMod
             DiagDB[("Diagnostics DB")]:::db
-            DiagC --- DC_ServiceReq
-            DiagC --- DC_Observation
-            DiagC --- DC_Report
-            DiagC --- DC_Imaging
-            DiagC --- DC_Specimen
+            DiagC --- DM_ServiceReq
+            DiagC --- DM_Observation
+            DiagC --- DM_Report
+            DiagC --- DM_Imaging
+            DiagC --- DM_Specimen
             DiagC --- DiagDB
         end
 
         subgraph Domain_Pharmacy["crates/pharmacy (Farmacia e Insumos)"]
             direction TB
             PharmC["<b>Farmacia e Insumos</b><br/><i>Vademécum, dispensa, aplicación y stock.</i><br/>──────<br/><b>[FHIR Medications & Supply]</b><br/>• Medication<br/>• MedicationDispense<br/>• MedicationAdministration<br/>• SupplyRequest / SupplyDelivery"]:::container
-            PC_Medication["crates/pharmacy/medication"]:::entityCrate
-            PC_Dispense["crates/pharmacy/medication_dispense"]:::entityCrate
-            PC_Admin["crates/pharmacy/medication_administration"]:::entityCrate
-            PC_Supply["crates/pharmacy/supply"]:::entityCrate
+            PM_Medication["src/domain/medication.rs"]:::domainMod
+            PM_Dispense["src/domain/medication_dispense.rs"]:::domainMod
+            PM_Admin["src/domain/medication_administration.rs"]:::domainMod
+            PM_Supply["src/domain/supply.rs"]:::domainMod
             PharmDB[("Pharmacy DB")]:::db
-            PharmC --- PC_Medication
-            PharmC --- PC_Dispense
-            PharmC --- PC_Admin
-            PharmC --- PC_Supply
+            PharmC --- PM_Medication
+            PharmC --- PM_Dispense
+            PharmC --- PM_Admin
+            PharmC --- PM_Supply
             PharmC --- PharmDB
         end
 
         subgraph Domain_Coverage["crates/coverage (Aseguradoras y Coberturas)"]
             direction TB
             CovC["<b>Aseguradoras y Coberturas</b><br/><i>Pólizas, elegibilidad y reclamos.</i><br/>──────<br/><b>[FHIR Financial / Claims]</b><br/>• Coverage<br/>• Claim / ClaimResponse<br/>• CoverageEligibilityRequest"]:::container
-            CovC_Policy["crates/coverage/policy"]:::entityCrate
-            CovC_Claim["crates/coverage/claim"]:::entityCrate
-            CovC_Eligibility["crates/coverage/eligibility"]:::entityCrate
+            CovM_Policy["src/domain/policy.rs"]:::domainMod
+            CovM_Claim["src/domain/claim.rs"]:::domainMod
+            CovM_Eligibility["src/domain/eligibility.rs"]:::domainMod
             CovDB[("Coverage DB")]:::db
-            CovC --- CovC_Policy
-            CovC --- CovC_Claim
-            CovC --- CovC_Eligibility
+            CovC --- CovM_Policy
+            CovC --- CovM_Claim
+            CovC --- CovM_Eligibility
             CovC --- CovDB
         end
 
         subgraph Domain_Billing["crates/billing (Facturación)"]
             direction TB
             BillingC["<b>Facturación</b><br/><i>Cargos, comprobantes y balances de cuenta.</i><br/>──────<br/><b>[FHIR Financial]</b><br/>• Account<br/>• Invoice<br/>• ChargeItem"]:::container
-            BC_Account["crates/billing/account"]:::entityCrate
-            BC_Invoice["crates/billing/invoice"]:::entityCrate
-            BC_ChargeItem["crates/billing/charge_item"]:::entityCrate
+            BM_Account["src/domain/account.rs"]:::domainMod
+            BM_Invoice["src/domain/invoice.rs"]:::domainMod
+            BM_ChargeItem["src/domain/charge_item.rs"]:::domainMod
             BillingDB[("Billing DB")]:::db
-            BillingC --- BC_Account
-            BillingC --- BC_Invoice
-            BillingC --- BC_ChargeItem
+            BillingC --- BM_Account
+            BillingC --- BM_Invoice
+            BillingC --- BM_ChargeItem
             BillingC --- BillingDB
         end
 
         subgraph Domain_Legal["crates/legal_archive (Archivo Legal y Auditoría)"]
             direction TB
             LegalC["<b>Archivo Legal y Auditoría</b><br/><i>Documentación clínica consolidada y auditoría.</i><br/>──────<br/><b>[FHIR Documents & Security]</b><br/>• Composition<br/>• DocumentReference<br/>• AuditEvent<br/>• Provenance"]:::container
-            LC_Composition["crates/legal_archive/composition"]:::entityCrate
-            LC_DocRef["crates/legal_archive/document_reference"]:::entityCrate
-            LC_AuditEvent["crates/legal_archive/audit_event"]:::entityCrate
-            LC_Provenance["crates/legal_archive/provenance"]:::entityCrate
+            LM_Composition["src/domain/composition.rs"]:::domainMod
+            LM_DocRef["src/domain/document_reference.rs"]:::domainMod
+            LM_AuditEvent["src/domain/audit_event.rs"]:::domainMod
+            LM_Provenance["src/domain/provenance.rs"]:::domainMod
             LegalDB[("Legal Archive DB")]:::db
-            LegalC --- LC_Composition
-            LegalC --- LC_DocRef
-            LegalC --- LC_AuditEvent
-            LegalC --- LC_Provenance
+            LegalC --- LM_Composition
+            LegalC --- LM_DocRef
+            LegalC --- LM_AuditEvent
+            LegalC --- LM_Provenance
             LegalC --- LegalDB
         end
 
         subgraph Domain_Communication["crates/communication (Notificaciones y Alertas)"]
             direction TB
             CommC["<b>Notificaciones y Alertas</b><br/><i>Mensajería, avisos y alertas clínicas.</i><br/>──────<br/><b>[FHIR Workflow / Support]</b><br/>• Communication<br/>• Flag"]:::container
-            ComC_Message["crates/communication/message"]:::entityCrate
-            ComC_Flag["crates/communication/flag"]:::entityCrate
+            ComM_Message["src/domain/message.rs"]:::domainMod
+            ComM_Flag["src/domain/flag.rs"]:::domainMod
             CommDB[("Communication DB")]:::db
-            CommC --- ComC_Message
-            CommC --- ComC_Flag
+            CommC --- ComM_Message
+            CommC --- ComM_Flag
             CommC --- CommDB
         end
 
@@ -185,9 +185,9 @@ flowchart TB
 
 #### Resumen de Contextos Acotados y Recursos FHIR Mapeados
 
-| Crate Contenedor | Sub-crates de Entidad | Recurso FHIR Mapeado | Responsabilidad y Alcance del Dominio |
+| Crate Bounded Context | Agregados y Entidades de Dominio (`src/domain/`) | Recurso FHIR Mapeado | Responsabilidad y Alcance del Dominio |
 |---|---|---|---|
-| **`crates/user`** | `auth_account`, `person` | **`Person`** + `User` | **Cuenta de Sistema e Identidad Física**: `User` gestiona credenciales y autenticación (`id`, `active`, `provider_info`, `is_owner`). La identidad humana vive en **FHIR R4 `Person`** (`name`, `telecom`, `identifier`, `links`). |
+| **`crates/user`** | `user`, `person`, `identity_provider` | **`Person`** + `User` | **Cuenta de Sistema e Identidad Física**: `User` gestiona credenciales y autenticación (`id`, `active`, `provider_info`, `is_owner`). La identidad humana vive en la entidad **FHIR R4 `Person`** dentro de `src/domain/person.rs` (`name`, `telecom`, `identifier`, `links`). |
 | **`crates/administration`** | `patient`, `practitioner`, `location`, `healthcare_service` | **`Patient`**, **`Practitioner`**, **`Location`**, **`HealthcareService`** | **Gestión Administrativa y Actores**: Expedientes de pacientes, profesionales de salud con credenciales (CMP/COP), locaciones físicas/consultorios y oferta de servicios sanitarios. |
 | **`crates/scheduling`** | `schedule`, `slot`, `appointment` | **`Schedule`**, **`Slot`**, **`Appointment`** | **Reserva de Citas y Agendas**: Definición de agendas médicas (`Schedule`), bloques de tiempo disponibles (`Slot`) y reservas/citas de atención (`Appointment`). |
 | **`crates/clinical`** | `encounter`, `condition`, `allergy_intolerance`, `care_plan`, `medication_request`, `questionnaire` | **`Encounter`**, **`Condition`**, **`AllergyIntolerance`**, **`CarePlan`**, **`MedicationRequest`**, **`Questionnaire`** | **Historia Clínica Electrónica**: Registros de encuentros médicos, diagnósticos (CIE-10), alergias, planes de cuidado, recetas de medicamentos y formularios dinámicos. |
@@ -199,14 +199,14 @@ flowchart TB
 | **`crates/communication`** | `message`, `flag` | **`Communication`**, **`CommunicationRequest`**, **`Flag`** | **Notificaciones y Alertas**: Mensajería directa entre actores de salud, notificaciones operacionales y banderas/alertas de riesgo clínico sobre pacientes. |
 | **`crates/core`** | N/A | Value Objects FHIR compartidos | Value Objects transversales e inmutables (`HumanName`, `ContactPoint`, `Identifier`, `Address`, `Attachment`), traits base (`UseCase`) y `ClickCareError`. |
 
-- **Composición de Cuenta e Identidad de Usuario (`User` -> `Person`)**: `User` representa el límite de autenticación / cuenta del sistema (`id`, `active`, `person`, `provider_info`, `is_owner`). La identidad humana física y su demografía viven strictly dentro de `User.person`, siguiendo **HL7 FHIR R4 Person** (`name`, `telecom`, `identifier`, `links`). Nunca aplanar los campos de `Person` directamente dentro de `User`.
+- **Composición de Cuenta e Identidad de Usuario (`User` -> `Person`)**: `User` representa el límite de autenticación / cuenta del sistema (`id`, `active`, `person`, `provider_info`, `is_owner`). La identidad humana física y su demografía viven estrictamente dentro de `User.person`, siguiendo **HL7 FHIR R4 Person** (`name`, `telecom`, `identifier`, `links`). Nunca aplanar los campos de `Person` directamente dentro de `User`.
 - **Enlaces de Roles vía `Person.link`**: Una `Person` se conecta con sus roles sanitarios mediante los destinos de `PersonLink` (`Patient`, `Practitioner`, `RelatedPerson`, `Organization`). Esto permite que una sola cuenta de usuario gestione múltiples perfiles de pacientes (ej. padres administrando a sus hijos) o administre una clínica sin requerir un registro de paciente ficticio.
 - **Terminología y Convenciones FHIR**: `HumanName` utiliza `given`, `family`, `second_family` (extensión hispana) y `text`. `ContactPoint` utiliza `system` (`Phone`, `Email`, etc.) y `use_type`. Nota: FHIR `Account` se refiere exclusivamente a cuentas financieras de facturación/cobertura; las cuentas de autenticación del sistema se mapean a `User` / `Person`.
 
 ---
 
 ### 1.2. Decisiones de Diseño, Particionamiento de Datos y Estructura en Rust
-- **Organización del Cargo Workspace**: Archivo `Cargo.toml` raíz define los miembros de la solución: `members = ["crates/*", "crates/*/*"]`.
+- **Organización del Cargo Workspace**: Archivo `Cargo.toml` raíz define los miembros de la solución: `members = ["crates/*"]`.
 - **Estrategia de Identificadores (UUIDv7)**: Identificadores UUIDv7 primarios para asegurar ordenamiento temporal implícito y optimización en índices B-Tree de PostgreSQL.
 - **Particionamiento por Hash en PostgreSQL**:
   - Para tablas maestras cuyo crecimiento es continuo sin obsolescencia (`Patient`, `Encounter`), se aplica **Particionamiento por Hash** sobre la clave primaria (`UUIDv7`).
@@ -436,9 +436,9 @@ graph TD
     end
 
     subgraph healthcare_roles["Roles Sanitarios (Recursos FHIR)"]
-        Patient["Patient (crates/administration/patient)<br/>Expediente Clínico"]
-        Practitioner["Practitioner (crates/administration/practitioner)<br/>Colegiatura Médica (CMP/COP)"]
-        Organization["Organization (crates/administration)<br/>Clínica / Entidad Legal"]
+        Patient["Patient (crates/administration/src/domain/patient.rs)<br/>Expediente Clínico"]
+        Practitioner["Practitioner (crates/administration/src/domain/practitioner.rs)<br/>Colegiatura Médica (CMP/COP)"]
+        Organization["Organization (crates/administration/src/domain)<br/>Clínica / Entidad Legal"]
         RelatedPerson["RelatedPerson<br/>Tutor / Cuidador"]
     end
 
@@ -455,7 +455,7 @@ graph TD
 
 #### 3.2.1. Identity & Security (`crates/user`)
 * **Grupo FHIR**: Foundation / Security.
-* **Sub-crates**: `crates/user/auth_account`, `crates/user/person`.
+* **Módulos de Dominio (`src/domain/`)**: `user.rs`, `person.rs`, `identity_provider.rs`.
 
 ```mermaid
 classDiagram
@@ -567,7 +567,7 @@ classDiagram
 
 #### 3.2.2. Gestión Administrativa (`crates/administration`)
 * **Grupos FHIR**: FHIR Individuals / FHIR Entities.
-* **Sub-crates**: `crates/administration/patient`, `crates/administration/practitioner`, `crates/administration/location`, `crates/administration/healthcare_service`.
+* **Módulos de Dominio (`src/domain/`)**: `patient.rs`, `practitioner.rs`, `location.rs`, `healthcare_service.rs`.
 
 ```mermaid
 classDiagram
@@ -607,7 +607,7 @@ classDiagram
 
 #### 3.2.3. Reserva de Citas (`crates/scheduling`)
 * **Grupo FHIR**: FHIR Workflow.
-* **Sub-crates**: `crates/scheduling/schedule`, `crates/scheduling/slot`, `crates/scheduling/appointment`.
+* **Módulos de Dominio (`src/domain/`)**: `schedule.rs`, `slot.rs`, `appointment.rs`.
 
 ```mermaid
 classDiagram
@@ -642,7 +642,7 @@ classDiagram
 
 #### 3.2.4. Historia Clínica (`crates/clinical`)
 * **Grupos FHIR**: FHIR Management / FHIR Clinical Summary / FHIR Care Provision / FHIR Diagnostics & Forms.
-* **Sub-crates**: `crates/clinical/encounter`, `crates/clinical/condition`, `crates/clinical/allergy_intolerance`, `crates/clinical/care_plan`, `crates/clinical/medication_request`, `crates/clinical/questionnaire`.
+* **Módulos de Dominio (`src/domain/`)**: `encounter.rs`, `condition.rs`, `allergy_intolerance.rs`, `care_plan.rs`, `medication_request.rs`, `questionnaire.rs`.
 
 ```mermaid
 classDiagram
@@ -704,7 +704,7 @@ classDiagram
 
 #### 3.2.5. Laboratorio e Imágenes (`crates/diagnostics`)
 * **Grupo FHIR**: FHIR Diagnostics.
-* **Sub-crates**: `crates/diagnostics/service_request`, `crates/diagnostics/observation`, `crates/diagnostics/diagnostic_report`, `crates/diagnostics/imaging_study`, `crates/diagnostics/specimen`.
+* **Módulos de Dominio (`src/domain/`)**: `service_request.rs`, `observation.rs`, `diagnostic_report.rs`, `imaging_study.rs`, `specimen.rs`.
 
 ```mermaid
 classDiagram
@@ -753,7 +753,7 @@ classDiagram
 
 #### 3.2.6. Farmacia e Insumos (`crates/pharmacy`)
 * **Grupo FHIR**: FHIR Medications & Supply.
-* **Sub-crates**: `crates/pharmacy/medication`, `crates/pharmacy/medication_dispense`, `crates/pharmacy/medication_administration`, `crates/pharmacy/supply`.
+* **Módulos de Dominio (`src/domain/`)**: `medication.rs`, `medication_dispense.rs`, `medication_administration.rs`, `supply.rs`.
 
 ```mermaid
 classDiagram
@@ -795,7 +795,7 @@ classDiagram
 
 #### 3.2.7. Aseguradoras y Coberturas (`crates/coverage`)
 * **Grupo FHIR**: FHIR Financial / Claims.
-* **Sub-crates**: `crates/coverage/policy`, `crates/coverage/claim`, `crates/coverage/eligibility`.
+* **Módulos de Dominio (`src/domain/`)**: `policy.rs`, `claim.rs`, `eligibility.rs`.
 
 ```mermaid
 classDiagram
@@ -828,7 +828,7 @@ classDiagram
 
 #### 3.2.8. Facturación (`crates/billing`)
 * **Grupo FHIR**: FHIR Financial.
-* **Sub-crates**: `crates/billing/account`, `crates/billing/invoice`, `crates/billing/charge_item`.
+* **Módulos de Dominio (`src/domain/`)**: `account.rs`, `invoice.rs`, `charge_item.rs`.
 
 ```mermaid
 classDiagram
@@ -861,7 +861,7 @@ classDiagram
 
 #### 3.2.9. Archivo Legal y Auditoría (`crates/legal_archive`)
 * **Grupo FHIR**: FHIR Documents & Security.
-* **Sub-crates**: `crates/legal_archive/composition`, `crates/legal_archive/document_reference`, `crates/legal_archive/audit_event`, `crates/legal_archive/provenance`.
+* **Módulos de Dominio (`src/domain/`)**: `composition.rs`, `document_reference.rs`, `audit_event.rs`, `provenance.rs`.
 
 ```mermaid
 classDiagram
@@ -902,7 +902,7 @@ classDiagram
 
 #### 3.2.10. Notificaciones y Alertas (`crates/communication`)
 * **Grupo FHIR**: FHIR Workflow / Support.
-* **Sub-crates**: `crates/communication/message`, `crates/communication/flag`.
+* **Módulos de Dominio (`src/domain/`)**: `message.rs`, `flag.rs`.
 
 ```mermaid
 classDiagram
@@ -927,11 +927,11 @@ classDiagram
 
 ---
 
-## 4. Matriz Resumen de Cumplimiento FHIR y Estructura de Sub-crates
+## 4. Matriz Resumen de Cumplimiento FHIR y Módulos por Contexto Acotado
 
-| Crate Contenedor (C4 Nivel 2) | Sub-crates de Entidad (C4 Nivel 3) | Grupo / Módulo FHIR | Recurso FHIR Mapeado | ¿FHIR Compliant? | Proyección / Apuntador Débil |
+| Crate Bounded Context (C4 Nivel 2) | Agregados y Entidades de Dominio (`src/domain/`) | Grupo / Módulo FHIR | Recurso FHIR Mapeado | ¿FHIR Compliant? | Proyección / Apuntador Débil |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `crates/user` | `auth_account`, `person` | Foundation / Security | `Person` | 100% FHIR R4 (Person) | N/A (Dueño de la identidad física). |
+| `crates/user` | `user`, `person`, `identity_provider` | Foundation / Security | `Person` + `User` | 100% FHIR R4 (Person) | N/A (Dueño de la identidad física). |
 | `crates/administration` | `patient`, `practitioner`, `location`, `healthcare_service` | FHIR Individuals / Entities | `Patient`, `Practitioner`, `Location`, `HealthcareService` | 100% FHIR R4 | Apunta débilmente a `user_id`. |
 | `crates/scheduling` | `schedule`, `slot`, `appointment` | FHIR Workflow | `Schedule`, `Slot`, `Appointment` | 100% FHIR R4 | Apunta débilmente a `patient_id`, `practitioner_id`, `location_id`. |
 | `crates/clinical` | `encounter`, `condition`, `allergy_intolerance`, `care_plan`, `medication_request`, `questionnaire` | FHIR Management / Summary / Care Provision / Forms | `Encounter`, `Condition`, `MedicationRequest`, `CarePlan`, `Questionnaire` | 100% FHIR R4 | Apunta débilmente a `patient_id`, `practitioner_id`, `appointment_id`. |
@@ -946,11 +946,11 @@ classDiagram
 
 ## 5. Estructura del Proyecto y Organización de Módulos
 
-### 5.1. Estructura de Directorios en Cargo Workspace (Ecosistema de Crates y Sub-crates)
+### 5.1. Estructura de Directorios en Cargo Workspace (`members = ["crates/*"]`)
 
 ```
 clickcare/
-├── Cargo.toml                      # Root Workspace Definition (members = ["crates/*", "crates/*/*"])
+├── Cargo.toml                      # Root Workspace Definition (members = ["crates/*"])
 ├── bin/
 │   └── clickcare/                  # Servidor ejecutable (Monolito Modular / API Gateway / gRPC Entrypoint)
 │       ├── Cargo.toml
@@ -966,153 +966,75 @@ clickcare/
     │   ├── Cargo.toml
     │   └── src/
     │
-    ├── user/                       # Crate Contenedor: Auth & Identity
+    ├── user/                       # Crate Bounded Context: Identity & Security
     │   ├── Cargo.toml
-    │   ├── src/                    # Controladores, gRPC handlers, BD
-    │   ├── auth_account/           # Sub-crate: Auth Account
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   └── person/                 # Sub-crate: Person (FHIR R4 Person)
-    │       ├── Cargo.toml
-    │       └── src/lib.rs
+    │   └── src/
+    │       ├── domain/             # Entidades: user.rs, person.rs, identity_provider.rs
+    │       ├── application/        # Use cases
+    │       └── infrastructure/     # Repositorios DB, DI container
     │
-    ├── administration/             # Crate Contenedor: Gestión Administrativa
+    ├── administration/             # Crate Bounded Context: Gestión Administrativa
     │   ├── Cargo.toml
-    │   ├── src/
-    │   ├── patient/                # Sub-crate: Patient (FHIR R4 Patient)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── practitioner/           # Sub-crate: Practitioner (FHIR R4 Practitioner)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── location/               # Sub-crate: Location (FHIR R4 Location)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   └── healthcare_service/     # Sub-crate: HealthcareService (FHIR R4 HealthcareService)
-    │       ├── Cargo.toml
-    │       └── src/lib.rs
+    │   └── src/
+    │       ├── domain/             # Entidades: patient.rs, practitioner.rs, location.rs, healthcare_service.rs
+    │       ├── application/
+    │       └── infrastructure/
     │
-    ├── scheduling/                 # Crate Contenedor: Reserva de Citas
+    ├── scheduling/                 # Crate Bounded Context: Reserva de Citas
     │   ├── Cargo.toml
-    │   ├── src/
-    │   ├── schedule/               # Sub-crate: Schedule (FHIR R4 Schedule)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── slot/                   # Sub-crate: Slot (FHIR R4 Slot)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   └── appointment/            # Sub-crate: Appointment (FHIR R4 Appointment)
-    │       ├── Cargo.toml
-    │       └── src/lib.rs
+    │   └── src/
+    │       ├── domain/             # Entidades: schedule.rs, slot.rs, appointment.rs
+    │       ├── application/
+    │       └── infrastructure/
     │
-    ├── clinical/                   # Crate Contenedor: Historia Clínica
+    ├── clinical/                   # Crate Bounded Context: Historia Clínica
     │   ├── Cargo.toml
-    │   ├── src/
-    │   ├── encounter/              # Sub-crate: Encounter (FHIR R4 Encounter)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── condition/              # Sub-crate: Condition (FHIR R4 Condition)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── allergy_intolerance/    # Sub-crate: AllergyIntolerance (FHIR R4 AllergyIntolerance)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── care_plan/              # Sub-crate: CarePlan (FHIR R4 CarePlan)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── medication_request/     # Sub-crate: MedicationRequest (FHIR R4 MedicationRequest)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   └── questionnaire/          # Sub-crate: Questionnaire (FHIR R4 Questionnaire)
-    │       ├── Cargo.toml
-    │       └── src/lib.rs
+    │   └── src/
+    │       ├── domain/             # Entidades: encounter.rs, condition.rs, allergy_intolerance.rs, care_plan.rs, medication_request.rs, questionnaire.rs
+    │       ├── application/
+    │       └── infrastructure/     # Repositorio unificado para JOINs y transacciones SQL de atenciones
     │
-    ├── diagnostics/                # Crate Contenedor: Laboratorio e Imágenes
+    ├── diagnostics/                # Crate Bounded Context: Laboratorio e Imágenes
     │   ├── Cargo.toml
-    │   ├── src/
-    │   ├── service_request/        # Sub-crate: ServiceRequest (FHIR R4 ServiceRequest)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── observation/            # Sub-crate: Observation (FHIR R4 Observation)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── diagnostic_report/      # Sub-crate: DiagnosticReport (FHIR R4 DiagnosticReport)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── imaging_study/          # Sub-crate: ImagingStudy (FHIR R4 ImagingStudy)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   └── specimen/               # Sub-crate: Specimen (FHIR R4 Specimen)
-    │       ├── Cargo.toml
-    │       └── src/lib.rs
+    │   └── src/
+    │       ├── domain/             # Entidades: service_request.rs, observation.rs, diagnostic_report.rs, imaging_study.rs, specimen.rs
+    │       ├── application/
+    │       └── infrastructure/
     │
-    ├── pharmacy/                   # Crate Contenedor: Farmacia e Insumos
+    ├── pharmacy/                   # Crate Bounded Context: Farmacia e Insumos
     │   ├── Cargo.toml
-    │   ├── src/
-    │   ├── medication/             # Sub-crate: Medication (FHIR R4 Medication)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── medication_dispense/    # Sub-crate: MedicationDispense (FHIR R4 MedicationDispense)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── medication_administration/ # Sub-crate: MedicationAdministration (FHIR R4 MedicationAdministration)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   └── supply/                 # Sub-crate: SupplyRequest / SupplyDelivery (FHIR R4 Supply)
-    │       ├── Cargo.toml
-    │       └── src/lib.rs
+    │   └── src/
+    │       ├── domain/             # Entidades: medication.rs, medication_dispense.rs, medication_administration.rs, supply.rs
+    │       ├── application/
+    │       └── infrastructure/
     │
-    ├── coverage/                   # Crate Contenedor: Aseguradoras y Coberturas
+    ├── coverage/                   # Crate Bounded Context: Aseguradoras y Coberturas
     │   ├── Cargo.toml
-    │   ├── src/
-    │   ├── policy/                 # Sub-crate: Coverage (FHIR R4 Coverage)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── claim/                  # Sub-crate: Claim / ClaimResponse (FHIR R4 Claim)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   └── eligibility/            # Sub-crate: CoverageEligibilityRequest (FHIR R4 Eligibility)
-    │       ├── Cargo.toml
-    │       └── src/lib.rs
+    │   └── src/
+    │       ├── domain/             # Entidades: policy.rs, claim.rs, eligibility.rs
+    │       ├── application/
+    │       └── infrastructure/
     │
-    ├── billing/                    # Crate Contenedor: Facturación
+    ├── billing/                    # Crate Form/Context: Facturación
     │   ├── Cargo.toml
-    │   ├── src/
-    │   ├── account/                # Sub-crate: Account (FHIR R4 Account)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── invoice/                # Sub-crate: Invoice (FHIR R4 Invoice)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   └── charge_item/            # Sub-crate: ChargeItem (FHIR R4 ChargeItem)
-    │       ├── Cargo.toml
-    │       └── src/lib.rs
+    │   └── src/
+    │       ├── domain/             # Entidades: account.rs, invoice.rs, charge_item.rs
+    │       ├── application/
+    │       └── infrastructure/
     │
-    ├── legal_archive/              # Crate Contenedor: Archivo Legal y Auditoría
+    ├── legal_archive/              # Crate Bounded Context: Archivo Legal y Auditoría
     │   ├── Cargo.toml
-    │   ├── src/
-    │   ├── composition/            # Sub-crate: Composition (FHIR R4 Composition)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── document_reference/     # Sub-crate: DocumentReference (FHIR R4 DocumentReference)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   ├── audit_event/            # Sub-crate: AuditEvent (FHIR R4 AuditEvent)
-    │   │   ├── Cargo.toml
-    │   │   └── src/lib.rs
-    │   └── provenance/             # Sub-crate: Provenance (FHIR R4 Provenance)
-    │       ├── Cargo.toml
-    │       └── src/lib.rs
+    │   └── src/
+    │       ├── domain/             # Entidades: composition.rs, document_reference.rs, audit_event.rs, provenance.rs
+    │       ├── application/
+    │       └── infrastructure/
     │
-    └── communication/              # Crate Contenedor: Notificaciones y Alertas
+    └── communication/              # Crate Bounded Context: Notificaciones y Alertas
         ├── Cargo.toml
-        ├── src/
-        ├── message/                # Sub-crate: Communication (FHIR R4 Communication)
-        │   ├── Cargo.toml
-        │   └── src/lib.rs
-        └── flag/                   # Sub-crate: Flag (FHIR R4 Flag)
-            ├── Cargo.toml
-            └── src/lib.rs
+        └── src/
+            ├── domain/             # Entidades: message.rs, flag.rs
+            ├── application/
+            └── infrastructure/
 ```
 
 ---
@@ -1122,7 +1044,7 @@ clickcare/
 | Capa | Ruta | Responsabilidad | Dependencias |
 |---|---|---|---|
 | **Core** | `crates/core/` | Traits base (`UseCase`), error transversal (`ClickCareError`), VOs FHIR compartidos | Ninguna |
-| **Domain** | `crates/*/*/src/` y `crates/*/src/domain/` | Entidades, agregados, eventos de dominio, traits de repositorio | `crates/core` |
+| **Domain** | `crates/*/src/domain/` | Entidades, agregados, eventos de dominio, traits de repositorio | `crates/core` |
 | **Application** | `crates/*/src/application/` | Casos de uso de negocio implementando `app_core::application::UseCase` | `domain`, `crates/core` |
 | **Infrastructure** | `crates/*/src/infrastructure/` | Repositorios DB, contenedor DI (`di.rs`), adaptadores externos | `application`, `domain`, `crates/core` |
 | **gRPC Server** | `bin/clickcare/` | Controladores gRPC y punto de entrada del servicio | `crates/*` |
@@ -1132,7 +1054,7 @@ Las dependencias apuntan estrictamente **hacia adentro**:
 bin/clickcare (Punto de entrada gRPC)
   └── crates/*/infrastructure (Repositorios DB, cableado DI)
         └── crates/*/application (Casos de uso)
-              └── crates/*/domain / crates/*/* (Entidades y sub-crates FHIR)
+              └── crates/*/domain (Entidades y agregados FHIR en src/domain/)
                     └── crates/core (Contratos app_core)
 ```
 
@@ -1215,3 +1137,83 @@ cargo fmt --all
 # Linter (Modo estricto CI)
 cargo clippy --workspace -- -D warnings
 ```
+
+<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:970c3bf2 -->
+## Beads Issue Tracker
+
+This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
+
+### Quick Reference
+
+```bash
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --claim  # Claim work
+bd close <id>         # Complete work
+```
+
+### Rules
+
+- Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
+- Run `bd prime` for detailed command reference and session close protocol
+- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
+
+**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
+
+## Agent Context Profiles
+
+The managed Beads block is task-tracking guidance, not permission to override repository, user, or orchestrator instructions.
+
+- **Conservative (default)**: Use `bd` for task tracking. Do not run git commits, git pushes, or Dolt remote sync unless explicitly asked. At handoff, report changed files, validation, and suggested next commands.
+- **Minimal**: Keep tool instruction files as pointers to `bd prime`; use the same conservative git policy unless active instructions say otherwise.
+- **Team-maintainer**: Only when the repository explicitly opts in, agents may close beads, run quality gates, commit, and push as part of session close. A current "do not commit" or "do not push" instruction still wins.
+
+## Session Completion
+
+This protocol applies when ending a Beads implementation workflow. It is subordinate to explicit user, repository, and orchestrator instructions.
+
+1. **File issues for remaining work** - Create beads for anything that needs follow-up
+2. **Run quality gates** (if code changed) - Tests, linters, builds
+3. **Update issue status** - Close finished work, update in-progress items
+4. **Handle git/sync by active profile**:
+   ```bash
+   # Conservative/minimal/default: report status and proposed commands; wait for approval.
+   git status
+
+   # Team-maintainer opt-in only, unless current instructions forbid it:
+   git pull --rebase
+   bd dolt push
+   git push
+   git status
+   ```
+5. **Hand off** - Summarize changes, validation, issue status, and any blocked sync/commit/push step
+
+**Critical rules:**
+- Explicit user or orchestrator instructions override this Beads block.
+- Do not commit or push without clear authority from the active profile or the current user request.
+- If a required sync or push is blocked, stop and report the exact command and error.
+<!-- END BEADS INTEGRATION -->
+
+<!-- BEGIN BEADS CODEX SETUP: generated by bd setup codex -->
+## Beads Issue Tracker
+
+Use Beads (`bd`) for durable task tracking in repositories that include it. Use the `beads` skill at `.agents/skills/beads/SKILL.md` (project install) or `~/.agents/skills/beads/SKILL.md` (global install) for Beads workflow guidance, then use the `bd` CLI for issue operations.
+
+### Quick Reference
+
+```bash
+bd ready                # Find available work
+bd show <id>            # View issue details
+bd update <id> --claim  # Claim work
+bd close <id>           # Complete work
+bd prime                # Refresh Beads context
+```
+
+### Rules
+
+- Use `bd` for all task tracking; do not create markdown TODO lists.
+- Run `bd prime` when Beads context is missing or stale. Codex 0.129.0+ can load Beads context automatically through native hooks; use `/hooks` to inspect or toggle them.
+- Keep persistent project memory in Beads via `bd remember`; do not create ad hoc memory files.
+
+**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
+<!-- END BEADS CODEX SETUP -->
