@@ -59,9 +59,12 @@ pub trait CreateUserUseCase:
 {
 }
 
+use app_core::domain::event::{EventPublisher, UserCreatedEvent};
+
 pub(crate) struct CreateUserUseCaseImpl {
     pub(crate) user_repository: Arc<dyn UserRepository>,
     pub(crate) clinic_repository: Arc<dyn ClinicRepository>,
+    pub(crate) event_publisher: Option<Arc<dyn EventPublisher>>,
 }
 
 impl CreateUserUseCase for CreateUserUseCaseImpl {}
@@ -104,12 +107,12 @@ impl UseCase for CreateUserUseCaseImpl {
 
         let user = User::new(
             command.user_id,
-            vec![command.first_name],
-            command.last_name,
-            command.second_last_name,
+            vec![command.first_name.clone()],
+            command.last_name.clone(),
+            command.second_last_name.clone(),
             identifier,
             command.create_clinic,
-            command.email,
+            command.email.clone(),
         )?;
 
         self.user_repository.save_user(&user).await?;
@@ -124,6 +127,26 @@ impl UseCase for CreateUserUseCaseImpl {
                         e
                     )))
                 })?;
+        }
+
+        if let Some(publisher) = &self.event_publisher {
+            let identifier_dni = match &command.identifier {
+                Some(DNI(val)) => Some(val.clone()),
+                _ => None,
+            };
+            let event = UserCreatedEvent {
+                user_id: user.id,
+                person_id: user.person.id,
+                email: command.email,
+                given_name: command.first_name,
+                family_name: command.last_name,
+                second_family_name: command.second_last_name,
+                identifier_dni,
+                phone: command.phone,
+                birth_date: command.birthdate,
+                create_clinic: command.create_clinic,
+            };
+            publisher.publish_user_created(event).await?;
         }
 
         Ok(CreateUserResponse {})

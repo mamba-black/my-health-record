@@ -27,10 +27,13 @@ pub struct DI {
 
 /// Pasa aquí únicamente las dependencias que quieres sustituir.
 /// Todo lo que dejes en `None` se construirá con la implementación real.
+use app_core::domain::event::EventPublisher;
+
 #[derive(Default)]
 pub struct DIOverrides {
     pub user_repository: Option<Arc<dyn UserRepository>>,
     pub clinic_repository: Option<Arc<dyn ClinicRepository>>,
+    pub event_publisher: Option<Arc<dyn EventPublisher>>,
 }
 
 // ─── Constructores ───────────────────────────────────────────────────────────
@@ -79,6 +82,7 @@ pub async fn new_with_overrides(
     let create_user_use_case = Arc::new(CreateUserUseCaseImpl {
         user_repository: Arc::clone(&user_repository),
         clinic_repository,
+        event_publisher: overrides.event_publisher,
     });
 
     Ok(DI {
