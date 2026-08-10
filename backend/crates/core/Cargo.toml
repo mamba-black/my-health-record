@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 
+[lints]
+workspace = true
+
 [lib]
 doctest = false
 
@@ -13,5 +16,10 @@ async-trait.workspace = true
 serde.workspace = true
 uuid.workspace = true
 apalis.workspace = true
+bon.workspace = true
+derive-getters.workspace = true
+strum.workspace = true
+strum_macros.workspace = true
+
 
 

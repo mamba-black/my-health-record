@@ -7,6 +7,11 @@ edition = "2024"
 version = "0.1.0"
 authors = ["Hector Miuler Malpica Gallegos <miuler@gmail.com>"]
 
+[workspace.lints.clippy]
+too_many_arguments = "allow"
+
+
+
 [workspace.dependencies]
 app_core = { path = "crates/core", package = "core" }
 user = { path = "crates/user" }

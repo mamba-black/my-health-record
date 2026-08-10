@@ -1,3 +1,4 @@
+use crate::domain::fhir::Person;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -9,22 +10,8 @@ use uuid::Uuid;
 pub struct UserCreatedEvent {
     /// Identificador único de la cuenta de usuario (UUID v7).
     pub user_id: Uuid,
-    /// Identificador único de la persona física (FHIR R4 Person - UUID v7).
-    pub person_id: Uuid,
-    /// Correo electrónico principal del usuario.
-    pub email: String,
-    /// Nombres de pila de la persona (FHIR: HumanName.given).
-    pub given_name: String,
-    /// Primer apellido (FHIR: HumanName.family).
-    pub family_name: Option<String>,
-    /// Segundo apellido (Extensión hispana).
-    pub second_family_name: Option<String>,
-    /// Documento de Identidad (DNI) si fue proporcionado.
-    pub identifier_dni: Option<String>,
-    /// Teléfono de contacto de la persona.
-    pub phone: String,
-    /// Fecha de nacimiento en formato YYYY-MM-DD.
-    pub birth_date: String,
+    /// Recurso de identidad y demografía de la persona física (FHIR R4 Person).
+    pub person: Person,
     /// Flag que indica si se debe inicializar una clínica u organización para el usuario.
     pub create_clinic: bool,
 }
