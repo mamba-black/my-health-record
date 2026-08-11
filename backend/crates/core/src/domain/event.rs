@@ -1,6 +1,15 @@
+use crate::domain::error::ClickCareError;
 use crate::domain::fhir::Person;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 use uuid::Uuid;
+
+/// Trait marcador para todos los eventos de dominio en el sistema.
+pub trait DomainEvent: Send + Sync + Debug {
+    /// Nombre o identificador único del tipo de evento (ej: "user.created").
+    fn event_name(&self) -> &'static str;
+}
 
 /// Evento de dominio emitido cuando una nueva cuenta de usuario y persona física es registrada (`crates/user`).
 ///
@@ -16,12 +25,31 @@ pub struct UserCreatedEvent {
     pub create_clinic: bool,
 }
 
-use crate::domain::error::ClickCareError;
-use async_trait::async_trait;
+impl DomainEvent for UserCreatedEvent {
+    fn event_name(&self) -> &'static str {
+        "user.created"
+    }
+}
 
 /// Puerto de dominio para la publicación de eventos de dominio en el sistema.
 #[async_trait]
 pub trait EventPublisher: Send + Sync {
     /// Publica el evento de creación de usuario hacia Apalis / Event Bus.
     async fn publish_user_created(&self, event: UserCreatedEvent) -> Result<(), ClickCareError>;
+}
+
+/// Implementación por defecto de infraestructura que registra la emisión de eventos en el sistema log/tracing.
+#[derive(Debug, Default)]
+pub struct LoggingEventPublisher;
+
+#[async_trait]
+impl EventPublisher for LoggingEventPublisher {
+    async fn publish_user_created(&self, event: UserCreatedEvent) -> Result<(), ClickCareError> {
+        tracing::info!(
+            "[LoggingEventPublisher] Publicando evento {}: user_id={}",
+            event.event_name(),
+            event.user_id
+        );
+        Ok(())
+    }
 }

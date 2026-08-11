@@ -1119,6 +1119,9 @@ sequenceDiagram
 5. **Protobuf API como Única Fuente de Verdad**
    - `proto/api.proto` define todos los endpoints externos. Cualquier cambio en la API debe comenzar actualizando las definiciones `.proto`.
 
+6. **Marca de Commits Generados por Antigravity**
+   - Cada vez que se realice un commit con cambios producidos por la IA (**Antigravity**), el mensaje del commit **debe incluir obligatoriamente la marca `[antigravity]`** (por ejemplo: `feat(user): [antigravity] implement user domain model` o en el cuerpo/footer del commit).
+
 ---
 
 ## 7. Comandos de Compilación, Pruebas y Desarrollo

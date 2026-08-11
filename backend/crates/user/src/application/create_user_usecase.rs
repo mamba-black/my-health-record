@@ -64,7 +64,7 @@ use app_core::domain::event::{EventPublisher, UserCreatedEvent};
 pub(crate) struct CreateUserUseCaseImpl {
     pub(crate) user_repository: Arc<dyn UserRepository>,
     pub(crate) clinic_repository: Arc<dyn ClinicRepository>,
-    pub(crate) event_publisher: Option<Arc<dyn EventPublisher>>,
+    pub(crate) event_publisher: Arc<dyn EventPublisher>,
 }
 
 impl CreateUserUseCase for CreateUserUseCaseImpl {}
@@ -131,14 +131,12 @@ impl UseCase for CreateUserUseCaseImpl {
                 })?;
         }
 
-        if let Some(publisher) = &self.event_publisher {
-            let event = UserCreatedEvent {
-                user_id: user.id,
-                person: user.person.clone(),
-                create_clinic: user.is_owner,
-            };
-            publisher.publish_user_created(event).await?;
-        }
+        let event = UserCreatedEvent {
+            user_id: user.id,
+            person: user.person.clone(),
+            create_clinic: user.is_owner,
+        };
+        self.event_publisher.publish_user_created(event).await?;
 
         Ok(CreateUserResponse {})
     }

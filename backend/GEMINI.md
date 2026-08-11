@@ -31,6 +31,7 @@ Strictly follow the dependency direction: **infrastructure → application → d
 2. **Strategy:** Propose a plan summary and get approval before action.
 3. **Execution:** Atomic, focused commits using [Conventional Commits](https://www.conventionalcommits.org/).
     - Types: `feat:`, `fix:`, `chore:`, `test:`, `refactor:`, `docs:`.
+    - **Antigravity Mark:** Every commit produced by Antigravity MUST include the `[antigravity]` tag in the commit message.
 4. **Validation:** MUST run locally before completion:
     - `cargo fmt --all`
     - `cargo clippy --workspace -- -D warnings`

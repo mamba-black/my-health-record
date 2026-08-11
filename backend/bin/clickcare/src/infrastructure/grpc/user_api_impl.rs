@@ -1,26 +1,44 @@
-use crate::infrastructure::grpc::SignUpRequest;
 use crate::infrastructure::grpc::identifier::IdentifierType;
 use crate::infrastructure::grpc::user_api_server::UserApi;
+use crate::infrastructure::grpc::SignUpRequest;
 use crate::infrastructure::grpc::*;
 use app_core::domain::error::ClickCareError;
 use std::sync::Arc;
 use tonic::*;
 use tracing::debug;
-use user::application::CreateUserUseCase;
 use user::application::command::{CreateUserCommand, CreateUserError};
+use user::application::CreateUserUseCase;
 use user::domain::user::Identifier::DNI;
 use user::infrastructure::di;
 use user::infrastructure::di::DBType;
 
+use user::domain::repository::user_repository::UserRepository;
+
 pub struct UserApiImpl {
     create_user_use_case: Arc<dyn CreateUserUseCase>,
+    #[allow(dead_code)]
+    pub user_repository: Arc<dyn UserRepository>,
 }
 
 impl UserApiImpl {
     pub async fn new(url: Option<String>) -> Result<UserApiImpl, ClickCareError> {
-        let di = di::new(DBType::Postgres(url)).await?;
+        let dbtype = match url {
+            Some(u) => DBType::Postgres(Some(u)),
+            None => DBType::Postgres(None),
+        };
+        Self::new_with_dbtype(dbtype).await
+    }
+
+    #[allow(dead_code)]
+    pub async fn new_mock() -> Result<UserApiImpl, ClickCareError> {
+        Self::new_with_dbtype(DBType::Mock).await
+    }
+
+    pub async fn new_with_dbtype(dbtype: DBType) -> Result<UserApiImpl, ClickCareError> {
+        let di = di::new(dbtype).await?;
         Ok(Self {
             create_user_use_case: di.create_user_use_case,
+            user_repository: di.user_repository,
         })
     }
 }
@@ -89,25 +107,18 @@ impl UserApi for UserApiImpl {
 mod test {
     use crate::infrastructure::grpc::user_api_impl::UserApiImpl;
     use crate::infrastructure::grpc::user_api_server::UserApi;
-    use crate::infrastructure::grpc::{SignUpRequest, SignUpResponse};
+    use crate::infrastructure::grpc::SignUpRequest;
     use crate::infrastructure::log::init_logger;
     use app_core::domain::error::ClickCareError;
     use dotenvy::dotenv;
     use log::info;
     use rstest::{fixture, rstest};
-    use std::sync::{Arc, LazyLock, Once};
-    use tokio::sync::{Mutex, OnceCell};
+    use std::sync::{LazyLock, Once};
+    use tokio::sync::OnceCell;
     use tonic::{Request, Response, Status};
-    use user::domain::repository::user_repository::UserRepository;
-    use user::domain::user::Identifier;
-    use user::infrastructure::di;
-    use user::infrastructure::di::{DBType, DI, DIOverrides, MockUserRepositoryImpl};
     use uuid::Uuid;
 
     static INIT: Once = Once::new();
-    static USER_API_INSTANCE: OnceCell<UserApiImpl> = OnceCell::const_new();
-    static USER_DI: OnceCell<DI> = OnceCell::const_new();
-    static USER_REPOSITORY_MOCK: OnceCell<Arc<MockUserRepositoryImpl>> = OnceCell::const_new();
     static SIGN_UP_REQUEST: LazyLock<SignUpRequest> = LazyLock::new(|| SignUpRequest {
         id_token: "".to_string(),
         user_id: "".to_string(),
@@ -130,38 +141,15 @@ mod test {
     type TestResult = Result<(), ClickCareError>;
 
     #[fixture]
-    async fn user_api_impl() -> &'static UserApiImpl {
-        INIT.call_once(|| {
-            dotenv().ok();
-            init_logger();
-        });
-        let user_repository = USER_REPOSITORY_MOCK
-            .get_or_init(|| async {
-                Arc::new(MockUserRepositoryImpl {
-                    saved_users: Mutex::new(Vec::new()),
-                })
-            })
-            .await;
-
-        let user_di = USER_DI
-            .get_or_init(|| async {
-                let user_di = DIOverrides {
-                    user_repository: Some(user_repository.clone()),
-                    ..DIOverrides::default()
-                };
-                di::new_with_overrides(DBType::Mock, user_di)
-                    .await
-                    .expect("")
-            })
-            .await;
-
-        USER_API_INSTANCE
-            .get_or_init(|| async {
-                UserApiImpl {
-                    create_user_use_case: user_di.create_user_use_case.clone(),
-                }
-            })
+    async fn user_api_impl() -> UserApiImpl {
+        INIT
+            .call_once(|| {
+                dotenv().ok();
+                init_logger();
+            });
+        UserApiImpl::new_mock()
             .await
+            .expect("Failed to initialize Mock UserApiImpl")
     }
 
     #[rstest]
@@ -169,7 +157,6 @@ mod test {
     #[case::uuid_v4(Uuid::new_v4().to_string(), "Se está usando un UUID v4 inválido")]
     #[tokio::test]
     async fn sign_up_fails_with_invalid_user_id(
-        #[future(awt)] user_api_impl: &UserApiImpl,
         #[case] user_id: String,
         #[case] case_message: &str,
     ) -> TestResult {
@@ -178,6 +165,7 @@ mod test {
             user_id,
             ..SIGN_UP_REQUEST.clone()
         });
+        let user_api_impl = user_api_impl().await;
         let result = user_api_impl.sign_up(request).await;
         assert!(
             result.is_err(),
@@ -195,7 +183,7 @@ mod test {
 
     #[rstest]
     #[tokio::test]
-    async fn user_service_server_tests(#[future(awt)] user_api_impl: &UserApiImpl) -> TestResult {
+    async fn user_service_server_tests() -> TestResult {
         let user_id = Uuid::now_v7().to_string();
         let request = Request::new(SignUpRequest {
             user_id: user_id.clone(),
@@ -203,6 +191,7 @@ mod test {
             identifier: None,
             ..SIGN_UP_REQUEST.clone()
         });
+        let user_api_impl = user_api_impl().await;
         let result = user_api_impl.sign_up(request).await;
 
         match result {
@@ -216,10 +205,10 @@ mod test {
             }
         }
 
-        let mock_user_repository = USER_REPOSITORY_MOCK.get().unwrap();
-        let users = mock_user_repository.saved_users.lock().await;
-        assert_eq!(users.len(), 1);
-        let user = users.get(0).unwrap();
+        let user = user_api_impl
+            .user_repository
+            .find_user_by_id(&user_id)
+            .await?;
         assert_eq!(user.id.to_string(), user_id);
 
         Ok(())

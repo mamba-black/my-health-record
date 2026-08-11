@@ -18,6 +18,7 @@ uuid.workspace = true
 apalis.workspace = true
 bon.workspace = true
 derive-getters.workspace = true
+tracing.workspace = true
 strum.workspace = true
 strum_macros.workspace = true
 
