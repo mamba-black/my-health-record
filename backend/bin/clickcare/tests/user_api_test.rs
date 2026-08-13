@@ -36,26 +36,24 @@ pub async fn test_env() -> &'static TestEnv {
 
             async fn check_pg_active(pg_conn: &str) -> bool {
                 let clean = pg_conn.trim();
-                if let Some(pos) = clean.rfind(':') {
-                    if let Some(slash_pos) = clean[pos + 1..].find('/') {
-                        let port_str = &clean[pos + 1..pos + 1 + slash_pos];
-                        if let Ok(port) = port_str.parse::<u16>() {
-                            return TcpStream::connect(format!("127.0.0.1:{port}"))
-                                .await
-                                .is_ok();
-                        }
+                if let Some(pos) = clean.rfind(':') && let Some(slash_pos) = clean[pos + 1..].find('/') {
+                    let port_str = &clean[pos + 1..pos + 1 + slash_pos];
+                    if let Ok(port) = port_str.parse::<u16>() {
+                        return TcpStream::connect(format!("127.0.0.1:{port}"))
+                            .await
+                            .is_ok();
                     }
                 }
                 false
             }
 
             // 1. Compartir una única instancia de Postgres entre todos los procesos
-            let pg_connection_string: String = loop {
+            let pg_connection_string: String = 'init_db: {
                 if let Ok(cached_pg) = std::fs::read_to_string(&pg_cache_path) {
                     let pg_conn = cached_pg.trim().to_string();
                     if check_pg_active(&pg_conn).await {
                         info!("Reutilizando contenedor de Postgres activo en {pg_conn}");
-                        break pg_conn;
+                        break 'init_db pg_conn;
                     }
                 }
 
@@ -63,6 +61,7 @@ pub async fn test_env() -> &'static TestEnv {
                     .read(true)
                     .write(true)
                     .create(true)
+                    .truncate(false)
                     .open(&pg_lock_path)
                     .expect("Fallo al abrir lock de Postgres");
 
@@ -80,7 +79,7 @@ pub async fn test_env() -> &'static TestEnv {
                             use std::os::unix::io::AsRawFd;
                             libc::flock(lock_file.as_raw_fd(), libc::LOCK_UN);
                         }
-                        break pg_conn;
+                        break 'init_db pg_conn;
                     }
                 }
 
@@ -96,7 +95,7 @@ pub async fn test_env() -> &'static TestEnv {
                     .to_string();
                 let container_name = format!("clickcare-test-{}", timestamp);
 
-                let c = postgres::Postgres::default()
+                let pg_container = postgres::Postgres::default()
                     .with_user(user)
                     .with_password(password)
                     .with_tag("18")
@@ -107,7 +106,7 @@ pub async fn test_env() -> &'static TestEnv {
                     .unwrap();
                 info!("Container INICIADO");
 
-                let host_port = c.get_host_port_ipv4(5432).await.unwrap();
+                let host_port = pg_container.get_host_port_ipv4(5432).await.unwrap();
                 let pg_conn = format!(
                     "postgres://{}:{}@127.0.0.1:{host_port}/postgres",
                     user, password
@@ -133,9 +132,9 @@ pub async fn test_env() -> &'static TestEnv {
                     .arg(format!("({}) >/dev/null 2>&1 &", cleanup_cmd))
                     .spawn();
 
-                std::mem::forget(c);
+                std::mem::forget(pg_container);
 
-                break pg_conn;
+                pg_conn
             };
 
             // 2. Cada proceso de test inicia su propio servidor gRPC local (<1ms) conectado a la misma DB

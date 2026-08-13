@@ -124,7 +124,7 @@ mod test {
     use log::info;
     use rstest::{fixture, rstest};
     use std::sync::{LazyLock, Once};
-    use tonic::{Request, Response, Status};
+    use tonic::Request;
     use uuid::Uuid;
 
     static INIT: Once = Once::new();
@@ -202,17 +202,9 @@ mod test {
         });
         let user_api_impl = user_api_impl().await;
         let result = user_api_impl.sign_up(request).await;
-
-        match result {
-            Ok(response) => {
-                let sign_up_response = response.get_ref();
-                assert_eq!(sign_up_response.user_id, Some(user_id.clone()));
-            }
-            Err(e) => {
-                info!("error: {}", e);
-                assert!(false, "Error inesperado: {}", e);
-            }
-        }
+        let response = result.expect("Fallo inesperado al ejecutar sign_up");
+        let sign_up_response = response.get_ref();
+        assert_eq!(sign_up_response.user_id, Some(user_id.clone()));
 
         let user = user_api_impl
             .user_repository
