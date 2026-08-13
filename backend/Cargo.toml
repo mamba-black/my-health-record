@@ -1,6 +1,14 @@
 [workspace]
 resolver = "2"
-members = ["bin/clickcare", "crates/*"]
+members = [
+    "bin/clickcare",
+    "crates/core",
+    "crates/user",
+    "crates/administration",
+    "crates/patient",
+    "crates/clinic",
+    "crates/clinic_admin",
+]
 
 [workspace.package]
 edition = "2024"
