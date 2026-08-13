@@ -212,6 +212,62 @@ pub async fn then_sign_up_successful_and_persisted(
     .expect("Fallo la tarea asíncrona de consulta a PostgreSQL");
 }
 
+#[then(
+    "se verifica mediante polling en la base de datos que la entidad del usuario se procesó en el contexto de administración"
+)]
+pub async fn then_user_processed_in_administration_context(
+    sign_up_context: &SignUpContext,
+) {
+    let env = test_env().await;
+    let user_id = sign_up_context
+        .user_id
+        .expect("Falta el User ID en el contexto");
+    let pg_conn = env.pg_connection_string.clone();
+
+    let start = std::time::Instant::now();
+    let timeout_duration = std::time::Duration::from_secs(5);
+    let poll_interval = std::time::Duration::from_millis(100);
+
+    let mut entity_found = false;
+
+    while start.elapsed() < timeout_duration {
+        let conn_str = pg_conn.clone();
+        let user_id_val = user_id;
+
+        let found = tokio::task::spawn_blocking(move || {
+            let mut db_client = match ::postgres::Client::connect(&conn_str, ::postgres::NoTls) {
+                Ok(client) => client,
+                Err(_) => return false,
+            };
+
+            // Consulta la presencia de user_account activa como comprobante del procesamiento
+            let rows = db_client.query(
+                "SELECT id FROM user_account WHERE id = $1 AND active = true",
+                &[&user_id_val],
+            );
+            
+            match rows {
+                Ok(r) => !r.is_empty(),
+                Err(_) => false,
+            }
+        })
+        .await
+        .unwrap_or(false);
+
+        if found {
+            entity_found = true;
+            break;
+        }
+
+        tokio::time::sleep(poll_interval).await;
+    }
+
+    assert!(
+        entity_found,
+        "Timeout de 5s expirado: El evento no procesó la entidad en el contexto de administración para user_id={user_id}"
+    );
+}
+
 #[then("la respuesta de registro devuelve un error indicando \"{expected_error_substr}\"")]
 pub async fn then_sign_up_fails_with_invalid_uuid_v7_error(
     sign_up_context: &SignUpContext,

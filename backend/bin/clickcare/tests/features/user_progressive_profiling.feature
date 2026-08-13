@@ -5,6 +5,7 @@ Característica: Caso de Uso 1 - Registro progresivo de usuario y datos obligato
     Dado un entorno activo con servicio gRPC de usuario y base de datos
     Cuando se envía una solicitud de registro con ID "<id>", email "<email>", nombre "<nombre>", primer apellido "<primer_apellido>", segundo apellido "<segundo_apellido>", DNI "<dni>", teléfono "<telefono>", fecha nacimiento "<fecha_nacimiento>" y crear clínica "<crear_clinica>"
     Entonces la respuesta de registro es exitosa y el usuario con nombre "<nombre>" se persiste en la base de datos
+    Y se verifica mediante polling en la base de datos que la entidad del usuario se procesó en el contexto de administración
 
     Ejemplos:
       | id   | email                     | nombre | primer_apellido | segundo_apellido | dni      | telefono  | fecha_nacimiento | crear_clinica | caso_de_uso                                   |
