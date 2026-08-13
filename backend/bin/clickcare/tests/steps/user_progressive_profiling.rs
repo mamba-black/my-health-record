@@ -232,7 +232,6 @@ pub async fn then_user_processed_in_administration_context(
 
     while start.elapsed() < timeout_duration {
         let conn_str = pg_conn.clone();
-        let user_id_val = user_id;
 
         let found = tokio::task::spawn_blocking(move || {
             let mut db_client = match ::postgres::Client::connect(&conn_str, ::postgres::NoTls) {
@@ -243,9 +242,9 @@ pub async fn then_user_processed_in_administration_context(
             // Consulta la presencia de user_account activa como comprobante del procesamiento
             let rows = db_client.query(
                 "SELECT id FROM user_account WHERE id = $1 AND active = true",
-                &[&user_id_val],
+                &[&user_id],
             );
-            
+
             match rows {
                 Ok(r) => !r.is_empty(),
                 Err(_) => false,

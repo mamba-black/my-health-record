@@ -17,7 +17,7 @@ authors = ["Hector Miuler Malpica Gallegos <miuler@gmail.com>"]
 
 [workspace.lints.clippy]
 too_many_arguments = "allow"
-
+too_many_lines = "warn"
 
 
 [workspace.dependencies]
