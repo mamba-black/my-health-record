@@ -1,65 +1,23 @@
 use crate::application::create_user_usecase::command::CreateUserError::{
     UnknownError, UserAlreadyExists,
 };
-use crate::application::create_user_usecase::command::{
-    CreateUserCommand, CreateUserError, CreateUserResponse,
-};
+use crate::application::create_user_usecase::command::*;
 use crate::domain::repository::clinic_repository::ClinicRepository;
 use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::Identifier::DNI;
-use crate::domain::user::{Identifier, User};
+use crate::domain::user::User;
 use app_core::application::UseCase;
 use app_core::domain::error::ClickCareError;
+use app_core::domain::event::{EventPublisher, UserCreatedEvent};
 use async_trait::async_trait;
 use log::error;
 use std::sync::Arc;
-
-pub mod command {
-    use crate::application::create_user_usecase::command::CreateUserError::UnknownError;
-    use crate::domain::user::Identifier;
-    use app_core::domain::error::ClickCareError;
-
-    #[derive(Debug)]
-    pub struct CreateUserCommand {
-        pub id_token: String,
-        pub user_id: String,
-        pub provider_id: String,
-        pub provider_name: String,
-        pub provider_avatar_url: Option<String>,
-        pub email: String,
-        pub identifier: Option<Identifier>,
-        pub first_name: String,
-        pub last_name: Option<String>,
-        pub second_last_name: Option<String>,
-        pub phone: String,
-        pub address: String,
-        pub birthdate: String,
-        pub display_name: Option<String>,
-        pub create_clinic: bool,
-        pub username: String,
-        pub password: String,
-    }
-
-    pub struct CreateUserResponse {}
-
-    pub enum CreateUserError {
-        UserAlreadyExists(ClickCareError),
-        UnknownError(ClickCareError),
-    }
-
-    impl From<ClickCareError> for CreateUserError {
-        fn from(value: ClickCareError) -> Self {
-            UnknownError(value)
-        }
-    }
-}
 
 pub trait CreateUserUseCase:
     UseCase<Command = CreateUserCommand, Response = CreateUserResponse, Error = CreateUserError>
 {
 }
 
-use app_core::domain::event::{EventPublisher, UserCreatedEvent};
 
 pub(crate) struct CreateUserUseCaseImpl {
     pub(crate) user_repository: Arc<dyn UserRepository>,
@@ -76,10 +34,8 @@ impl UseCase for CreateUserUseCaseImpl {
     type Error = CreateUserError;
 
     async fn execute(&self, command: Self::Command) -> Result<Self::Response, Self::Error> {
-        let mut identifier: Option<Identifier> = None;
         let exist_user = match &command.identifier {
             Some(DNI(value)) => {
-                identifier = Some(DNI(value.clone()));
                 self.user_repository
                     .exist_user_by_document("DNI", value)
                     .await
@@ -105,17 +61,8 @@ impl UseCase for CreateUserUseCaseImpl {
             return Err(UserAlreadyExists(ClickCareError::generic(msg)));
         }
 
-        let user = User::new(
-            command.user_id,
-            vec![command.first_name],
-            command.last_name,
-            command.second_last_name,
-            identifier,
-            command.create_clinic,
-            command.email,
-            Some(command.phone),
-            Some(command.birthdate),
-        )?;
+        let user: Result<User, ClickCareError> = command.into();
+        let user = user?;
 
         self.user_repository.save_user(&user).await?;
 
@@ -125,7 +72,7 @@ impl UseCase for CreateUserUseCaseImpl {
                 .await
                 .map_err(|e| {
                     UnknownError(ClickCareError::generic(format!(
-                        "Error en creoar la clinica para el usuario ({})",
+                        "Error en crear la clinica para el usuario ({})",
                         e
                     )))
                 })?;
@@ -138,6 +85,66 @@ impl UseCase for CreateUserUseCaseImpl {
         };
         self.event_publisher.publish_user_created(event).await?;
 
-        Ok(CreateUserResponse {})
+        Ok(CreateUserResponse {
+            user_id: user.id.to_string(),
+        })
+    }
+}
+
+pub mod command {
+    use crate::application::create_user_usecase::command::CreateUserError::UnknownError;
+    use crate::domain::user::{Identifier, User};
+    use app_core::domain::error::ClickCareError;
+
+    #[derive(Debug)]
+    pub struct CreateUserCommand {
+        pub id_token: String,
+        pub user_id: String,
+        pub provider_id: String,
+        pub provider_name: String,
+        pub provider_avatar_url: Option<String>,
+        pub email: String,
+        pub identifier: Option<Identifier>,
+        pub first_name: String,
+        pub last_name: Option<String>,
+        pub second_last_name: Option<String>,
+        pub phone: String,
+        pub address: String,
+        pub birthdate: String,
+        pub display_name: Option<String>,
+        pub create_clinic: bool,
+        pub username: String,
+        pub password: String,
+    }
+
+    impl From<CreateUserCommand> for Result<User, ClickCareError> {
+        fn from(command: CreateUserCommand) -> Self {
+            User::new(
+                command.user_id,
+                vec![command.first_name],
+                command.last_name,
+                command.second_last_name,
+                command.identifier,
+                command.create_clinic,
+                command.email,
+                Some(command.phone),
+                Some(command.birthdate),
+            )
+        }
+    }
+
+    pub struct CreateUserResponse {
+        pub user_id: String,
+    }
+
+    pub enum CreateUserError {
+        UserAlreadyExists(ClickCareError),
+        UnknownError(ClickCareError),
+    }
+
+    impl From<ClickCareError> for CreateUserError {
+        fn from(value: ClickCareError) -> Self {
+            UnknownError(value)
+        }
     }
 }

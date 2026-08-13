@@ -1,4 +1,3 @@
-use crate::infrastructure::grpc::identifier::IdentifierType;
 use crate::infrastructure::grpc::user_api_server::UserApi;
 use crate::infrastructure::grpc::SignUpRequest;
 use crate::infrastructure::grpc::*;
@@ -8,7 +7,6 @@ use tonic::*;
 use tracing::debug;
 use user::application::command::{CreateUserCommand, CreateUserError};
 use user::application::CreateUserUseCase;
-use user::domain::user::Identifier::DNI;
 use user::infrastructure::di;
 use user::infrastructure::di::DBType;
 
@@ -52,40 +50,17 @@ impl UserApi for UserApiImpl {
     ) -> Result<Response<SignUpResponse>, Status> {
         let sign_up_request = sign_up_request.into_inner();
 
-        let command = CreateUserCommand {
-            id_token: sign_up_request.id_token,
-            user_id: sign_up_request.user_id.clone(),
-            provider_id: sign_up_request.provider_id,
-            provider_name: sign_up_request.provider_name,
-            provider_avatar_url: sign_up_request.provider_avatar_url,
-            email: sign_up_request.email.clone(),
-            identifier: sign_up_request.identifier.and_then(|identifier| {
-                identifier
-                    .identifier_type
-                    .map(|IdentifierType::Dni(dni)| DNI(dni))
-            }),
-            first_name: sign_up_request.given_name,
-            last_name: sign_up_request.family_name,
-            second_last_name: sign_up_request.second_family_name,
-            phone: sign_up_request.phone,
-            address: sign_up_request.address,
-            birthdate: sign_up_request.birth_date,
-            display_name: sign_up_request.display_name,
-            create_clinic: sign_up_request.create_clinic,
-            username: sign_up_request.email,
-            password: "123".to_string(),
-        };
-        debug!("command: {:?}", command);
+        let create_user_command: CreateUserCommand = sign_up_request.into();
+        debug!("command: {:?}", create_user_command);
 
-        let user_id = sign_up_request.user_id;
         self.create_user_use_case
-            .execute(command)
+            .execute(create_user_command)
             .await
-            .map(|_a| {
+            .map(|create_user_response| {
                 Response::new(SignUpResponse {
                     status: SignUpStatus::Success as i32,
                     message: "Usuario registrado exitosamente.".to_string(),
-                    user_id: Some(user_id),
+                    user_id: Some(create_user_response.user_id),
                     link: None,
                 })
             })
@@ -103,6 +78,41 @@ impl UserApi for UserApiImpl {
     }
 }
 
+mod mapper {
+    use crate::infrastructure::grpc::identifier::IdentifierType;
+    use crate::infrastructure::grpc::SignUpRequest;
+    use app_core::domain::fhir::Identifier::DNI;
+    use user::application::command::CreateUserCommand;
+
+    impl From<SignUpRequest> for CreateUserCommand {
+        fn from(sign_up_request: SignUpRequest) -> Self {
+            CreateUserCommand {
+                id_token: sign_up_request.id_token,
+                user_id: sign_up_request.user_id.clone(),
+                provider_id: sign_up_request.provider_id,
+                provider_name: sign_up_request.provider_name,
+                provider_avatar_url: sign_up_request.provider_avatar_url,
+                email: sign_up_request.email.clone(),
+                identifier: sign_up_request.identifier.and_then(|identifier| {
+                    identifier
+                        .identifier_type
+                        .map(|IdentifierType::Dni(dni)| DNI(dni))
+                }),
+                first_name: sign_up_request.given_name,
+                last_name: sign_up_request.family_name,
+                second_last_name: sign_up_request.second_family_name,
+                phone: sign_up_request.phone,
+                address: sign_up_request.address,
+                birthdate: sign_up_request.birth_date,
+                display_name: sign_up_request.display_name,
+                create_clinic: sign_up_request.create_clinic,
+                username: sign_up_request.email,
+                password: "123".to_string(),
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::infrastructure::grpc::user_api_impl::UserApiImpl;
@@ -114,7 +124,6 @@ mod test {
     use log::info;
     use rstest::{fixture, rstest};
     use std::sync::{LazyLock, Once};
-    use tokio::sync::OnceCell;
     use tonic::{Request, Response, Status};
     use uuid::Uuid;
 
