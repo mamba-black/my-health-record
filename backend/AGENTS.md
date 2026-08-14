@@ -197,17 +197,17 @@ Para consultar la especificación detallada del modelo de dominio de cada contex
 
 | Bounded Context | Crate | Recurso FHIR Mapeado | Documentación dedicada |
 | :--- | :--- | :--- | :--- |
-| **Casos de Uso e Identidad** | N/A | Flujos de Identidad y Registro | [docs/use_cases.md](file:///home/miuler/proyectos/my-health-record/backend/docs/use_cases.md) |
-| **Identity & Security** | `crates/user` | `Person` + `User` | [crates/user/AGENTS.md](file:///home/miuler/proyectos/my-health-record/backend/crates/user/AGENTS.md) |
-| **Gestión Administrativa** | `crates/administration` | `Patient`, `Practitioner`, `Location`, `HealthcareService` | [crates/administration/AGENTS.md](file:///home/miuler/proyectos/my-health-record/backend/crates/administration/AGENTS.md) |
-| **Reserva de Citas** | `crates/scheduling` | `Schedule`, `Slot`, `Appointment` | [crates/scheduling/AGENTS.md](file:///home/miuler/proyectos/my-health-record/backend/crates/scheduling/AGENTS.md) |
-| **Historia Clínica** | `crates/clinical` | `Encounter`, `Condition`, `AllergyIntolerance`, `CarePlan`, `MedicationRequest`, `Questionnaire` | [crates/clinical/AGENTS.md](file:///home/miuler/proyectos/my-health-record/backend/crates/clinical/AGENTS.md) |
-| **Laboratorio e Imágenes** | `crates/diagnostics` | `ServiceRequest`, `Observation`, `DiagnosticReport`, `ImagingStudy`, `Specimen` | [crates/diagnostics/AGENTS.md](file:///home/miuler/proyectos/my-health-record/backend/crates/diagnostics/AGENTS.md) |
-| **Farmacia e Insumos** | `crates/pharmacy` | `Medication`, `MedicationDispense`, `MedicationAdministration`, `SupplyRequest` / `SupplyDelivery` | [crates/pharmacy/AGENTS.md](file:///home/miuler/proyectos/my-health-record/backend/crates/pharmacy/AGENTS.md) |
-| **Aseguradoras y Coberturas** | `crates/coverage` | `Coverage`, `Claim`, `ClaimResponse`, `CoverageEligibilityRequest` | [crates/coverage/AGENTS.md](file:///home/miuler/proyectos/my-health-record/backend/crates/coverage/AGENTS.md) |
-| **Facturación** | `crates/billing` | `Account`, `Invoice`, `ChargeItem` | [crates/billing/AGENTS.md](file:///home/miuler/proyectos/my-health-record/backend/crates/billing/AGENTS.md) |
-| **Archivo Legal y Auditoría** | `crates/legal_archive` | `Composition`, `DocumentReference`, `AuditEvent`, `Provenance` | [crates/legal_archive/AGENTS.md](file:///home/miuler/proyectos/my-health-record/backend/crates/legal_archive/AGENTS.md) |
-| **Notificaciones y Alertas** | `crates/communication` | `Communication`, `CommunicationRequest`, `Flag` | [crates/communication/AGENTS.md](file:///home/miuler/proyectos/my-health-record/backend/crates/communication/AGENTS.md) |
+| **Casos de Uso e Identidad** | N/A | Flujos de Identidad y Registro | [docs/use_cases.md](docs/use_cases.md) |
+| **Identity & Security** | `crates/user` | `Person` + `User` | [crates/user/AGENTS.md](crates/user/AGENTS.md) |
+| **Gestión Administrativa** | `crates/administration` | `Patient`, `Practitioner`, `Location`, `HealthcareService` | [crates/administration/AGENTS.md](crates/administration/AGENTS.md) |
+| **Reserva de Citas** | `crates/scheduling` | `Schedule`, `Slot`, `Appointment` | [crates/scheduling/AGENTS.md](crates/scheduling/AGENTS.md) |
+| **Historia Clínica** | `crates/clinical` | `Encounter`, `Condition`, `AllergyIntolerance`, `CarePlan`, `MedicationRequest`, `Questionnaire` | [crates/clinical/AGENTS.md](crates/clinical/AGENTS.md) |
+| **Laboratorio e Imágenes** | `crates/diagnostics` | `ServiceRequest`, `Observation`, `DiagnosticReport`, `ImagingStudy`, `Specimen` | [crates/diagnostics/AGENTS.md](crates/diagnostics/AGENTS.md) |
+| **Farmacia e Insumos** | `crates/pharmacy` | `Medication`, `MedicationDispense`, `MedicationAdministration`, `SupplyRequest` / `SupplyDelivery` | [crates/pharmacy/AGENTS.md](crates/pharmacy/AGENTS.md) |
+| **Aseguradoras y Coberturas** | `crates/coverage` | `Coverage`, `Claim`, `ClaimResponse`, `CoverageEligibilityRequest` | [crates/coverage/AGENTS.md](crates/coverage/AGENTS.md) |
+| **Facturación** | `crates/billing` | `Account`, `Invoice`, `ChargeItem` | [crates/billing/AGENTS.md](crates/billing/AGENTS.md) |
+| **Archivo Legal y Auditoría** | `crates/legal_archive` | `Composition`, `DocumentReference`, `AuditEvent`, `Provenance` | [crates/legal_archive/AGENTS.md](crates/legal_archive/AGENTS.md) |
+| **Notificaciones y Alertas** | `crates/communication` | `Communication`, `CommunicationRequest`, `Flag` | [crates/communication/AGENTS.md](crates/communication/AGENTS.md) |
 
 ---
 
