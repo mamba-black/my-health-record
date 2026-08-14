@@ -188,6 +188,20 @@ flowchart TB
 - **Encapsulamiento del Dominio y Convención C-GETTER**: Getters de solo lectura autogenerados vía `derive_getters::Getters` (o `bon::Builder` para construcción fluente).
 - **Tipos de Datos FHIR Compartidos (`crates/core`)**: `HumanName`, `ContactPoint`, `Identifier`, `Address`, `Attachment` se definen en `app_core::domain::fhir`.
 - **Arquitectura Orientada a Eventos con Apalis (`apalis-postgres`)**: `crates/user` emite `UserCreatedEvent` para sincronización asíncrona at-least-once entre Bounded Contexts.
+- **Un Esquema PostgreSQL por Bounded Context**: cada contexto acotado es dueño de su propio esquema, para poder gestionar permisos, ownership y backups por dominio.
+
+| Crate | Esquema | Tablas |
+| :--- | :--- | :--- |
+| `crates/user` | `identity` | `user_account` |
+| `crates/administration` | `administration` | `clinic`, `patient`, `patient_search` |
+
+  El dominio `user` usa el esquema **`identity`** (no `user`): `USER` es palabra reservada en PostgreSQL y `CREATE SCHEMA user` es un error de sintaxis; `identity` coincide además con el nombre del bounded context.
+
+  **Las tablas se referencian SIN calificar** (`user_account`, no `identity.user_account`), tanto en `#[table = "..."]` como en SQL crudo. Dos limitaciones de toasty 0.8 lo imponen:
+  1. No soporta nombres calificados por esquema: serializa `#[table = "x"]` como el identificador `"x"` sin separar por el punto, así que `#[table = "identity.user_account"]` buscaría una tabla llamada literalmente `identity.user_account`.
+  2. Su parser de URL solo honra `host`, `port`, `user`, `password`, `dbname` y `application_name`, y descarta el resto; por eso `?options=-c search_path=...` **no** llega al servidor.
+
+  La resolución se hace con un `search_path` fijado **a nivel de base de datos** en `ddl/table.sql` (`ALTER DATABASE ... SET search_path = identity, administration, public`), que aplica a toda conexión nueva sin importar el driver. Al crear tablas nuevas, califícalas explícitamente en el DDL (`CREATE TABLE administration.foo`) y déjalas sin calificar en el código Rust.
 
 ---
 
