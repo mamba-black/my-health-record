@@ -4,9 +4,22 @@
 
 * **Responsabilidad**: Gestión de expedientes de pacientes, profesionales de salud (con colegiatura CMP/COP), locaciones/consultorios y oferta de servicios sanitarios.
 * **Grupos FHIR**: FHIR Individuals / FHIR Entities.
-* **Recursos FHIR Mapeados**: `Patient`, `Practitioner`, `Location`, `HealthcareService` (HL7 FHIR R4).
-* **Módulos de Dominio (`src/domain/`)**: `patient.rs`, `practitioner.rs`, `location.rs`, `healthcare_service.rs`.
+* **Recursos FHIR Mapeados**: `Patient`, `Practitioner`, `Organization` (HL7 FHIR R4). `Location` y `HealthcareService` están previstos y aún no implementados.
+* **Módulos de Dominio (`src/domain/`)**: `organization.rs`, `patient.rs`, `practitioner.rs`.
 * **Proyección / Apuntador Débil**: Apunta débilmente a `user_id` (UUIDv7).
+
+---
+
+## Reglas de Dominio
+
+### Réplicas Demográficas Autónomas
+
+* Este contexto **no consulta** a `crates/user` para leer la demografía de una persona: recibe la entidad `Person` completa dentro de `UserCreatedEvent` y construye sus propias entidades locales. Esa réplica es deliberada y mantiene la **autonomía operativa de cada clínica** frente a la caída o la evolución del contexto de identidad.
+* Al procesar el evento, el handler inicializa:
+  * la `Organization` (clínica) y el `Practitioner` (médico) **solo si** `create_clinic == true`;
+  * el expediente `Patient` local **siempre**, asociando la `Person` recibida.
+* El vínculo hacia identidad es un **apuntador débil** (`user_id: Uuid`), nunca una llave foránea ni un `JOIN` entre contextos acotados.
+* La entrega es *at-least-once*: el handler **debe ser idempotente**. Recibir dos veces el mismo `UserCreatedEvent` no puede producir expedientes duplicados.
 
 ---
 

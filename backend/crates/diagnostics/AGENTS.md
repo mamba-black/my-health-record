@@ -7,6 +7,15 @@
 * **Recursos FHIR Mapeados**: `ServiceRequest`, `Observation`, `DiagnosticReport`, `ImagingStudy`, `Specimen` (HL7 FHIR R4).
 * **Módulos de Dominio (`src/domain/`)**: `service_request.rs`, `observation.rs`, `diagnostic_report.rs`, `imaging_study.rs`, `specimen.rs`.
 * **Proyección / Apuntador Débil**: Apunta débilmente a `patient_id`, `encounter_id` (UUIDv7).
+* **Estado**: contexto acotado **solo diseñado** — aún sin `Cargo.toml` ni código; no es miembro del workspace.
+
+---
+
+## Reglas de Dominio
+
+* **Codificación de observaciones obligatoria**: `Observation` se codifica con **LOINC**. Un resultado de laboratorio sin código LOINC no es interoperable y no debe persistirse.
+* **Estudios de imagen con identificador DICOM**: `ImagingStudy` referencia el estudio mediante su `dicom_uid`. El backend **no** almacena los píxeles: guarda la referencia al PACS.
+* **Conservación permanente**: reportes diagnósticos y observaciones forman parte del historial clínico normativo. Particionamiento por **hash**, sin archivo por fecha.
 
 ---
 
