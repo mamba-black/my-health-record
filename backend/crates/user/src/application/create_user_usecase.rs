@@ -18,7 +18,6 @@ pub trait CreateUserUseCase:
 {
 }
 
-
 pub(crate) struct CreateUserUseCaseImpl {
     pub(crate) user_repository: Arc<dyn UserRepository>,
     pub(crate) clinic_repository: Arc<dyn ClinicRepository>,
@@ -35,17 +34,16 @@ impl UseCase for CreateUserUseCaseImpl {
 
     async fn execute(&self, command: Self::Command) -> Result<Self::Response, Self::Error> {
         let exist_user = match &command.identifier {
-            Some(DNI(value)) => {
-                self.user_repository
-                    .exist_user_by_document("DNI", value)
-                    .await
-                    .map_err(|_e| {
-                        UnknownError(ClickCareError::generic(format!(
-                            "User with document ID {}",
-                            value
-                        )))
-                    })?
-            }
+            Some(DNI(value)) => self
+                .user_repository
+                .exist_user_by_document("DNI", value)
+                .await
+                .map_err(|_e| {
+                    UnknownError(ClickCareError::generic(format!(
+                        "User with document ID {}",
+                        value
+                    )))
+                })?,
             _ => false,
         };
 

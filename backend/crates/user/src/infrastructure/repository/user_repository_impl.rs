@@ -11,30 +11,18 @@ use toasty::Db;
 pub struct UserAccount {
     #[key]
     pub id: uuid::Uuid,
-
     pub active: bool,
-
     pub is_owner: bool,
-
     pub provider_info: String,
-
     pub given_name: String,
-
     pub family_name: Option<String>,
-
     pub second_family_name: Option<String>,
-
     pub document_type: Option<String>,
-
     pub document_value: Option<String>,
-
     pub email: Option<String>,
-
     pub phone: Option<String>,
-
     #[auto]
     pub created_at: jiff::Timestamp,
-
     #[auto]
     pub updated_at: jiff::Timestamp,
 }
@@ -55,7 +43,7 @@ impl UserRepository for UserRepositoryImpl {
         debug!("user_id: {}", document_value);
         // FIXME: Corregir esto para buscar por documento
         let exist = toasty::sql::query(
-            "select 1 from user_account where document_type = $1 and document_value = $2",
+            "select 1 from identity.user_account where document_type = $1 and document_value = $2",
         )
         .bind(document_type)
         .bind(document_value)
@@ -122,8 +110,12 @@ impl UserRepository for UserRepositoryImpl {
         .exec(&mut self.db.clone())
         .await
         .map_err(|e| {
-            error!("Error al guardar user_account con id {}: {e}", user.id);
-            ClickCareError::generic(format!("Error al guardar usuario en la base de datos: {e}"))
+            let e = ClickCareError::generic(format!(
+                "Error al guardar usuario en la base de datos: {e}"
+            ));
+            error!("Error al guardar user_account con id {}", user.id);
+            error!("Error: {e}");
+            e
         })?;
 
         Ok(())

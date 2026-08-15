@@ -1,9 +1,13 @@
+DROP SCHEMA IF EXISTS identity;
+CREATE SCHEMA identity;
+ALTER DATABASE postgres SET search_path TO identity, public;
+
 DROP TABLE IF EXISTS patient_search;
 DROP TABLE IF EXISTS patient;
 DROP TABLE IF EXISTS clinic;
-DROP TABLE IF EXISTS user_account;
+DROP TABLE IF EXISTS identity.user_account;
 
-CREATE TABLE user_account (
+CREATE TABLE identity.user_account (
     id              uuid PRIMARY KEY,
     active          BOOLEAN NOT NULL DEFAULT TRUE,
     is_owner        BOOLEAN NOT NULL DEFAULT FALSE,

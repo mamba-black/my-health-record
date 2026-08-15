@@ -215,9 +215,7 @@ pub async fn then_sign_up_successful_and_persisted(
 #[then(
     "se verifica mediante polling en la base de datos que la entidad del usuario se procesó en el contexto de administración"
 )]
-pub async fn then_user_processed_in_administration_context(
-    sign_up_context: &SignUpContext,
-) {
+pub async fn then_user_processed_in_administration_context(sign_up_context: &SignUpContext) {
     let env = test_env().await;
     let user_id = sign_up_context
         .user_id

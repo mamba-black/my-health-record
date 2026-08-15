@@ -36,7 +36,9 @@ pub async fn test_env() -> &'static TestEnv {
 
             async fn check_pg_active(pg_conn: &str) -> bool {
                 let clean = pg_conn.trim();
-                if let Some(pos) = clean.rfind(':') && let Some(slash_pos) = clean[pos + 1..].find('/') {
+                if let Some(pos) = clean.rfind(':')
+                    && let Some(slash_pos) = clean[pos + 1..].find('/')
+                {
                     let port_str = &clean[pos + 1..pos + 1 + slash_pos];
                     if let Ok(port) = port_str.parse::<u16>() {
                         return TcpStream::connect(format!("127.0.0.1:{port}"))
@@ -108,7 +110,7 @@ pub async fn test_env() -> &'static TestEnv {
 
                 let host_port = pg_container.get_host_port_ipv4(5432).await.unwrap();
                 let pg_conn = format!(
-                    "postgres://{}:{}@127.0.0.1:{host_port}/postgres",
+                    "postgres://{}:{}@127.0.0.1:{host_port}/postgres?options=-c%20search_path%3Didentity%2Cpublic",
                     user, password
                 );
 
@@ -122,7 +124,7 @@ pub async fn test_env() -> &'static TestEnv {
 
                 // Programar la autodestrucción del contenedor y archivos en /tmp tras 10 segundos
                 let cleanup_cmd = format!(
-                    "sleep 10 && podman rm -f {} && rm -f {} {}",
+                    "#sleep 10 && podman rm -f {} && rm -f {} {}",
                     container_name,
                     pg_cache_path.display(),
                     pg_lock_path.display()

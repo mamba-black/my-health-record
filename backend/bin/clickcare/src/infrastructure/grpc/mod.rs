@@ -1,7 +1,6 @@
 pub mod patient_api_impl;
 pub mod user_api_impl;
 
-
 // Submódulo aislado donde Clippy no entrará a fiscalizar
 #[allow(clippy::all, clippy::pedantic, clippy::restriction)]
 pub mod grpc_gen {

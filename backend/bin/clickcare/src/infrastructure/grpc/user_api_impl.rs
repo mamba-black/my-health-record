@@ -1,12 +1,12 @@
-use crate::infrastructure::grpc::user_api_server::UserApi;
 use crate::infrastructure::grpc::SignUpRequest;
+use crate::infrastructure::grpc::user_api_server::UserApi;
 use crate::infrastructure::grpc::*;
 use app_core::domain::error::ClickCareError;
 use std::sync::Arc;
 use tonic::*;
 use tracing::debug;
-use user::application::command::{CreateUserCommand, CreateUserError};
 use user::application::CreateUserUseCase;
+use user::application::command::{CreateUserCommand, CreateUserError};
 use user::infrastructure::di;
 use user::infrastructure::di::DBType;
 
@@ -79,8 +79,8 @@ impl UserApi for UserApiImpl {
 }
 
 mod mapper {
-    use crate::infrastructure::grpc::identifier::IdentifierType;
     use crate::infrastructure::grpc::SignUpRequest;
+    use crate::infrastructure::grpc::identifier::IdentifierType;
     use app_core::domain::fhir::Identifier::DNI;
     use user::application::command::CreateUserCommand;
 
@@ -115,9 +115,9 @@ mod mapper {
 
 #[cfg(test)]
 mod test {
+    use crate::infrastructure::grpc::SignUpRequest;
     use crate::infrastructure::grpc::user_api_impl::UserApiImpl;
     use crate::infrastructure::grpc::user_api_server::UserApi;
-    use crate::infrastructure::grpc::SignUpRequest;
     use crate::infrastructure::log::init_logger;
     use app_core::domain::error::ClickCareError;
     use dotenvy::dotenv;
@@ -151,11 +151,10 @@ mod test {
 
     #[fixture]
     async fn user_api_impl() -> UserApiImpl {
-        INIT
-            .call_once(|| {
-                dotenv().ok();
-                init_logger();
-            });
+        INIT.call_once(|| {
+            dotenv().ok();
+            init_logger();
+        });
         UserApiImpl::new_mock()
             .await
             .expect("Failed to initialize Mock UserApiImpl")
