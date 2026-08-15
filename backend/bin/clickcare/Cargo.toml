@@ -9,6 +9,7 @@ workspace = true
 
 [dependencies]
 app_core.workspace = true
+administration.workspace = true
 user.workspace = true
 clinic.workspace = true
 clinic_admin.workspace = true

@@ -81,7 +81,15 @@ impl UseCase for CreateUserUseCaseImpl {
             person: user.person.clone(),
             create_clinic: user.is_owner,
         };
-        self.event_publisher.publish_user_created(event).await?;
+        // El usuario ya está persistido: una caída de la cola no debe convertirse en
+        // un error de registro para el cliente. Se reporta y se sigue adelante.
+        if let Err(e) = self.event_publisher.publish_user_created(event).await {
+            error!(
+                "No se pudo publicar UserCreatedEvent para user_id={}: {}",
+                user.id,
+                e
+            );
+        }
 
         Ok(CreateUserResponse {
             user_id: user.id.to_string(),

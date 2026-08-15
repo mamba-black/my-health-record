@@ -3,7 +3,6 @@ use crate::domain::user::User;
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;
 use log::{debug, error};
-use sqlx::postgres::PgPool;
 use toasty::Db;
 
 #[derive(Debug, Clone, toasty::Model)]
@@ -28,8 +27,6 @@ pub struct UserAccount {
 }
 
 pub(crate) struct UserRepositoryImpl {
-    #[allow(dead_code)]
-    pub(crate) pool: PgPool,
     pub(crate) db: Db,
 }
 

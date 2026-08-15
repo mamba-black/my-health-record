@@ -10,6 +10,21 @@
 
 ---
 
+## Consumo de Eventos
+
+Este contexto acotado consume `UserCreatedEvent` de forma asíncrona desde `crates/user`,
+usando `apalis-postgres` sobre la cola `UserCreatedEvent::QUEUE` (`"user.created"`).
+
+* **Handler**: `src/application/event_handlers.rs::handle_user_created_event`. Es una función
+  de aplicación pura: no conoce Apalis ni tipos de infraestructura.
+* **Worker**: `src/infrastructure/di.rs`. `di::new(DBType)` prepara el schema `apalis` y
+  devuelve un `DI`; `DI::run_worker()` construye y ejecuta el worker sin exponer los tipos
+  genéricos de `WorkerBuilder` fuera del crate.
+* **Aislamiento transaccional**: el worker abre su **propio** pool, exclusivo de la cola. No
+  comparte conexión ni transacción con los repositorios de entidades de ningún contexto.
+
+---
+
 ## Diagrama de Clases
 
 ```mermaid

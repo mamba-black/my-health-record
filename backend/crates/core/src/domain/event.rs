@@ -25,9 +25,16 @@ pub struct UserCreatedEvent {
     pub create_clinic: bool,
 }
 
+impl UserCreatedEvent {
+    /// Cola donde viaja el evento. El productor (`crates/user`) y el consumidor
+    /// (`crates/administration`) referencian esta constante en lugar de un literal,
+    /// de modo que el compilador garantiza que ambos hablan de la misma cola.
+    pub const QUEUE: &'static str = "user.created";
+}
+
 impl DomainEvent for UserCreatedEvent {
     fn event_name(&self) -> &'static str {
-        "user.created"
+        Self::QUEUE
     }
 }
 

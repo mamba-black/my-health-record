@@ -4,6 +4,7 @@ use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::User;
 use app_core::domain::fhir::Identifier;
 
+use crate::infrastructure::event::apalis_publisher::ApalisEventPublisher;
 use crate::infrastructure::repository::clinic_repository_impl::ClinicRepositoryImpl;
 use crate::infrastructure::repository::emitter_impl::EmitterImpl;
 use crate::infrastructure::repository::user_repository_impl::{UserAccount, UserRepositoryImpl};
@@ -11,7 +12,6 @@ use app_core::domain::error::ClickCareError;
 use app_core::domain::event::{EventPublisher, LoggingEventPublisher};
 use async_trait::async_trait;
 use log::error;
-use sqlx::PgPool;
 use std::env::var;
 use std::sync::Arc;
 use toasty::{Db, models};
@@ -51,11 +51,16 @@ pub async fn new_with_overrides(
     dbtype: DBType,
     overrides: DIOverrides,
 ) -> Result<DI, ClickCareError> {
+    // La URL se resuelve una sola vez y se reparte entre los consumidores. Cada uno
+    // abre su propia conexión: la cola de eventos nunca comparte pool ni transacción
+    // con los repositorios de entidades.
+    let db_url = resolve_db_url(&dbtype);
+
     // ── user_repository ──────────────────────────────────────────────────────
     let user_repository: Arc<dyn UserRepository> = if let Some(repo) = overrides.user_repository {
         repo
     } else {
-        build_user_repository(dbtype).await?
+        build_user_repository(db_url.as_deref()).await?
     };
 
     // ── clinic_repository ────────────────────────────────────────────────────
@@ -73,7 +78,11 @@ pub async fn new_with_overrides(
     let event_publisher: Arc<dyn EventPublisher> = if let Some(publ) = overrides.event_publisher {
         publ
     } else {
-        Arc::new(LoggingEventPublisher)
+        match db_url.as_deref() {
+            Some(url) => Arc::new(ApalisEventPublisher::new(url).await?),
+            // Sin base de datos (`DBType::Mock`) la cola no existe: se degrada a log.
+            None => Arc::new(LoggingEventPublisher),
+        }
     };
 
     // ── use cases ────────────────────────────────────────────────────────────
@@ -93,51 +102,41 @@ pub async fn new_with_overrides(
 
 // ─── Helpers privados ────────────────────────────────────────────────────────
 
-async fn build_user_repository(dbtype: DBType) -> Result<Arc<dyn UserRepository>, ClickCareError> {
-    let user_repository: Arc<dyn UserRepository> = match dbtype {
-        DBType::Postgres(Some(url)) => {
-            debug!("URL de la base de datos: {url}");
-            let pool = PgPool::connect(url.as_str()).await.map_err(|e| {
-                error!("Error al crear el Pool para sqlx");
-                ClickCareError::generic(format!("Error en la conexion a la DB [{}] ({})", url, e))
-            })?;
-            let db: Db = toasty::Db::builder()
-                // .register::<UserAccount>()
-                .models(models!(UserAccount))
-                .connect(url.as_str())
-                .await
-                .map_err(|e| {
-                    error!("Error al crear el Pool para toasty: {e}");
-                    ClickCareError::generic(format!(
-                        "Error en la conexion a la Toasty DB [{}] ({})",
-                        url, e
-                    ))
-                })?;
-            Arc::new(UserRepositoryImpl { pool, db })
-        }
+/// Resuelve la URL de Postgres del `DBType`. `None` significa que no hay base de
+/// datos y las dependencias deben degradarse a sus variantes en memoria.
+fn resolve_db_url(dbtype: &DBType) -> Option<String> {
+    match dbtype {
+        DBType::Postgres(Some(url)) => Some(url.clone()),
         DBType::Postgres(None) => {
-            let url =
-                var("PG_URL").unwrap_or("postgres://user:password@localhost:5432".to_string());
-            let pool = PgPool::connect(url.as_str()).await.map_err(|e| {
-                ClickCareError::generic(format!("Error en la conexion a la DB [{}] ({})", url, e))
-            })?;
-            let db: Db = toasty::Db::builder()
-                .connect(url.as_str())
-                .await
-                .map_err(|e| {
-                    ClickCareError::generic(format!(
-                        "Error en la conexion a la Toasty DB [{}] ({})",
-                        url, e
-                    ))
-                })?;
-            Arc::new(UserRepositoryImpl { pool, db })
+            Some(var("PG_URL").unwrap_or("postgres://user:password@localhost:5432".to_string()))
         }
-        DBType::Mock => Arc::new(MockUserRepositoryImpl {
+        DBType::Mock => None,
+    }
+}
+
+async fn build_user_repository(
+    db_url: Option<&str>,
+) -> Result<Arc<dyn UserRepository>, ClickCareError> {
+    let Some(url) = db_url else {
+        return Ok(Arc::new(MockUserRepositoryImpl {
             saved_users: Mutex::new(Vec::new()),
-        }),
+        }));
     };
 
-    Ok(user_repository)
+    debug!("URL de la base de datos: {url}");
+    let db: Db = toasty::Db::builder()
+        .models(models!(UserAccount))
+        .connect(url)
+        .await
+        .map_err(|e| {
+            error!("Error al crear el Pool para toasty: {e}");
+            ClickCareError::generic(format!(
+                "Error en la conexion a la Toasty DB [{}] ({})",
+                url, e
+            ))
+        })?;
+
+    Ok(Arc::new(UserRepositoryImpl { db }))
 }
 
 pub enum DBType {

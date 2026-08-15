@@ -255,6 +255,96 @@ mod sign_up {
     }
 }
 
+/// Verifica la tubería de eventos completa: `sign_up` encola un `UserCreatedEvent`
+/// en Postgres y el worker de `crates/administration` lo consume.
+mod administration_worker {
+    use crate::{TestEnv, test_env};
+    use administration::infrastructure::di as administration_di;
+    use clickcare::infrastructure::grpc::SignUpRequest;
+    use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
+    use rstest::*;
+    use std::time::Duration;
+
+    /// Consulta el estado del job encolado para `user_id`, o `None` si aún no existe.
+    async fn job_status(pg_conn: &str, user_id: uuid::Uuid) -> Option<String> {
+        let conn_str = pg_conn.to_string();
+        tokio::task::spawn_blocking(move || {
+            let mut db_client = ::postgres::Client::connect(&conn_str, ::postgres::NoTls).ok()?;
+            let rows = db_client
+                .query(
+                    "SELECT status FROM apalis.jobs \
+                     WHERE job_type = $1 AND convert_from(job, 'UTF8') LIKE $2",
+                    &[
+                        &app_core::domain::event::UserCreatedEvent::QUEUE,
+                        &format!("%{user_id}%"),
+                    ],
+                )
+                .ok()?;
+            rows.first().map(|row| row.get::<_, String>("status"))
+        })
+        .await
+        .ok()
+        .flatten()
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn sign_up_enqueues_event_and_worker_processes_it(
+        #[future(awt)] test_env: &'static TestEnv,
+    ) {
+        // ── 1. Un sign_up debe encolar el evento ─────────────────────────────
+        let mut client = UserApiClient::connect(test_env.grpc_addr.clone())
+            .await
+            .expect("Fallo al conectar con el servidor gRPC");
+
+        let user_id = uuid::Uuid::now_v7();
+        let nonce = &uuid::Uuid::now_v7().to_string()[..8];
+        let response = client
+            .sign_up(tonic::Request::new(SignUpRequest {
+                id_token: "test-token".into(),
+                user_id: user_id.to_string(),
+                email: format!("worker-{nonce}@example.com"),
+                given_name: "Worker".into(),
+                ..Default::default()
+            }))
+            .await;
+        assert!(response.is_ok(), "El sign_up falló: {response:?}");
+
+        let status = job_status(&test_env.pg_connection_string, user_id).await;
+        assert!(
+            status.is_some(),
+            "El sign_up no encoló ningún UserCreatedEvent para user_id={user_id}"
+        );
+
+        // ── 2. El worker debe consumirlo hasta dejarlo en 'Done' ─────────────
+        let di = administration_di::new(administration_di::DBType::Postgres(Some(
+            test_env.pg_connection_string.clone(),
+        )))
+        .await
+        .expect("Fallo al construir el DI de administration");
+
+        let worker = tokio::spawn(di.run_worker());
+
+        let deadline = std::time::Instant::now() + Duration::from_secs(15);
+        let mut last_status = None;
+        while std::time::Instant::now() < deadline {
+            last_status = job_status(&test_env.pg_connection_string, user_id).await;
+            if last_status.as_deref() == Some("Done") {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        worker.abort();
+
+        assert_eq!(
+            last_status.as_deref(),
+            Some("Done"),
+            "El worker de administration no procesó el evento de user_id={user_id} \
+             (último estado observado: {last_status:?})"
+        );
+    }
+}
+
 mod sign_in {
     use crate::{TestEnv, test_env};
     #[allow(unused_imports)]
