@@ -1,5 +1,23 @@
 # Guías del Repositorio y Visión General del Proyecto
 
+> **Marco de referencia de las rutas**: todas las rutas de este documento se escriben
+> **desde la raíz del repositorio**, no desde la carpeta que lo contiene. Por eso llevan
+> el prefijo `backend/`. El `CLAUDE.md` de la raíz solo contiene `@backend/AGENTS.md`,
+> así que este archivo se carga completo al arrancar una sesión, tanto desde la raíz como
+> desde `backend/`, y las rutas resuelven igual en ambos casos.
+>
+> Dos excepciones, deliberadas:
+>
+> * El **destino** de los enlaces Markdown queda relativo a este archivo
+>   (`[backend/crates/user/AGENTS.md](crates/user/AGENTS.md)`). GitHub resuelve los
+>   enlaces relativos desde la carpeta del archivo; prefijarlos los rompería. El texto
+>   visible sí lleva el prefijo.
+> * Las rutas **internas a un crate** (`src/domain/`, `src/infrastructure/di.rs`,
+>   `tests/steps/`) se miden desde la raíz de ese crate, y por eso no llevan prefijo.
+>
+> Los comandos de `cargo` se ejecutan dentro de `backend/`, que es la raíz del Cargo
+> Workspace.
+
 ## Descripción del Proyecto
 
 **My Health Record (Backend)** es un servicio de backend en Rust 2024 para la gestión de salud que sigue la **Arquitectura Cebolla (Onion Architecture)** y un **Cargo Workspace por Contextos Acotados (*Bounded Context Crates*)** estrictamente alineado con el estándar **HL7 FHIR R4**. Proporciona una API gRPC de alto rendimiento (utilizando `tonic` y `axum`) con soporte gRPC-Web.
@@ -11,7 +29,7 @@
 ### 1.1. Diseño Guiado por el Dominio (DDD) y Alineación con HL7 FHIR
 - **Protección y Límites del Dominio**: Adherencia estricta a DDD para proteger el dominio y mantener los contextos acotados aislados. Las entidades del dominio se modelan siguiendo **HL7 FHIR R4**.
 - **Arquitectura de Crates por Bounded Contexts (C4 Nivel 2)**:
-  Estructurado en un **Cargo Workspace por Contextos Acotados** (`members = ["crates/*"]`), donde cada Bounded Context es una Crate de Rust (`crates/<dominio>`) que agrupa sus Entidades y Agregados (`src/domain/`).
+  Estructurado en un **Cargo Workspace por Contextos Acotados** (`members = ["crates/*"]`), donde cada Bounded Context es una Crate de Rust (`backend/crates/<dominio>`) que agrupa sus Entidades y Agregados (`src/domain/`).
 
 ```mermaid
 flowchart TB
@@ -191,8 +209,8 @@ flowchart TB
   - *Conservación Permanente (Hash sobre la clave)*: Tablas maestras e historiales normativos obligatorios (`Patient`, `Encounter`, `Composition` y el resto del archivo legal).
   - *Depreciación / Archivo por Fecha (Range Partitioning)*: Entidades transaccionales que caducan o pierden valor operativo pasado su ciclo de retención legal o financiero (`Invoice`, `AuditEvent`, `Communication`).
 - **Encapsulamiento del Dominio y Convención C-GETTER**: Getters de solo lectura autogenerados vía `derive_getters::Getters` (o `bon::Builder` para construcción fluente).
-- **Tipos de Datos FHIR Compartidos (`crates/core`)**: `HumanName`, `ContactPoint`, `Identifier`, `Address`, `Attachment` se definen en `app_core::domain::fhir`.
-- **Arquitectura Orientada a Eventos con Apalis (`apalis-postgres`)**: `crates/user` emite `UserCreatedEvent` para sincronización asíncrona at-least-once entre Bounded Contexts.
+- **Tipos de Datos FHIR Compartidos (`backend/crates/core`)**: `HumanName`, `ContactPoint`, `Identifier`, `Address`, `Attachment` se definen en `app_core::domain::fhir`.
+- **Arquitectura Orientada a Eventos con Apalis (`apalis-postgres`)**: `backend/crates/user` emite `UserCreatedEvent` para sincronización asíncrona at-least-once entre Bounded Contexts.
 
 ---
 
@@ -200,11 +218,11 @@ flowchart TB
 
 | Capa | Ruta | Responsabilidad | Dependencias permitidas |
 |---|---|---|---|
-| **Core** | `crates/core/` | Traits base (`UseCase`), error transversal (`ClickCareError`), eventos de dominio y Value Objects FHIR compartidos | Ninguna |
-| **Domain** | `crates/*/src/domain/` | Entidades, agregados y traits de repositorio | `crates/core` |
-| **Application** | `crates/*/src/application/` | Casos de uso implementando `app_core::application::UseCase` | `domain`, `crates/core` |
-| **Infrastructure** | `crates/*/src/infrastructure/` | Repositorios, contenedor DI (`di.rs`), adaptadores externos (Apalis, gRPC clients) | `application`, `domain`, `crates/core` |
-| **Entrypoint** | `bin/clickcare/` | Controladores gRPC, orquestación de workers y arranque del proceso | `crates/*` |
+| **Core** | `backend/crates/core/` | Traits base (`UseCase`), error transversal (`ClickCareError`), eventos de dominio y Value Objects FHIR compartidos | Ninguna |
+| **Domain** | `backend/crates/*/src/domain/` | Entidades, agregados y traits de repositorio | `backend/crates/core` |
+| **Application** | `backend/crates/*/src/application/` | Casos de uso implementando `app_core::application::UseCase` | `domain`, `backend/crates/core` |
+| **Infrastructure** | `backend/crates/*/src/infrastructure/` | Repositorios, contenedor DI (`di.rs`), adaptadores externos (Apalis, gRPC clients) | `application`, `domain`, `backend/crates/core` |
+| **Entrypoint** | `backend/bin/clickcare/` | Controladores gRPC, orquestación de workers y arranque del proceso | `backend/crates/*` |
 
 **Regla estructural**: las dependencias apuntan **estrictamente hacia adentro**. Una capa jamás importa de una capa exterior.
 
@@ -218,7 +236,7 @@ bin/clickcare (Punto de entrada gRPC + orquestación de workers)
 
 Corolarios que se derivan de esta regla y se verifican en compilación:
 - La capa de aplicación **no** conoce tipos de infraestructura. Un handler de evento es una función pura (`async fn(Evento) -> Result<(), ClickCareError>`); es la infraestructura quien lo registra en Apalis.
-- Cada crate instancia **solo sus propias estructuras**, dentro de su `src/infrastructure/di.rs`. `bin/clickcare` orquesta ciclos de vida, no construye tipos ajenos ni declara sus dependencias (p. ej. `apalis` no figura en `bin/clickcare/Cargo.toml`).
+- Cada crate instancia **solo sus propias estructuras**, dentro de su `src/infrastructure/di.rs`. `backend/bin/clickcare` orquesta ciclos de vida, no construye tipos ajenos ni declara sus dependencias (p. ej. `apalis` no figura en `backend/bin/clickcare/Cargo.toml`).
 
 #### Flujo de una Solicitud a través de las Capas
 
@@ -301,21 +319,21 @@ Leyenda de estado: ✅ implementado · 🚧 andamiaje (miembro del workspace, si
 
 | Bounded Context | Crate | Estado | Recurso FHIR Mapeado | Documentación dedicada |
 | :--- | :--- | :--- | :--- | :--- |
-| **Casos de Uso e Identidad** | N/A | — | Flujos de Identidad y Registro | [docs/use_cases.md](docs/use_cases.md) |
-| **Núcleo Compartido** | `crates/core` | ✅ | Value Objects FHIR, `UseCase`, `ClickCareError`, eventos | [crates/core/AGENTS.md](crates/core/AGENTS.md) |
-| **Identity & Security** | `crates/user` | ✅ | `Person` + `User` | [crates/user/AGENTS.md](crates/user/AGENTS.md) |
-| **Gestión Administrativa** | `crates/administration` | ✅ | `Patient`, `Practitioner`, `Organization` | [crates/administration/AGENTS.md](crates/administration/AGENTS.md) |
-| **Expediente de Pacientes** | `crates/patient` | 🚧 | `Patient` (solapa con `administration`) | [crates/patient/AGENTS.md](crates/patient/AGENTS.md) |
-| **Clínica** | `crates/clinic` | 🚧 | `Organization` (solapa con `administration`) | [crates/clinic/AGENTS.md](crates/clinic/AGENTS.md) |
-| **Administración de Clínica** | `crates/clinic_admin` | 🚧 | Rol de administrador (solapa con `user.is_owner`) | [crates/clinic_admin/AGENTS.md](crates/clinic_admin/AGENTS.md) |
-| **Reserva de Citas** | `crates/scheduling` | 📄 | `Schedule`, `Slot`, `Appointment` | [crates/scheduling/AGENTS.md](crates/scheduling/AGENTS.md) |
-| **Historia Clínica** | `crates/clinical` | 📄 | `Encounter`, `Condition`, `AllergyIntolerance`, `CarePlan`, `MedicationRequest`, `Questionnaire` | [crates/clinical/AGENTS.md](crates/clinical/AGENTS.md) |
-| **Laboratorio e Imágenes** | `crates/diagnostics` | 📄 | `ServiceRequest`, `Observation`, `DiagnosticReport`, `ImagingStudy`, `Specimen` | [crates/diagnostics/AGENTS.md](crates/diagnostics/AGENTS.md) |
-| **Farmacia e Insumos** | `crates/pharmacy` | 📄 | `Medication`, `MedicationDispense`, `MedicationAdministration`, `SupplyRequest` / `SupplyDelivery` | [crates/pharmacy/AGENTS.md](crates/pharmacy/AGENTS.md) |
-| **Aseguradoras y Coberturas** | `crates/coverage` | 📄 | `Coverage`, `Claim`, `ClaimResponse`, `CoverageEligibilityRequest` | [crates/coverage/AGENTS.md](crates/coverage/AGENTS.md) |
-| **Facturación** | `crates/billing` | 📄 | `Account`, `Invoice`, `ChargeItem` | [crates/billing/AGENTS.md](crates/billing/AGENTS.md) |
-| **Archivo Legal y Auditoría** | `crates/legal_archive` | 📄 | `Composition`, `DocumentReference`, `AuditEvent`, `Provenance` | [crates/legal_archive/AGENTS.md](crates/legal_archive/AGENTS.md) |
-| **Notificaciones y Alertas** | `crates/communication` | 📄 | `Communication`, `CommunicationRequest`, `Flag` | [crates/communication/AGENTS.md](crates/communication/AGENTS.md) |
+| **Casos de Uso e Identidad** | N/A | — | Flujos de Identidad y Registro | [backend/docs/use_cases.md](docs/use_cases.md) |
+| **Núcleo Compartido** | `backend/crates/core` | ✅ | Value Objects FHIR, `UseCase`, `ClickCareError`, eventos | [backend/crates/core/AGENTS.md](crates/core/AGENTS.md) |
+| **Identity & Security** | `backend/crates/user` | ✅ | `Person` + `User` | [backend/crates/user/AGENTS.md](crates/user/AGENTS.md) |
+| **Gestión Administrativa** | `backend/crates/administration` | ✅ | `Patient`, `Practitioner`, `Organization` | [backend/crates/administration/AGENTS.md](crates/administration/AGENTS.md) |
+| **Expediente de Pacientes** | `backend/crates/patient` | 🚧 | `Patient` (solapa con `administration`) | [backend/crates/patient/AGENTS.md](crates/patient/AGENTS.md) |
+| **Clínica** | `backend/crates/clinic` | 🚧 | `Organization` (solapa con `administration`) | [backend/crates/clinic/AGENTS.md](crates/clinic/AGENTS.md) |
+| **Administración de Clínica** | `backend/crates/clinic_admin` | 🚧 | Rol de administrador (solapa con `user.is_owner`) | [backend/crates/clinic_admin/AGENTS.md](crates/clinic_admin/AGENTS.md) |
+| **Reserva de Citas** | `backend/crates/scheduling` | 📄 | `Schedule`, `Slot`, `Appointment` | [backend/crates/scheduling/AGENTS.md](crates/scheduling/AGENTS.md) |
+| **Historia Clínica** | `backend/crates/clinical` | 📄 | `Encounter`, `Condition`, `AllergyIntolerance`, `CarePlan`, `MedicationRequest`, `Questionnaire` | [backend/crates/clinical/AGENTS.md](crates/clinical/AGENTS.md) |
+| **Laboratorio e Imágenes** | `backend/crates/diagnostics` | 📄 | `ServiceRequest`, `Observation`, `DiagnosticReport`, `ImagingStudy`, `Specimen` | [backend/crates/diagnostics/AGENTS.md](crates/diagnostics/AGENTS.md) |
+| **Farmacia e Insumos** | `backend/crates/pharmacy` | 📄 | `Medication`, `MedicationDispense`, `MedicationAdministration`, `SupplyRequest` / `SupplyDelivery` | [backend/crates/pharmacy/AGENTS.md](crates/pharmacy/AGENTS.md) |
+| **Aseguradoras y Coberturas** | `backend/crates/coverage` | 📄 | `Coverage`, `Claim`, `ClaimResponse`, `CoverageEligibilityRequest` | [backend/crates/coverage/AGENTS.md](crates/coverage/AGENTS.md) |
+| **Facturación** | `backend/crates/billing` | 📄 | `Account`, `Invoice`, `ChargeItem` | [backend/crates/billing/AGENTS.md](crates/billing/AGENTS.md) |
+| **Archivo Legal y Auditoría** | `backend/crates/legal_archive` | 📄 | `Composition`, `DocumentReference`, `AuditEvent`, `Provenance` | [backend/crates/legal_archive/AGENTS.md](crates/legal_archive/AGENTS.md) |
+| **Notificaciones y Alertas** | `backend/crates/communication` | 📄 | `Communication`, `CommunicationRequest`, `Flag` | [backend/crates/communication/AGENTS.md](crates/communication/AGENTS.md) |
 
 ---
 
@@ -334,7 +352,7 @@ Leyenda de estado: ✅ implementado · 🚧 andamiaje (miembro del workspace, si
    - Los constructores de dominio validan el cumplimiento de UUID v7 y devuelven `ClickCareError` en formatos inválidos.
 
 3. **Manejo de Errores y Observabilidad**
-   - Utilizar `ClickCareError` (`crates/core`) para errores transversales.
+   - Utilizar `ClickCareError` (`backend/crates/core`) para errores transversales.
    - Utilizar `thiserror` para errores específicos del dominio y propagar con `?`.
    - **Cero `unwrap()` en rutas de producción**.
    - Utilizar macros de `tracing` (`info!`, `warn!`, `error!`), **nunca** usar `println!`.
@@ -343,7 +361,7 @@ Leyenda de estado: ✅ implementado · 🚧 andamiaje (miembro del workspace, si
    - Para automatización, despliegue o scripts auxiliares, **preferir scripts de Nushell (`.nu`)**.
 
 5. **Protobuf API como Única Fuente de Verdad**
-   - `proto/api.proto` define todos los endpoints externos. Cualquier cambio en la API debe comenzar actualizando las definiciones `.proto`.
+   - `backend/proto/api.proto` define todos los endpoints externos. Cualquier cambio en la API debe comenzar actualizando las definiciones `.proto`.
 
 6. **Marca de Commits Generados por Antigravity**
    - Cada vez que se realice un commit con cambios producidos por la IA (**Antigravity**), el mensaje del commit **debe incluir obligatoriamente la marca `[antigravity]`** (por ejemplo: `feat(user): [antigravity] implement user domain model` o en el cuerpo/footer del commit).
@@ -359,7 +377,7 @@ Leyenda de estado: ✅ implementado · 🚧 andamiaje (miembro del workspace, si
    - Los getters de solo lectura se autogeneran con `derive_getters::Getters` siguiendo la convención `C-GETTER` de las API Guidelines de Rust; los campos permanecen privados.
 
 9. **Frontera entre DTOs de la API y Entidades de Dominio**
-   - Los DTOs de `proto/api.proto` son planos y modelados para el frontend y los proveedores OAuth (`provider_avatar_url`, `id_token`, `provider_id`). Es correcto que lo sean.
+   - Los DTOs de `backend/proto/api.proto` son planos y modelados para el frontend y los proveedores OAuth (`provider_avatar_url`, `id_token`, `provider_id`). Es correcto que lo sean.
    - Los Casos de Uso **deben** mapear explícitamente esos campos planos a Value Objects ricos del dominio FHIR (`Person`, `HumanName`, `ContactPoint`) al entrar a la capa de dominio.
    - **Nunca filtrar estructuras planas de DTOs dentro de entidades de dominio**, ni al revés: una entidad de dominio no se serializa tal cual hacia la API.
 
@@ -394,13 +412,13 @@ cargo clippy --workspace -- -D warnings
 - **Frameworks**: `rstest` para pruebas parametrizadas, `rstest-bdd` (+ `rstest-bdd-macros`) para escenarios BDD en Gherkin, `fake` para generar datos de prueba, `testcontainers` / `testcontainers-modules` para integración contra una base de datos real.
 - **Mocks**: definir las implementaciones mock dentro de `infrastructure/di.rs` (p. ej. `MockUserRepositoryImpl`) e inyectarlas vía `DIOverrides` en `di::new_with_overrides`. Ver §3.1: los overrides son **solo** para pruebas.
 - **Pruebas unitarias**: en un bloque `#[cfg(test)] mod test { ... }` al final del archivo fuente.
-- **Pruebas de integración**: en `tests/` de la crate correspondiente (p. ej. `bin/clickcare/tests/`).
-- **Escenarios BDD**: los `.feature` en Gherkin viven en `bin/clickcare/tests/features/`, los bindings en `tests/scenarios/` y las implementaciones de pasos en `tests/steps/`.
+- **Pruebas de integración**: en `tests/` de la crate correspondiente (p. ej. `backend/bin/clickcare/tests/`).
+- **Escenarios BDD**: los `.feature` en Gherkin viven en `backend/bin/clickcare/tests/features/`, los bindings en `tests/scenarios/` y las implementaciones de pasos en `tests/steps/`.
 - **Nombres de prueba**: `snake_case` descriptivo que enuncie el escenario completo — `sign_up_fails_with_invalid_user_id`, no `test_signup`.
 - **Casos parametrizados**: `#[rstest]` con anotaciones `#[case::<etiqueta>]` para que cada escenario quede identificado en la salida.
 - **Pruebas asíncronas**: anotar con `#[rstest]` **y** `#[tokio::test]`; usar `#[future(awt)]` para fixtures asíncronos.
 - **Estado compartido**: `tokio::sync::OnceCell` para singletons asíncronos en módulos de prueba.
-- **Contenedor de Postgres**: se levanta **una sola vez por suite** vía `testcontainers` sobre Podman, con el esquema de `ddl/table.sql` copiado a `/docker-entrypoint-initdb.d/`. La exclusión mutua entre procesos de prueba se resuelve con `flock`, y el desmontaje se registra con `#[dtor]`.
+- **Contenedor de Postgres**: se levanta **una sola vez por suite** vía `testcontainers` sobre Podman, con el esquema de `backend/ddl/table.sql` copiado a `/docker-entrypoint-initdb.d/`. La exclusión mutua entre procesos de prueba se resuelve con `flock`, y el desmontaje se registra con `#[dtor]`.
 - **Antes de dar por terminado un cambio**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings` y `cargo test --workspace` deben pasar.
 
 ---
@@ -424,9 +442,9 @@ cargo clippy --workspace -- -D warnings
 
 - **Variable requerida**: `PG_URL` (URL de conexión a PostgreSQL), cargada desde `.env` vía `dotenvy`. Si no está definida, el DI cae al valor por defecto `postgres://user:password@localhost:5432`.
 - **Secretos**: **no commitear credenciales**. Usar un `.env.example` como plantilla y mantener `.env` fuera del control de versiones.
-- **Servicios locales**: `devops/postgres.yaml` y `devops/tempo.yaml` levantan los servicios; `devops/simulate_telemetry.nu` genera telemetría de prueba.
-- **Esquema SQL**: `ddl/table.sql` (modelo en `ddl/schema.dbml`). Las columnas de clave primaria usan `uuidv7()` como valor por defecto.
-- **Cola de eventos**: el esquema `apalis` lo crean las migraciones embebidas de `apalis-postgres` al construir el DI (`PostgresStorage::setup`). No se versiona en `ddl/`.
+- **Servicios locales**: `backend/devops/postgres.yaml` y `backend/devops/tempo.yaml` levantan los servicios; `backend/devops/simulate_telemetry.nu` genera telemetría de prueba.
+- **Esquema SQL**: `backend/ddl/table.sql` (modelo en `backend/ddl/schema.dbml`). Las columnas de clave primaria usan `uuidv7()` como valor por defecto.
+- **Cola de eventos**: el esquema `apalis` lo crean las migraciones embebidas de `apalis-postgres` al construir el DI (`PostgresStorage::setup`). No se versiona en `backend/ddl/`.
 - **Servidor**: escucha en `[::1]:50051` con soporte gRPC-Web y reflexión habilitada.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:970c3bf2 -->
