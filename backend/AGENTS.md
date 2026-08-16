@@ -202,6 +202,9 @@ flowchart TB
 
 ### 1.2. Decisiones de Diseño y Convenciones
 * **Estrategia de Identificadores (UUIDv7)**: Claves primarias e IDs de usuario utilizan UUIDv7 (`Uuid::now_v7()`) para ordenamiento temporal optimizado en índices B-Tree de PostgreSQL.
+* **Multi-clínica por discriminador de fila**: los esquemas de PostgreSQL (`identity`, `administration`, …) representan **fronteras de dominio FHIR, no inquilinos**. El aislamiento entre clínicas se resuelve con una columna `organization_id` en cada tabla local de clínica, unicidad **compuesta** `(organization_id, user_id)` e índices B-Tree compuestos `(organization_id, id)`. La misma persona puede ser paciente de varias clínicas, y el mismo médico ejercer en más de una.
+  * *Sin particionamiento por clínica*: **no** se usa `PARTITION BY LIST (organization_id)`. Crear una organización tomaría un `AccessExclusiveLock` sobre la tabla padre, bloqueando a todas las clínicas existentes.
+  * *Toda entidad local pertenece a una clínica*: no existen expedientes ni fichas sin `organization_id`. Un usuario que aún no pertenece a ninguna clínica no tiene entidades en este contexto.
 * **Particionamiento por Hash en PostgreSQL**: Aplicado sobre la clave primaria (UUIDv7) para tablas maestras de crecimiento continuo (`Patient`, `Encounter`).
   * *Lógica de Enrutamiento*: PostgreSQL aplica una función hash criptográfica con efecto avalancha y resuelve `hash(UUIDv7) mod N_particiones = residuo`. Esto garantiza una distribución probabilística y estadísticamente uniforme entre particiones, sin sesgar la carga hacia un solo nodo pese a que los UUIDv7 son temporalmente contiguos.
   * *Transparencia en Consultas*: El motor enruta automáticamente las consultas `WHERE id = $1` calculando el hash internamente. **Nunca** hay que pasar el hash ni la partición en la cláusula SQL.

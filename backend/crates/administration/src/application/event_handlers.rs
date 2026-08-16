@@ -16,46 +16,58 @@ const PENDING_MEDICAL_LICENSE: &str = "CMP-PENDIENTE";
 /// Handler del evento `UserCreatedEvent`, ejecutado en segundo plano.
 ///
 /// Aplica las reglas del Bounded Context `administration`:
-/// 1. Si `create_clinic == true`, inicializa la `Organization` (clínica) y el `Practitioner`.
-/// 2. Inicializa siempre el expediente `Patient` asociando la entidad FHIR `Person`.
+/// 1. Si `create_clinic == false`, **no materializa nada**. Toda entidad local de
+///    este contexto pertenece a una clínica, y un usuario que no crea ninguna no
+///    tiene todavía a cuál pertenecer.
+/// 2. Si `create_clinic == true`, inicializa la `Organization`, la ficha
+///    `Practitioner` de su dueño y su expediente `Patient`, los tres colgados de
+///    esa clínica.
 ///
 /// Es una función de aplicación pura: no conoce Apalis ni ningún tipo de
 /// infraestructura. Quien la registra en el worker es `infrastructure/di.rs`.
 ///
 /// **Idempotente por diseño**: la entrega de la cola es *at-least-once*, así que
 /// el mismo evento puede llegar más de una vez. Cada entidad se crea solo si el
-/// `user_id` no la tiene ya.
+/// par `(clínica, usuario)` no la tiene ya.
 pub async fn handle_user_created_event(
     event: UserCreatedEvent,
     state: &AdministrationState,
 ) -> Result<(), ClickCareError> {
     info!("Procesando UserCreatedEvent para user_id={}", event.user_id);
 
-    if event.create_clinic {
-        create_organization_if_absent(&event, state).await?;
-        create_practitioner_if_absent(&event, state).await?;
+    if !event.create_clinic {
+        info!(
+            "El usuario user_id={} no crea clínica; no hay entidades locales que materializar",
+            event.user_id
+        );
+        return Ok(());
     }
 
-    create_patient_if_absent(&event, state).await?;
+    let organization_id = ensure_organization(&event, state).await?;
+    create_practitioner_if_absent(&event, state, organization_id).await?;
+    create_patient_if_absent(&event, state, organization_id).await?;
 
     Ok(())
 }
 
-/// Crea la clínica del usuario propietario, salvo que ya exista.
-async fn create_organization_if_absent(
+/// Devuelve la clínica del usuario propietario, creándola si aún no existe.
+///
+/// Devuelve el identificador en ambos casos porque las entidades locales que se
+/// materializan a continuación necesitan colgar de esa clínica.
+async fn ensure_organization(
     event: &UserCreatedEvent,
     state: &AdministrationState,
-) -> Result<(), ClickCareError> {
-    if state
+) -> Result<Uuid, ClickCareError> {
+    if let Some(organization_id) = state
         .organization_repository
-        .exists_by_owner_user_id(&event.user_id)
+        .find_id_by_owner_user_id(&event.user_id)
         .await?
     {
         info!(
-            "El usuario user_id={} ya tiene una organización; se omite su creación",
+            "El usuario user_id={} ya tiene la organización {organization_id}; se omite su creación",
             event.user_id
         );
-        return Ok(());
+        return Ok(organization_id);
     }
 
     let clinic_name = format!("Clínica de {}", event.person.name().text());
@@ -67,21 +79,22 @@ async fn create_organization_if_absent(
         organization.id, event.user_id
     );
 
-    Ok(())
+    Ok(organization.id)
 }
 
-/// Crea la ficha del profesional de salud, salvo que ya exista.
+/// Crea la ficha del profesional en esa clínica, salvo que ya exista.
 async fn create_practitioner_if_absent(
     event: &UserCreatedEvent,
     state: &AdministrationState,
+    organization_id: Uuid,
 ) -> Result<(), ClickCareError> {
     if state
         .practitioner_repository
-        .exists_by_user_id(&event.user_id)
+        .exists_by_user_id(&organization_id, &event.user_id)
         .await?
     {
         info!(
-            "El usuario user_id={} ya tiene ficha de profesional; se omite su creación",
+            "El usuario user_id={} ya tiene ficha de profesional en la clínica {organization_id}; se omite su creación",
             event.user_id
         );
         return Ok(());
@@ -89,6 +102,7 @@ async fn create_practitioner_if_absent(
 
     let practitioner = Practitioner::new(
         Uuid::now_v7(),
+        organization_id,
         event.user_id,
         PENDING_MEDICAL_LICENSE.to_string(),
         event.person.clone(),
@@ -96,35 +110,41 @@ async fn create_practitioner_if_absent(
 
     state.practitioner_repository.save(&practitioner).await?;
     info!(
-        "Ficha de profesional creada: id={} para user_id={}",
+        "Ficha de profesional creada: id={} en la clínica {organization_id} para user_id={}",
         practitioner.id, event.user_id
     );
 
     Ok(())
 }
 
-/// Crea el expediente del paciente, salvo que ya exista.
+/// Crea el expediente del paciente en esa clínica, salvo que ya exista.
 async fn create_patient_if_absent(
     event: &UserCreatedEvent,
     state: &AdministrationState,
+    organization_id: Uuid,
 ) -> Result<(), ClickCareError> {
     if state
         .patient_repository
-        .exists_by_user_id(&event.user_id)
+        .exists_by_user_id(&organization_id, &event.user_id)
         .await?
     {
         info!(
-            "El usuario user_id={} ya tiene expediente de paciente; se omite su creación",
+            "El usuario user_id={} ya tiene expediente en la clínica {organization_id}; se omite su creación",
             event.user_id
         );
         return Ok(());
     }
 
-    let patient = Patient::new(Uuid::now_v7(), event.user_id, event.person.clone());
+    let patient = Patient::new(
+        Uuid::now_v7(),
+        organization_id,
+        event.user_id,
+        event.person.clone(),
+    );
 
     state.patient_repository.save(&patient).await?;
     info!(
-        "Expediente de paciente creado: id={} para user_id={}",
+        "Expediente de paciente creado: id={} en la clínica {organization_id} para user_id={}",
         patient.id, event.user_id
     );
 
@@ -173,13 +193,16 @@ mod test {
         }
     }
 
+    /// Clínica que el espía reporta cuando simula que el usuario ya tiene una.
+    const EXISTING_ORGANIZATION_ID: Uuid = Uuid::nil();
+
     #[async_trait]
     impl OrganizationRepository for SpyRepository {
-        async fn exists_by_owner_user_id(
+        async fn find_id_by_owner_user_id(
             &self,
             _owner_user_id: &Uuid,
-        ) -> Result<bool, ClickCareError> {
-            Ok(self.already_exists)
+        ) -> Result<Option<Uuid>, ClickCareError> {
+            Ok(self.already_exists.then_some(EXISTING_ORGANIZATION_ID))
         }
 
         async fn save(&self, _organization: &Organization) -> Result<(), ClickCareError> {
@@ -190,7 +213,11 @@ mod test {
 
     #[async_trait]
     impl PatientRepository for SpyRepository {
-        async fn exists_by_user_id(&self, _user_id: &Uuid) -> Result<bool, ClickCareError> {
+        async fn exists_by_user_id(
+            &self,
+            _organization_id: &Uuid,
+            _user_id: &Uuid,
+        ) -> Result<bool, ClickCareError> {
             Ok(self.already_exists)
         }
 
@@ -202,7 +229,11 @@ mod test {
 
     #[async_trait]
     impl PractitionerRepository for SpyRepository {
-        async fn exists_by_user_id(&self, _user_id: &Uuid) -> Result<bool, ClickCareError> {
+        async fn exists_by_user_id(
+            &self,
+            _organization_id: &Uuid,
+            _user_id: &Uuid,
+        ) -> Result<bool, ClickCareError> {
             Ok(self.already_exists)
         }
 
@@ -240,8 +271,11 @@ mod test {
         }
     }
 
+    /// Toda entidad de este contexto pertenece a una clínica. Si el usuario no crea
+    /// ninguna, no hay clínica a la que colgar su expediente y no se materializa nada:
+    /// su expediente aparecerá por demanda cuando una clínica lo registre.
     #[tokio::test]
-    async fn creates_only_the_patient_record_when_the_user_does_not_own_a_clinic() {
+    async fn creates_nothing_when_the_user_does_not_own_a_clinic() {
         let organization = SpyRepository::empty();
         let patient = SpyRepository::empty();
         let practitioner = SpyRepository::empty();
@@ -257,7 +291,11 @@ mod test {
         .await
         .expect("El handler no debió fallar");
 
-        assert_eq!(patient.saved_count(), 1, "Debió crear el expediente");
+        assert_eq!(
+            patient.saved_count(),
+            0,
+            "No debió crear un expediente sin clínica"
+        );
         assert_eq!(
             organization.saved_count(),
             0,

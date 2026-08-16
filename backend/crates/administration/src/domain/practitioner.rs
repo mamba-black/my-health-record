@@ -11,6 +11,12 @@ use uuid::Uuid;
 pub struct Practitioner {
     /// Identificador único del perfil profesional del médico (UUID v7).
     pub id: Uuid,
+    /// Clínica en la que ejerce este profesional (UUID v7).
+    ///
+    /// Discriminador de inquilino: la ficha pertenece a una clínica concreta. Un
+    /// mismo médico que atiende en dos clínicas tiene una ficha en cada una, con
+    /// su propia colegiatura registrada y su propio estado de actividad.
+    pub organization_id: Uuid,
     /// Apuntador débil al usuario global (UUID v7).
     pub user_id: Uuid,
     /// Estado activo del perfil médico.
@@ -26,9 +32,16 @@ pub struct Practitioner {
 }
 
 impl Practitioner {
-    pub fn new(id: Uuid, user_id: Uuid, medical_license_number: String, person: Person) -> Self {
+    pub fn new(
+        id: Uuid,
+        organization_id: Uuid,
+        user_id: Uuid,
+        medical_license_number: String,
+        person: Person,
+    ) -> Self {
         Self {
             id,
+            organization_id,
             user_id,
             active: true,
             medical_license_number,

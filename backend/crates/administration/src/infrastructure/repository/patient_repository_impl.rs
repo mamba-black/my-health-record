@@ -16,6 +16,8 @@ use uuid::Uuid;
 pub struct PatientRecord {
     #[key]
     pub id: uuid::Uuid,
+    /// Discriminador de inquilino: la clínica dueña del expediente.
+    pub organization_id: uuid::Uuid,
     pub user_id: uuid::Uuid,
     pub active: bool,
     pub person: String,
@@ -31,18 +33,27 @@ pub(crate) struct PatientRepositoryImpl {
 
 #[async_trait]
 impl PatientRepository for PatientRepositoryImpl {
-    async fn exists_by_user_id(&self, user_id: &Uuid) -> Result<bool, ClickCareError> {
-        let rows =
-            toasty::sql::query("select 1 from administration.patient where user_id = $1 limit 1")
-                .bind(*user_id)
-                .exec(&mut self.db.clone())
-                .await
-                .map_err(|error| {
-                    error!("Error al consultar el expediente de user_id={user_id}: {error}");
-                    ClickCareError::generic(format!(
-                        "Error al consultar el expediente de user_id={user_id} ({error})"
-                    ))
-                })?;
+    async fn exists_by_user_id(
+        &self,
+        organization_id: &Uuid,
+        user_id: &Uuid,
+    ) -> Result<bool, ClickCareError> {
+        let rows = toasty::sql::query(
+            "select 1 from administration.patient \
+             where organization_id = $1 and user_id = $2 limit 1",
+        )
+        .bind(*organization_id)
+        .bind(*user_id)
+        .exec(&mut self.db.clone())
+        .await
+        .map_err(|error| {
+            error!(
+                "Error al consultar el expediente de user_id={user_id} en la clínica {organization_id}: {error}"
+            );
+            ClickCareError::generic(format!(
+                "Error al consultar el expediente de user_id={user_id} en la clínica {organization_id} ({error})"
+            ))
+        })?;
 
         Ok(!rows.is_empty())
     }
@@ -61,6 +72,7 @@ impl PatientRepository for PatientRepositoryImpl {
 
         toasty::create!(PatientRecord {
             id: patient.id,
+            organization_id: patient.organization_id,
             user_id: patient.user_id,
             active: patient.active,
             person: person,

@@ -312,6 +312,44 @@ mod administration_worker {
         .expect("La consulta bloqueante falló")
     }
 
+    /// Devuelve el `organization_id` de la única fila de `table` asociada a `user_id`.
+    ///
+    /// Existe para verificar el discriminador de inquilino: que las entidades locales
+    /// no solo se persistan, sino que cuelguen de la clínica correcta.
+    async fn organization_id_of(pg_conn: &str, table: &str, user_id: uuid::Uuid) -> uuid::Uuid {
+        let conn_str = pg_conn.to_string();
+        let statement =
+            format!("SELECT organization_id FROM administration.{table} WHERE user_id = $1");
+        tokio::task::spawn_blocking(move || {
+            let mut db_client = ::postgres::Client::connect(&conn_str, ::postgres::NoTls)
+                .expect("Fallo al conectar con Postgres");
+            let row = db_client
+                .query_one(statement.as_str(), &[&user_id])
+                .expect("Fallo al leer el organization_id de administration");
+            row.get::<_, uuid::Uuid>(0)
+        })
+        .await
+        .expect("La consulta bloqueante falló")
+    }
+
+    /// Devuelve el `id` de la organización cuyo propietario es `user_id`.
+    async fn organization_id_owned_by(pg_conn: &str, user_id: uuid::Uuid) -> uuid::Uuid {
+        let conn_str = pg_conn.to_string();
+        tokio::task::spawn_blocking(move || {
+            let mut db_client = ::postgres::Client::connect(&conn_str, ::postgres::NoTls)
+                .expect("Fallo al conectar con Postgres");
+            let row = db_client
+                .query_one(
+                    "SELECT id FROM administration.organization WHERE owner_user_id = $1",
+                    &[&user_id],
+                )
+                .expect("Fallo al leer la organización del propietario");
+            row.get::<_, uuid::Uuid>(0)
+        })
+        .await
+        .expect("La consulta bloqueante falló")
+    }
+
     /// Corre el worker hasta que el job de `user_id` quede en `Done`, o venza el plazo.
     async fn run_worker_until_done(pg_conn: &str, user_id: uuid::Uuid) -> Option<String> {
         let di = administration_di::new(administration_di::DBType::Postgres(Some(
@@ -359,9 +397,13 @@ mod administration_worker {
         user_id
     }
 
+    /// Toda entidad de `administration` pertenece a una clínica. Un usuario que se
+    /// registra sin crear ninguna no tiene a cuál pertenecer, así que el evento se
+    /// encola y se procesa, pero no materializa nada: su expediente aparecerá por
+    /// demanda cuando una clínica lo registre o confirme su primera cita.
     #[rstest]
     #[tokio::test]
-    async fn sign_up_enqueues_event_and_worker_persists_the_patient_record(
+    async fn worker_materializes_nothing_for_a_user_without_a_clinic(
         #[future(awt)] test_env: &'static TestEnv,
     ) {
         // ── 1. Un sign_up debe encolar el evento ─────────────────────────────
@@ -382,29 +424,19 @@ mod administration_worker {
              (último estado observado: {last_status:?})"
         );
 
-        // ── 3. Y debe haber dejado el expediente persistido ──────────────────
-        assert_eq!(
-            count_rows(
-                &test_env.pg_connection_string,
-                "patient",
-                "user_id",
-                user_id
-            )
-            .await,
-            1,
-            "El worker no persistió el expediente de user_id={user_id}"
-        );
-        assert_eq!(
-            count_rows(
-                &test_env.pg_connection_string,
-                "organization",
-                "owner_user_id",
-                user_id
-            )
-            .await,
-            0,
-            "No debió crear una organización: el usuario no es propietario de clínica"
-        );
+        // ── 3. Y no debe haber materializado ninguna entidad local ───────────
+        for (table, column) in [
+            ("patient", "user_id"),
+            ("practitioner", "user_id"),
+            ("organization", "owner_user_id"),
+        ] {
+            assert_eq!(
+                count_rows(&test_env.pg_connection_string, table, column, user_id).await,
+                0,
+                "El usuario user_id={user_id} no creó clínica: \
+                 administration.{table} no debió recibir ninguna fila"
+            );
+        }
     }
 
     #[rstest]
@@ -431,6 +463,19 @@ mod administration_worker {
                 count_rows(&test_env.pg_connection_string, table, column, user_id).await,
                 1,
                 "El worker no persistió administration.{table} para user_id={user_id}"
+            );
+        }
+
+        // El discriminador de inquilino: no basta con que las filas existan, tienen
+        // que colgar de la clínica que se acaba de crear.
+        let organization_id =
+            organization_id_owned_by(&test_env.pg_connection_string, user_id).await;
+
+        for table in ["practitioner", "patient"] {
+            assert_eq!(
+                organization_id_of(&test_env.pg_connection_string, table, user_id).await,
+                organization_id,
+                "administration.{table} de user_id={user_id} no apunta a su clínica"
             );
         }
     }

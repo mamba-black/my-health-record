@@ -8,12 +8,20 @@ use uuid::Uuid;
 /// Define el contrato que la capa de infraestructura debe implementar.
 #[async_trait]
 pub trait PatientRepository: Send + Sync {
-    /// Indica si el usuario indicado ya tiene un expediente de paciente en esta clínica.
+    /// Indica si el usuario indicado ya tiene un expediente **en esa clínica**.
+    ///
+    /// La consulta se acota siempre por `organization_id`: un expediente en otra
+    /// clínica no debe impedir que se cree el de ésta. Sin ese filtro, la primera
+    /// clínica en atender a una persona bloquearía a todas las demás.
     ///
     /// Existe para que el consumo del evento sea idempotente: la entrega es
     /// *at-least-once*, de modo que el mismo `UserCreatedEvent` puede llegar más
     /// de una vez y no debe producir expedientes duplicados.
-    async fn exists_by_user_id(&self, user_id: &Uuid) -> Result<bool, ClickCareError>;
+    async fn exists_by_user_id(
+        &self,
+        organization_id: &Uuid,
+        user_id: &Uuid,
+    ) -> Result<bool, ClickCareError>;
 
     /// Persiste el expediente del paciente junto a su recurso FHIR `Person`.
     async fn save(&self, patient: &Patient) -> Result<(), ClickCareError>;

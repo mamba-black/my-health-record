@@ -3,6 +3,7 @@ use crate::domain::repository::organization_repository::OrganizationRepository;
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;
 use toasty::Db;
+use toasty::stmt::Type;
 use tracing::error;
 use uuid::Uuid;
 
@@ -28,11 +29,15 @@ pub(crate) struct OrganizationRepositoryImpl {
 
 #[async_trait]
 impl OrganizationRepository for OrganizationRepositoryImpl {
-    async fn exists_by_owner_user_id(&self, owner_user_id: &Uuid) -> Result<bool, ClickCareError> {
+    async fn find_id_by_owner_user_id(
+        &self,
+        owner_user_id: &Uuid,
+    ) -> Result<Option<Uuid>, ClickCareError> {
         let rows = toasty::sql::query(
-            "select 1 from administration.organization where owner_user_id = $1 limit 1",
+            "select id from administration.organization where owner_user_id = $1 limit 1",
         )
         .bind(*owner_user_id)
+        .column_types([Type::Uuid])
         .exec(&mut self.db.clone())
         .await
         .map_err(|error| {
@@ -42,7 +47,27 @@ impl OrganizationRepository for OrganizationRepositoryImpl {
             ))
         })?;
 
-        Ok(!rows.is_empty())
+        let Some(row) = rows.into_iter().next() else {
+            return Ok(None);
+        };
+
+        let id_column = row.into_record().fields.into_iter().next().ok_or_else(|| {
+            error!("La consulta de organización de owner_user_id={owner_user_id} no devolvió la columna id");
+            ClickCareError::generic(format!(
+                "La consulta de organización de owner_user_id={owner_user_id} no devolvió la columna id"
+            ))
+        })?;
+
+        let organization_id = Uuid::try_from(id_column).map_err(|error| {
+            error!(
+                "El id de la organización de owner_user_id={owner_user_id} no es un UUID: {error}"
+            );
+            ClickCareError::generic(format!(
+                "El id de la organización de owner_user_id={owner_user_id} no es un UUID ({error})"
+            ))
+        })?;
+
+        Ok(Some(organization_id))
     }
 
     async fn save(&self, organization: &Organization) -> Result<(), ClickCareError> {

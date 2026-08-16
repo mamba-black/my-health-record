@@ -15,6 +15,8 @@ use uuid::Uuid;
 pub struct PractitionerRecord {
     #[key]
     pub id: uuid::Uuid,
+    /// Discriminador de inquilino: la clínica en la que ejerce el profesional.
+    pub organization_id: uuid::Uuid,
     pub user_id: uuid::Uuid,
     pub active: bool,
     pub medical_license_number: String,
@@ -32,17 +34,25 @@ pub(crate) struct PractitionerRepositoryImpl {
 
 #[async_trait]
 impl PractitionerRepository for PractitionerRepositoryImpl {
-    async fn exists_by_user_id(&self, user_id: &Uuid) -> Result<bool, ClickCareError> {
+    async fn exists_by_user_id(
+        &self,
+        organization_id: &Uuid,
+        user_id: &Uuid,
+    ) -> Result<bool, ClickCareError> {
         let rows = toasty::sql::query(
-            "select 1 from administration.practitioner where user_id = $1 limit 1",
+            "select 1 from administration.practitioner \
+             where organization_id = $1 and user_id = $2 limit 1",
         )
+        .bind(*organization_id)
         .bind(*user_id)
         .exec(&mut self.db.clone())
         .await
         .map_err(|error| {
-            error!("Error al consultar la ficha de profesional de user_id={user_id}: {error}");
+            error!(
+                "Error al consultar la ficha de profesional de user_id={user_id} en la clínica {organization_id}: {error}"
+            );
             ClickCareError::generic(format!(
-                "Error al consultar la ficha de profesional de user_id={user_id} ({error})"
+                "Error al consultar la ficha de profesional de user_id={user_id} en la clínica {organization_id} ({error})"
             ))
         })?;
 
@@ -63,6 +73,7 @@ impl PractitionerRepository for PractitionerRepositoryImpl {
 
         toasty::create!(PractitionerRecord {
             id: practitioner.id,
+            organization_id: practitioner.organization_id,
             user_id: practitioner.user_id,
             active: practitioner.active,
             medical_license_number: practitioner.medical_license_number.clone(),

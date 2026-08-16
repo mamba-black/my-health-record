@@ -60,8 +60,15 @@ CREATE TABLE identity.user_account (
 -- demográficas autónomas de cada clínica. El recurso FHIR `Person` se guarda como
 -- JSON en una sola columna para conservar el recurso completo sin aplanarlo.
 --
--- El UNIQUE sobre `user_id` respalda la idempotencia del handler: la entrega de la
--- cola es at-least-once y el mismo evento puede llegar más de una vez.
+-- MULTI-CLÍNICA: los esquemas representan fronteras de dominio FHIR, no inquilinos.
+-- El aislamiento entre clínicas es a nivel de fila, con `organization_id` en cada
+-- tabla local de clínica. No se usa `PARTITION BY LIST`: crear una organización
+-- tomaría un `AccessExclusiveLock` sobre la tabla padre.
+--
+-- La unicidad es **compuesta** `(organization_id, user_id)`, no global sobre
+-- `user_id`: la misma persona puede ser paciente de varias clínicas, y el mismo
+-- médico puede atender en más de una. Además respalda la idempotencia del handler,
+-- porque la entrega de la cola es at-least-once y el mismo evento puede repetirse.
 -- ========================================================================
 
 CREATE TABLE administration.organization
@@ -79,7 +86,8 @@ CREATE TABLE administration.organization
 CREATE TABLE administration.practitioner
 (
     id                     uuid PRIMARY KEY,
-    user_id                uuid        NOT NULL UNIQUE,
+    organization_id        uuid        NOT NULL,
+    user_id                uuid        NOT NULL,
     active                 BOOLEAN     NOT NULL DEFAULT TRUE,
     medical_license_number VARCHAR(50) NOT NULL,
     specialty              VARCHAR(100),
@@ -88,21 +96,35 @@ CREATE TABLE administration.practitioner
     person                 TEXT        NOT NULL,
 
     created_at             TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
-    updated_at             TIMESTAMP            DEFAULT CURRENT_TIMESTAMP
+    updated_at             TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uq_practitioner_org_user UNIQUE (organization_id, user_id),
+    CONSTRAINT fk_practitioner_organization
+        FOREIGN KEY (organization_id) REFERENCES administration.organization (id) ON DELETE CASCADE
 );
+
+-- Índice compuesto B-Tree: toda consulta de este contexto entra acotada por clínica.
+CREATE INDEX idx_practitioner_org_id ON administration.practitioner (organization_id, id);
 
 CREATE TABLE administration.patient
 (
-    id         uuid PRIMARY KEY,
-    user_id    uuid    NOT NULL UNIQUE,
-    active     BOOLEAN NOT NULL DEFAULT TRUE,
+    id              uuid PRIMARY KEY,
+    organization_id uuid    NOT NULL,
+    user_id         uuid    NOT NULL,
+    active          BOOLEAN NOT NULL DEFAULT TRUE,
 
     -- Recurso FHIR R4 Person serializado
-    person     TEXT    NOT NULL,
+    person          TEXT    NOT NULL,
 
-    created_at TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP        DEFAULT CURRENT_TIMESTAMP
+    created_at      TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uq_patient_org_user UNIQUE (organization_id, user_id),
+    CONSTRAINT fk_patient_organization
+        FOREIGN KEY (organization_id) REFERENCES administration.organization (id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_patient_org_id ON administration.patient (organization_id, id);
 
 
 CREATE TABLE clinic

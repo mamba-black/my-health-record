@@ -15,11 +15,16 @@
 ### Réplicas Demográficas Autónomas
 
 * Este contexto **no consulta** a `crates/user` para leer la demografía de una persona: recibe la entidad `Person` completa dentro de `UserCreatedEvent` y construye sus propias entidades locales. Esa réplica es deliberada y mantiene la **autonomía operativa de cada clínica** frente a la caída o la evolución del contexto de identidad.
-* Al procesar el evento, el handler inicializa:
-  * la `Organization` (clínica) y el `Practitioner` (médico) **solo si** `create_clinic == true`;
-  * el expediente `Patient` local **siempre**, asociando la `Person` recibida.
+* Al procesar el evento, el handler inicializa la `Organization` (clínica), la ficha `Practitioner` de su dueño y su expediente `Patient` **solo si** `create_clinic == true`. Si el usuario no crea clínica, **no materializa nada**.
 * El vínculo hacia identidad es un **apuntador débil** (`user_id: Uuid`), nunca una llave foránea ni un `JOIN` entre contextos acotados.
 * La entrega es *at-least-once*: el handler **debe ser idempotente**. Recibir dos veces el mismo `UserCreatedEvent` no puede producir expedientes duplicados.
+
+### Toda Entidad Local Pertenece a una Clínica
+
+* `Patient` y `Practitioner` llevan `organization_id` y **no existen sin él**. No hay expedientes huérfanos: un usuario que todavía no pertenece a ninguna clínica no tiene entidades en este contexto.
+* La misma persona atendida en dos clínicas tiene **dos expedientes distintos**, uno por cada una, que comparten el `user_id` global y nada más. Lo mismo vale para un médico que ejerce en varias.
+* Toda consulta de existencia se acota por `(organization_id, user_id)`, nunca solo por `user_id`. Sin ese filtro, la primera clínica en atender a una persona bloquearía a todas las demás.
+* El discriminador es de fila, no de esquema: los esquemas de Postgres son fronteras de dominio FHIR, no inquilinos.
 
 ---
 
@@ -56,12 +61,21 @@ Los repositorios viven en `src/infrastructure/repository/` e implementan los pue
 | `PractitionerRepository` | `practitioner_repository_impl.rs` | `administration.practitioner` |
 | `PatientRepository` | `patient_repository_impl.rs` | `administration.patient` |
 
+* **`OrganizationRepository` devuelve el id, no un booleano**: `find_id_by_owner_user_id` existe porque quien procesa el evento necesita la clínica para colgar de ella las entidades locales, tanto si acaba de crearla como si ya existía.
+
 * **`Person` se guarda serializado como JSON en una sola columna `TEXT`**, no aplanado en
   columnas sueltas. El expediente conserva el recurso FHIR completo tal como llegó en el
   evento, sin perder campos ni duplicar el modelo de `crates/core`.
-* **`UNIQUE` sobre el apuntador al usuario** (`user_id`, y `owner_user_id` en la
-  organización): respalda en la base de datos la idempotencia que el handler implementa con
-  el par `exists_by_*` / `save`.
+* **`UNIQUE` compuesto `(organization_id, user_id)`**: respalda en la base de datos la
+  idempotencia que el handler implementa con el par `exists_by_*` / `save`, sin impedir que
+  la misma persona exista en varias clínicas. La organización mantiene su `UNIQUE` simple
+  sobre `owner_user_id`. Los índices B-Tree son compuestos `(organization_id, id)`, porque
+  toda consulta de este contexto entra acotada por clínica.
+* **`save` todavía no resuelve conflictos**: `toasty` 0.8.0 no tiene `ON CONFLICT` ni upsert
+  —no aparece en su código fuente—, así que `save` usa `toasty::create!` a secas y dos
+  escrituras concurrentes del mismo par chocarían contra el `UNIQUE` en vez de resolverse.
+  El `ON CONFLICT ... DO NOTHING` que exige la especificación de multi-clínica requiere SQL
+  crudo y queda pendiente.
 * **Toasty no admite nombres de tabla calificados por esquema**: `#[table = "..."]` se
   serializa como un único identificador entrecomillado. Por eso `administration` debe estar
   en el `search_path` de la base de datos, y las consultas SQL crudas sí califican el
