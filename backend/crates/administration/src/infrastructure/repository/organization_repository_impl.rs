@@ -1,5 +1,6 @@
 use crate::domain::organization::Organization;
 use crate::domain::repository::organization_repository::OrganizationRepository;
+use crate::infrastructure::repository::first_uuid_column;
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;
 use toasty::Db;
@@ -47,27 +48,12 @@ impl OrganizationRepository for OrganizationRepositoryImpl {
             ))
         })?;
 
-        let Some(row) = rows.into_iter().next() else {
-            return Ok(None);
-        };
-
-        let id_column = row.into_record().fields.into_iter().next().ok_or_else(|| {
-            error!("La consulta de organización de owner_user_id={owner_user_id} no devolvió la columna id");
-            ClickCareError::generic(format!(
-                "La consulta de organización de owner_user_id={owner_user_id} no devolvió la columna id"
-            ))
-        })?;
-
-        let organization_id = Uuid::try_from(id_column).map_err(|error| {
+        first_uuid_column(rows).map_err(|error| {
             error!(
-                "El id de la organización de owner_user_id={owner_user_id} no es un UUID: {error}"
+                "El id de la organización de owner_user_id={owner_user_id} no es válido: {error}"
             );
-            ClickCareError::generic(format!(
-                "El id de la organización de owner_user_id={owner_user_id} no es un UUID ({error})"
-            ))
-        })?;
-
-        Ok(Some(organization_id))
+            error
+        })
     }
 
     async fn save(&self, organization: &Organization) -> Result<(), ClickCareError> {

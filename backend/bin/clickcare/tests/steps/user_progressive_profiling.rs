@@ -32,6 +32,9 @@ pub async fn given_running_service_and_db() {
 #[when(
     "se envía una solicitud de registro con ID \"{id}\", email \"{email}\", nombre \"{nombre}\", primer apellido \"{primer_apellido}\", segundo apellido \"{segundo_apellido}\", DNI \"{dni}\", teléfono \"{telefono}\", fecha nacimiento \"{fecha_nacimiento}\" y crear clínica \"{crear_clinica}\""
 )]
+// `create_clinic` está deprecado en el contrato; sigue en uso mientras el worker
+// lo consuma desde `UserCreatedEvent`.
+#[allow(deprecated)]
 pub async fn when_sign_up_request_sent(
     sign_up_context: &mut SignUpContext,
     id: String,

@@ -85,6 +85,10 @@ mod mapper {
     use user::application::command::CreateUserCommand;
 
     impl From<SignUpRequest> for CreateUserCommand {
+        // `create_clinic` está deprecado en el contrato: la creación de clínica es
+        // ahora `ClinicApi.CreateClinic`. Se sigue leyendo mientras el worker de
+        // `administration` lo consuma desde `UserCreatedEvent`.
+        #[allow(deprecated)]
         fn from(sign_up_request: SignUpRequest) -> Self {
             CreateUserCommand {
                 id_token: sign_up_request.id_token,
@@ -128,6 +132,9 @@ mod test {
     use uuid::Uuid;
 
     static INIT: Once = Once::new();
+    // `create_clinic` está deprecado en el contrato; sigue en uso mientras el worker
+    // lo consuma desde `UserCreatedEvent`.
+    #[allow(deprecated)]
     static SIGN_UP_REQUEST: LazyLock<SignUpRequest> = LazyLock::new(|| SignUpRequest {
         id_token: "".to_string(),
         user_id: "".to_string(),

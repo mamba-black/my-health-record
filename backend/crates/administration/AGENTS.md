@@ -28,6 +28,23 @@
 
 ---
 
+## Casos de Uso
+
+| Caso de uso | Archivo | Qué hace |
+| :--- | :--- | :--- |
+| `CreateClinicUseCase` | `src/application/create_clinic_usecase.rs` | Crea la `Organization`, deja al solicitante como propietario y materializa su `Practitioner` en esa misma clínica. |
+
+* **Crear una clínica es una operación propia, no un efecto del alta.** Un usuario ya
+  registrado puede crear una clínica; `SignUpRequest.create_clinic` quedó deprecado en
+  `proto/api.proto` y sobrevive solo mientras el worker lo consuma desde `UserCreatedEvent`.
+* **La demografía del propietario llega en el comando.** Este contexto no consulta al de
+  identidad para construir el `Practitioner`: recibe los campos planos y los mapea a
+  `Person` dentro de la capa de aplicación, igual que hace con el evento.
+* **Idempotente**: si el usuario ya posee una clínica se devuelve la existente en lugar de
+  crear una segunda, y la respuesta lo indica con `already_existed`.
+
+---
+
 ## Consumo de Eventos
 
 Este contexto acotado consume `UserCreatedEvent` de forma asíncrona desde `crates/user`,
@@ -61,7 +78,7 @@ Los repositorios viven en `src/infrastructure/repository/` e implementan los pue
 | `PractitionerRepository` | `practitioner_repository_impl.rs` | `administration.practitioner` |
 | `PatientRepository` | `patient_repository_impl.rs` | `administration.patient` |
 
-* **`OrganizationRepository` devuelve el id, no un booleano**: `find_id_by_owner_user_id` existe porque quien procesa el evento necesita la clínica para colgar de ella las entidades locales, tanto si acaba de crearla como si ya existía.
+* **Los puertos devuelven el id, no un booleano**: `find_id_by_owner_user_id` y `find_id_by_user_id` existen porque quien crea la clínica o procesa el evento necesita el identificador para colgar de él las entidades locales y para responder, tanto si acaba de crearlo como si ya existía. `PatientRepository` conserva `exists_by_user_id` porque nadie necesita todavía el id del expediente.
 
 * **`Person` se guarda serializado como JSON en una sola columna `TEXT`**, no aplanado en
   columnas sueltas. El expediente conserva el recurso FHIR completo tal como llegó en el

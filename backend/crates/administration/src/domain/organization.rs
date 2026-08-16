@@ -19,11 +19,11 @@ pub struct Organization {
 }
 
 impl Organization {
-    pub fn new(id: Uuid, name: String, owner_user_id: Uuid) -> Self {
+    pub fn new(id: Uuid, name: String, tax_id: Option<String>, owner_user_id: Uuid) -> Self {
         Self {
             id,
             name,
-            tax_id: None,
+            tax_id,
             owner_user_id,
             active: true,
         }

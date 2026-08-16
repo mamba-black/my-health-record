@@ -71,7 +71,7 @@ async fn ensure_organization(
     }
 
     let clinic_name = format!("Clínica de {}", event.person.name().text());
-    let organization = Organization::new(Uuid::now_v7(), clinic_name, event.user_id);
+    let organization = Organization::new(Uuid::now_v7(), clinic_name, None, event.user_id);
 
     state.organization_repository.save(&organization).await?;
     info!(
@@ -90,8 +90,9 @@ async fn create_practitioner_if_absent(
 ) -> Result<(), ClickCareError> {
     if state
         .practitioner_repository
-        .exists_by_user_id(&organization_id, &event.user_id)
+        .find_id_by_user_id(&organization_id, &event.user_id)
         .await?
+        .is_some()
     {
         info!(
             "El usuario user_id={} ya tiene ficha de profesional en la clínica {organization_id}; se omite su creación",
@@ -196,6 +197,9 @@ mod test {
     /// Clínica que el espía reporta cuando simula que el usuario ya tiene una.
     const EXISTING_ORGANIZATION_ID: Uuid = Uuid::nil();
 
+    /// Ficha de profesional que el espía reporta cuando simula que ya existe.
+    const EXISTING_PRACTITIONER_ID: Uuid = Uuid::nil();
+
     #[async_trait]
     impl OrganizationRepository for SpyRepository {
         async fn find_id_by_owner_user_id(
@@ -229,12 +233,12 @@ mod test {
 
     #[async_trait]
     impl PractitionerRepository for SpyRepository {
-        async fn exists_by_user_id(
+        async fn find_id_by_user_id(
             &self,
             _organization_id: &Uuid,
             _user_id: &Uuid,
-        ) -> Result<bool, ClickCareError> {
-            Ok(self.already_exists)
+        ) -> Result<Option<Uuid>, ClickCareError> {
+            Ok(self.already_exists.then_some(EXISTING_PRACTITIONER_ID))
         }
 
         async fn save(&self, _practitioner: &Practitioner) -> Result<(), ClickCareError> {

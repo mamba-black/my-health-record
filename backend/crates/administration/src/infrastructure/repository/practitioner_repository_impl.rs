@@ -1,8 +1,10 @@
 use crate::domain::practitioner::Practitioner;
 use crate::domain::repository::practitioner_repository::PractitionerRepository;
+use crate::infrastructure::repository::first_uuid_column;
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;
 use toasty::Db;
+use toasty::stmt::Type;
 use tracing::error;
 use uuid::Uuid;
 
@@ -34,17 +36,18 @@ pub(crate) struct PractitionerRepositoryImpl {
 
 #[async_trait]
 impl PractitionerRepository for PractitionerRepositoryImpl {
-    async fn exists_by_user_id(
+    async fn find_id_by_user_id(
         &self,
         organization_id: &Uuid,
         user_id: &Uuid,
-    ) -> Result<bool, ClickCareError> {
+    ) -> Result<Option<Uuid>, ClickCareError> {
         let rows = toasty::sql::query(
-            "select 1 from administration.practitioner \
+            "select id from administration.practitioner \
              where organization_id = $1 and user_id = $2 limit 1",
         )
         .bind(*organization_id)
         .bind(*user_id)
+        .column_types([Type::Uuid])
         .exec(&mut self.db.clone())
         .await
         .map_err(|error| {
@@ -56,7 +59,12 @@ impl PractitionerRepository for PractitionerRepositoryImpl {
             ))
         })?;
 
-        Ok(!rows.is_empty())
+        first_uuid_column(rows).map_err(|error| {
+            error!(
+                "El id de la ficha de user_id={user_id} en la clínica {organization_id} no es un UUID: {error}"
+            );
+            error
+        })
     }
 
     async fn save(&self, practitioner: &Practitioner) -> Result<(), ClickCareError> {

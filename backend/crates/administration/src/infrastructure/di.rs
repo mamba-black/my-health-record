@@ -1,3 +1,4 @@
+use crate::application::create_clinic_usecase::{CreateClinicUseCase, CreateClinicUseCaseImpl};
 use crate::application::event_handlers::handle_user_created_event;
 use crate::application::state::AdministrationState;
 use crate::domain::repository::organization_repository::OrganizationRepository;
@@ -40,6 +41,7 @@ pub enum DBType {
 pub struct DI {
     storage: PostgresStorage<UserCreatedEvent>,
     state: AdministrationState,
+    pub create_clinic_use_case: Arc<dyn CreateClinicUseCase>,
 }
 
 // ─── Constructores ───────────────────────────────────────────────────────────
@@ -57,7 +59,15 @@ pub async fn new(dbtype: DBType) -> Result<DI, ClickCareError> {
     let storage = build_event_storage(&url).await?;
     let state = build_state(&url).await?;
 
-    Ok(DI { storage, state })
+    let create_clinic_use_case = Arc::new(CreateClinicUseCaseImpl {
+        state: state.clone(),
+    });
+
+    Ok(DI {
+        storage,
+        state,
+        create_clinic_use_case,
+    })
 }
 
 impl DI {

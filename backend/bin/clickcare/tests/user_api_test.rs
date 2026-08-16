@@ -1,6 +1,9 @@
 mod scenarios;
 mod steps;
 
+use administration::infrastructure::di as administration_di;
+use clickcare::infrastructure::grpc::clinic_api_impl::ClinicApiImpl;
+use clickcare::infrastructure::grpc::clinic_api_server::ClinicApiServer;
 use clickcare::infrastructure::grpc::user_api_impl::UserApiImpl;
 use clickcare::infrastructure::grpc::user_api_server::UserApiServer;
 use clickcare::infrastructure::log::init_logger;
@@ -152,11 +155,23 @@ pub async fn test_env() -> &'static TestEnv {
                     let addr = listener.local_addr().unwrap();
                     let grpc_addr = format!("http://{}", addr);
 
-                    let service = UserApiImpl::new(Some(conn_str)).await.unwrap();
+                    let service = UserApiImpl::new(Some(conn_str.clone())).await.unwrap();
+
+                    // `administration` se cablea con su propio DI: el harness no
+                    // construye tipos ajenos, solo pide el caso de uso ya resuelto.
+                    let administration = administration_di::new(
+                        administration_di::DBType::Postgres(Some(conn_str)),
+                    )
+                    .await
+                    .unwrap();
+                    let clinic_service = ClinicApiImpl::new(std::sync::Arc::clone(
+                        &administration.create_clinic_use_case,
+                    ));
 
                     tokio::spawn(async move {
                         Server::builder()
                             .add_service(UserApiServer::new(service))
+                            .add_service(ClinicApiServer::new(clinic_service))
                             .serve_with_incoming(tokio_stream::wrappers::TcpListenerStream::new(
                                 listener,
                             ))
@@ -388,6 +403,9 @@ mod administration_worker {
     }
 
     /// Registra un usuario por gRPC y devuelve su `user_id`.
+    // `create_clinic` está deprecado en el contrato; sigue en uso mientras el worker
+    // lo consuma desde `UserCreatedEvent`.
+    #[allow(deprecated)]
     async fn sign_up(test_env: &TestEnv, create_clinic: bool) -> uuid::Uuid {
         let mut client = UserApiClient::connect(test_env.grpc_addr.clone())
             .await
@@ -526,5 +544,142 @@ mod sign_in {
     async fn sign_in_fails_when_id_token_is_invalid(#[future(awt)] test_env: &'static TestEnv) {
         let _ = test_env;
         todo!("sign_in con id_token inválido/expirado -> esperar status Unauthenticated");
+    }
+}
+
+/// Verifica `ClinicApi.CreateClinic`: la creación de clínica como operación propia,
+/// independiente del alta, disponible para un usuario que ya existe.
+mod clinic_api {
+    use crate::{TestEnv, test_env};
+    use clickcare::infrastructure::grpc::CreateClinicRequest;
+    use clickcare::infrastructure::grpc::clinic_api_client::ClinicApiClient;
+    use rstest::*;
+
+    async fn create_clinic(
+        test_env: &TestEnv,
+        owner_user_id: &str,
+        name: &str,
+    ) -> Result<tonic::Response<clickcare::infrastructure::grpc::CreateClinicResponse>, tonic::Status>
+    {
+        let mut client = ClinicApiClient::connect(test_env.grpc_addr.clone())
+            .await
+            .expect("Fallo al conectar con el servidor gRPC");
+
+        client
+            .create_clinic(tonic::Request::new(CreateClinicRequest {
+                owner_user_id: owner_user_id.to_string(),
+                name: name.to_string(),
+                tax_id: Some("20512345678".to_string()),
+                given_name: "Ana".into(),
+                family_name: Some("Ramírez".into()),
+                email: Some(format!("ana-{owner_user_id}@example.com")),
+                ..Default::default()
+            }))
+            .await
+    }
+
+    /// Cuenta filas de una tabla de `administration` por columna y valor UUID.
+    async fn count_by(pg_conn: &str, table: &str, column: &str, value: uuid::Uuid) -> i64 {
+        let conn_str = pg_conn.to_string();
+        let statement = format!("SELECT count(*) FROM administration.{table} WHERE {column} = $1");
+        tokio::task::spawn_blocking(move || {
+            let mut db_client = ::postgres::Client::connect(&conn_str, ::postgres::NoTls)
+                .expect("Fallo al conectar con Postgres");
+            db_client
+                .query_one(statement.as_str(), &[&value])
+                .expect("Fallo al contar filas")
+                .get::<_, i64>(0)
+        })
+        .await
+        .expect("La consulta bloqueante falló")
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn creates_the_clinic_and_the_owner_practitioner(
+        #[future(awt)] test_env: &'static TestEnv,
+    ) {
+        let owner_user_id = uuid::Uuid::now_v7();
+
+        let response = create_clinic(test_env, &owner_user_id.to_string(), "Clínica San Borja")
+            .await
+            .expect("La creación de la clínica falló")
+            .into_inner();
+
+        assert!(
+            !response.already_existed,
+            "Es la primera clínica de este usuario"
+        );
+
+        let organization_id: uuid::Uuid = response
+            .organization_id
+            .parse()
+            .expect("El organization_id devuelto no es un UUID");
+
+        assert_eq!(
+            count_by(
+                &test_env.pg_connection_string,
+                "organization",
+                "owner_user_id",
+                owner_user_id
+            )
+            .await,
+            1,
+            "No se persistió la clínica"
+        );
+        assert_eq!(
+            count_by(
+                &test_env.pg_connection_string,
+                "practitioner",
+                "organization_id",
+                organization_id
+            )
+            .await,
+            1,
+            "No se materializó la ficha del propietario en su clínica"
+        );
+    }
+
+    /// Reintentar no crea una segunda clínica: devuelve la misma.
+    #[rstest]
+    #[tokio::test]
+    async fn returns_the_same_clinic_when_called_twice(#[future(awt)] test_env: &'static TestEnv) {
+        let owner_user_id = uuid::Uuid::now_v7().to_string();
+
+        let first = create_clinic(test_env, &owner_user_id, "Clínica Lince")
+            .await
+            .expect("La primera creación falló")
+            .into_inner();
+        let second = create_clinic(test_env, &owner_user_id, "Clínica Lince")
+            .await
+            .expect("La segunda creación falló")
+            .into_inner();
+
+        assert!(!first.already_existed);
+        assert!(
+            second.already_existed,
+            "La segunda debió reportar que ya existía"
+        );
+        assert_eq!(
+            first.organization_id, second.organization_id,
+            "Debió devolver la misma clínica, no crear otra"
+        );
+        assert_eq!(first.practitioner_id, second.practitioner_id);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn rejects_an_owner_user_id_that_is_not_uuid_v7(
+        #[future(awt)] test_env: &'static TestEnv,
+    ) {
+        let status = create_clinic(
+            test_env,
+            "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "Clínica X",
+        )
+        .await
+        .expect_err("Debió rechazar un UUID v4");
+
+        assert_eq!(status.code(), tonic::Code::InvalidArgument);
     }
 }

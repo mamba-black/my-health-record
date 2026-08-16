@@ -1,3 +1,4 @@
+pub mod clinic_api_impl;
 pub mod patient_api_impl;
 pub mod user_api_impl;
 
