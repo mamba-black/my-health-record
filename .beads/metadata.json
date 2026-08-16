@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "my_health_record",
+  "project_id": "ab2fe0cb-0302-48f5-aa13-d3bafa5dca9e"
+}
