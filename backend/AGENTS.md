@@ -27,8 +27,8 @@
 ## 1. Principios Arquitectónicos
 
 ### 1.1. Diseño Guiado por el Dominio (DDD) y Alineación con HL7 FHIR
-- **Protección y Límites del Dominio**: Adherencia estricta a DDD para proteger el dominio y mantener los contextos acotados aislados. Las entidades del dominio se modelan siguiendo **HL7 FHIR R4**.
-- **Arquitectura de Crates por Bounded Contexts (C4 Nivel 2)**:
+* **Protección y Límites del Dominio**: Adherencia estricta a DDD para proteger el dominio y mantener los contextos acotados aislados. Las entidades del dominio se modelan siguiendo **HL7 FHIR R4**.
+* **Arquitectura de Crates por Bounded Contexts (C4 Nivel 2)**:
   Estructurado en un **Cargo Workspace por Contextos Acotados** (`members = ["crates/*"]`), donde cada Bounded Context es una Crate de Rust (`backend/crates/<dominio>`) que agrupa sus Entidades y Agregados (`src/domain/`).
 
 ```mermaid
@@ -38,7 +38,7 @@ flowchart TB
     classDef db fill:#0d1117,stroke:#4a5568,stroke-width:1.5px,color:#cbd5e0;
 
     subgraph Boundaries["ClickCare - Ecosistema Ampliado FHIR (Cargo Workspace)"]
-        
+
         subgraph Domain_User["crates/user (Identity & Security)"]
             direction TB
             UserC["<b>Auth & Account</b><br/><i>Gestión de credenciales e identidades.</i><br/>──────<br/><b>[Foundation / Security]</b><br/>• User / Auth Account<br/>• Person"]:::container
@@ -201,16 +201,16 @@ flowchart TB
 ```
 
 ### 1.2. Decisiones de Diseño y Convenciones
-- **Estrategia de Identificadores (UUIDv7)**: Claves primarias e IDs de usuario utilizan UUIDv7 (`Uuid::now_v7()`) para ordenamiento temporal optimizado en índices B-Tree de PostgreSQL.
-- **Particionamiento por Hash en PostgreSQL**: Aplicado sobre la clave primaria (UUIDv7) para tablas maestras de crecimiento continuo (`Patient`, `Encounter`).
-  - *Lógica de Enrutamiento*: PostgreSQL aplica una función hash criptográfica con efecto avalancha y resuelve `hash(UUIDv7) mod N_particiones = residuo`. Esto garantiza una distribución probabilística y estadísticamente uniforme entre particiones, sin sesgar la carga hacia un solo nodo pese a que los UUIDv7 son temporalmente contiguos.
-  - *Transparencia en Consultas*: El motor enruta automáticamente las consultas `WHERE id = $1` calculando el hash internamente. **Nunca** hay que pasar el hash ni la partición en la cláusula SQL.
-- **Criterios de Depreciación vs. Conservación Histórica**: La estrategia de particionamiento se elige según el ciclo de vida del dato, no por tamaño.
-  - *Conservación Permanente (Hash sobre la clave)*: Tablas maestras e historiales normativos obligatorios (`Patient`, `Encounter`, `Composition` y el resto del archivo legal).
-  - *Depreciación / Archivo por Fecha (Range Partitioning)*: Entidades transaccionales que caducan o pierden valor operativo pasado su ciclo de retención legal o financiero (`Invoice`, `AuditEvent`, `Communication`).
-- **Encapsulamiento del Dominio y Convención C-GETTER**: Getters de solo lectura autogenerados vía `derive_getters::Getters` (o `bon::Builder` para construcción fluente).
-- **Tipos de Datos FHIR Compartidos (`backend/crates/core`)**: `HumanName`, `ContactPoint`, `Identifier`, `Address`, `Attachment` se definen en `app_core::domain::fhir`.
-- **Arquitectura Orientada a Eventos con Apalis (`apalis-postgres`)**: `backend/crates/user` emite `UserCreatedEvent` para sincronización asíncrona at-least-once entre Bounded Contexts.
+* **Estrategia de Identificadores (UUIDv7)**: Claves primarias e IDs de usuario utilizan UUIDv7 (`Uuid::now_v7()`) para ordenamiento temporal optimizado en índices B-Tree de PostgreSQL.
+* **Particionamiento por Hash en PostgreSQL**: Aplicado sobre la clave primaria (UUIDv7) para tablas maestras de crecimiento continuo (`Patient`, `Encounter`).
+  * *Lógica de Enrutamiento*: PostgreSQL aplica una función hash criptográfica con efecto avalancha y resuelve `hash(UUIDv7) mod N_particiones = residuo`. Esto garantiza una distribución probabilística y estadísticamente uniforme entre particiones, sin sesgar la carga hacia un solo nodo pese a que los UUIDv7 son temporalmente contiguos.
+  * *Transparencia en Consultas*: El motor enruta automáticamente las consultas `WHERE id = $1` calculando el hash internamente. **Nunca** hay que pasar el hash ni la partición en la cláusula SQL.
+* **Criterios de Depreciación vs. Conservación Histórica**: La estrategia de particionamiento se elige según el ciclo de vida del dato, no por tamaño.
+  * *Conservación Permanente (Hash sobre la clave)*: Tablas maestras e historiales normativos obligatorios (`Patient`, `Encounter`, `Composition` y el resto del archivo legal).
+  * *Depreciación / Archivo por Fecha (Range Partitioning)*: Entidades transaccionales que caducan o pierden valor operativo pasado su ciclo de retención legal o financiero (`Invoice`, `AuditEvent`, `Communication`).
+* **Encapsulamiento del Dominio y Convención C-GETTER**: Getters de solo lectura autogenerados vía `derive_getters::Getters` (o `bon::Builder` para construcción fluente).
+* **Tipos de Datos FHIR Compartidos (`backend/crates/core`)**: `HumanName`, `ContactPoint`, `Identifier`, `Address`, `Attachment` se definen en `app_core::domain::fhir`.
+* **Arquitectura Orientada a Eventos con Apalis (`apalis-postgres`)**: `backend/crates/user` emite `UserCreatedEvent` para sincronización asíncrona at-least-once entre Bounded Contexts.
 
 ---
 
@@ -235,8 +235,8 @@ bin/clickcare (Punto de entrada gRPC + orquestación de workers)
 ```
 
 Corolarios que se derivan de esta regla y se verifican en compilación:
-- La capa de aplicación **no** conoce tipos de infraestructura. Un handler de evento es una función pura (`async fn(Evento) -> Result<(), ClickCareError>`); es la infraestructura quien lo registra en Apalis.
-- Cada crate instancia **solo sus propias estructuras**, dentro de su `src/infrastructure/di.rs`. `backend/bin/clickcare` orquesta ciclos de vida, no construye tipos ajenos ni declara sus dependencias (p. ej. `apalis` no figura en `backend/bin/clickcare/Cargo.toml`).
+* La capa de aplicación **no** conoce tipos de infraestructura. Un handler de evento es una función pura (`async fn(Evento) -> Result<(), ClickCareError>`); es la infraestructura quien lo registra en Apalis.
+* Cada crate instancia **solo sus propias estructuras**, dentro de su `src/infrastructure/di.rs`. `backend/bin/clickcare` orquesta ciclos de vida, no construye tipos ajenos ni declara sus dependencias (p. ej. `apalis` no figura en `backend/bin/clickcare/Cargo.toml`).
 
 #### Flujo de una Solicitud a través de las Capas
 
@@ -340,46 +340,46 @@ Leyenda de estado: ✅ implementado · 🚧 andamiaje (miembro del workspace, si
 ## 3. Reglas Principales y Mandatos Técnicos
 
 1. **Inyección de Dependencias Estricta (DI)**
-   - Inyectar dependencias como `Arc<dyn Trait + Send + Sync>`.
-   - Nunca instanciar tipos concretos fuera de `src/infrastructure/di.rs` **ni fuera del crate dueño del tipo**: cada contexto acotado construye únicamente sus propias estructuras. Es el compilador —y no la disciplina de quien cablea— el que debe garantizar el límite.
-   - El cableado de producción se resuelve **siempre** dentro de `di::new(DBType)`, decidiendo a partir del `DBType`. Está prohibido usar `DIOverrides` para seleccionar una implementación real.
-   - `DIOverrides` (campos `Option<Arc<dyn Trait>>`) existe **exclusivamente** para sustituir dependencias por mocks en pruebas, vía `di::new_with_overrides`. Si una dependencia se resuelve por override en producción, la regla está rota.
-   - Los tipos genéricos de una librería de infraestructura no cruzan la frontera del crate: se encapsulan detrás de un método del `DI` (p. ej. `DI::run_worker()`), nunca se devuelven al llamador.
-   - **Aislamiento transaccional**: la cola de eventos y los repositorios de entidades abren pools independientes. Encolar un evento jamás comparte conexión ni transacción con la persistencia del agregado.
+   * Inyectar dependencias como `Arc<dyn Trait + Send + Sync>`.
+   * Nunca instanciar tipos concretos fuera de `src/infrastructure/di.rs` **ni fuera del crate dueño del tipo**: cada contexto acotado construye únicamente sus propias estructuras. Es el compilador —y no la disciplina de quien cablea— el que debe garantizar el límite.
+   * El cableado de producción se resuelve **siempre** dentro de `di::new(DBType)`, decidiendo a partir del `DBType`. Está prohibido usar `DIOverrides` para seleccionar una implementación real.
+   * `DIOverrides` (campos `Option<Arc<dyn Trait>>`) existe **exclusivamente** para sustituir dependencias por mocks en pruebas, vía `di::new_with_overrides`. Si una dependencia se resuelve por override en producción, la regla está rota.
+   * Los tipos genéricos de una librería de infraestructura no cruzan la frontera del crate: se encapsulan detrás de un método del `DI` (p. ej. `DI::run_worker()`), nunca se devuelven al llamador.
+   * **Aislamiento transaccional**: la cola de eventos y los repositorios de entidades abren pools independientes. Encolar un evento jamás comparte conexión ni transacción con la persistencia del agregado.
 
 2. **Requerimiento Obligatorio de UUID v7**
-   - Todas las Llaves Primarias e IDs de usuario **deben** ser UUID v7 (`Uuid::now_v7()`).
-   - Los constructores de dominio validan el cumplimiento de UUID v7 y devuelven `ClickCareError` en formatos inválidos.
+   * Todas las Llaves Primarias e IDs de usuario **deben** ser UUID v7 (`Uuid::now_v7()`).
+   * Los constructores de dominio validan el cumplimiento de UUID v7 y devuelven `ClickCareError` en formatos inválidos.
 
 3. **Manejo de Errores y Observabilidad**
-   - Utilizar `ClickCareError` (`backend/crates/core`) para errores transversales.
-   - Utilizar `thiserror` para errores específicos del dominio y propagar con `?`.
-   - **Cero `unwrap()` en rutas de producción**.
-   - Utilizar macros de `tracing` (`info!`, `warn!`, `error!`), **nunca** usar `println!`.
+   * Utilizar `ClickCareError` (`backend/crates/core`) para errores transversales.
+   * Utilizar `thiserror` para errores específicos del dominio y propagar con `?`.
+   * **Cero `unwrap()` en rutas de producción**.
+   * Utilizar macros de `tracing` (`info!`, `warn!`, `error!`), **nunca** usar `println!`.
 
 4. **Scripts y Herramientas**
-   - Para automatización, despliegue o scripts auxiliares, **preferir scripts de Nushell (`.nu`)**.
+   * Para automatización, despliegue o scripts auxiliares, **preferir scripts de Nushell (`.nu`)**.
 
 5. **Protobuf API como Única Fuente de Verdad**
-   - `backend/proto/api.proto` define todos los endpoints externos. Cualquier cambio en la API debe comenzar actualizando las definiciones `.proto`.
+   * `backend/proto/api.proto` define todos los endpoints externos. Cualquier cambio en la API debe comenzar actualizando las definiciones `.proto`.
 
 6. **Marca de Commits Generados por Antigravity**
-   - Cada vez que se realice un commit con cambios producidos por la IA (**Antigravity**), el mensaje del commit **debe incluir obligatoriamente la marca `[antigravity]`** (por ejemplo: `feat(user): [antigravity] implement user domain model` o en el cuerpo/footer del commit).
+   * Cada vez que se realice un commit con cambios producidos por la IA (**Antigravity**), el mensaje del commit **debe incluir obligatoriamente la marca `[antigravity]`** (por ejemplo: `feat(user): [antigravity] implement user domain model` o en el cuerpo/footer del commit).
 
 7. **Nomenclatura Clara y Descriptiva**
-   - Seguir los estándares idiomáticos de Rust: `PascalCase` para tipos y traits, `snake_case` para funciones, variables y módulos, `SCREAMING_SNAKE_CASE` para constantes.
-   - Los nombres de variables, funciones y campos **deben ser descriptivos y completos**. Está **estrictamente prohibido** el uso de variables de una sola letra (`e`, `f`, `u`, `r`) o de abreviaturas crípticas formadas por iniciales.
-   - Aplica también a los bindings efímeros: usar `|error|`, `|user|`, `|row|` en cierres y `match`, nunca `|e|` ni `|u|`. Toda variable debe comunicar explícitamente su propósito.
+   * Seguir los estándares idiomáticos de Rust: `PascalCase` para tipos y traits, `snake_case` para funciones, variables y módulos, `SCREAMING_SNAKE_CASE` para constantes.
+   * Los nombres de variables, funciones y campos **deben ser descriptivos y completos**. Está **estrictamente prohibido** el uso de variables de una sola letra (`e`, `f`, `u`, `r`) o de abreviaturas crípticas formadas por iniciales.
+   * Aplica también a los bindings efímeros: usar `|error|`, `|user|`, `|row|` en cierres y `match`, nunca `|e|` ni `|u|`. Toda variable debe comunicar explícitamente su propósito.
 
 8. **Patrón Builder Seguro (`bon`)**
-   - Para entidades con campos internos calculados a partir de otros (p. ej. `HumanName.text`), **no derivar `Builder` directamente sobre la struct**: eso permite a un llamador externo construir el objeto saltándose las reglas de cálculo y romper el invariante.
-   - En su lugar, aplicar `#[bon::bon]` sobre el bloque `impl` y exponer `#[builder] pub fn builder(...)` que **delegue en el Smart Constructor `new()`**, el único autorizado a calcular los campos derivados.
-   - Los getters de solo lectura se autogeneran con `derive_getters::Getters` siguiendo la convención `C-GETTER` de las API Guidelines de Rust; los campos permanecen privados.
+   * Para entidades con campos internos calculados a partir de otros (p. ej. `HumanName.text`), **no derivar `Builder` directamente sobre la struct**: eso permite a un llamador externo construir el objeto saltándose las reglas de cálculo y romper el invariante.
+   * En su lugar, aplicar `#[bon::bon]` sobre el bloque `impl` y exponer `#[builder] pub fn builder(...)` que **delegue en el Smart Constructor `new()`**, el único autorizado a calcular los campos derivados.
+   * Los getters de solo lectura se autogeneran con `derive_getters::Getters` siguiendo la convención `C-GETTER` de las API Guidelines de Rust; los campos permanecen privados.
 
 9. **Frontera entre DTOs de la API y Entidades de Dominio**
-   - Los DTOs de `backend/proto/api.proto` son planos y modelados para el frontend y los proveedores OAuth (`provider_avatar_url`, `id_token`, `provider_id`). Es correcto que lo sean.
-   - Los Casos de Uso **deben** mapear explícitamente esos campos planos a Value Objects ricos del dominio FHIR (`Person`, `HumanName`, `ContactPoint`) al entrar a la capa de dominio.
-   - **Nunca filtrar estructuras planas de DTOs dentro de entidades de dominio**, ni al revés: una entidad de dominio no se serializa tal cual hacia la API.
+   * Los DTOs de `backend/proto/api.proto` son planos y modelados para el frontend y los proveedores OAuth (`provider_avatar_url`, `id_token`, `provider_id`). Es correcto que lo sean.
+   * Los Casos de Uso **deben** mapear explícitamente esos campos planos a Value Objects ricos del dominio FHIR (`Person`, `HumanName`, `ContactPoint`) al entrar a la capa de dominio.
+   * **Nunca filtrar estructuras planas de DTOs dentro de entidades de dominio**, ni al revés: una entidad de dominio no se serializa tal cual hacia la API.
 
 ---
 
@@ -409,52 +409,74 @@ cargo clippy --workspace -- -D warnings
 
 ## 5. Guía de Testing
 
-- **Frameworks**: `rstest` para pruebas parametrizadas, `rstest-bdd` (+ `rstest-bdd-macros`) para escenarios BDD en Gherkin, `fake` para generar datos de prueba, `testcontainers` / `testcontainers-modules` para integración contra una base de datos real.
-- **Mocks**: definir las implementaciones mock dentro de `infrastructure/di.rs` (p. ej. `MockUserRepositoryImpl`) e inyectarlas vía `DIOverrides` en `di::new_with_overrides`. Ver §3.1: los overrides son **solo** para pruebas.
-- **Pruebas unitarias**: en un bloque `#[cfg(test)] mod test { ... }` al final del archivo fuente.
-- **Pruebas de integración**: en `tests/` de la crate correspondiente (p. ej. `backend/bin/clickcare/tests/`).
-- **Escenarios BDD**: los `.feature` en Gherkin viven en `backend/bin/clickcare/tests/features/`, los bindings en `tests/scenarios/` y las implementaciones de pasos en `tests/steps/`.
-- **Nombres de prueba**: `snake_case` descriptivo que enuncie el escenario completo — `sign_up_fails_with_invalid_user_id`, no `test_signup`.
-- **Casos parametrizados**: `#[rstest]` con anotaciones `#[case::<etiqueta>]` para que cada escenario quede identificado en la salida.
-- **Pruebas asíncronas**: anotar con `#[rstest]` **y** `#[tokio::test]`; usar `#[future(awt)]` para fixtures asíncronos.
-- **Estado compartido**: `tokio::sync::OnceCell` para singletons asíncronos en módulos de prueba.
-- **Contenedor de Postgres**: se levanta **una sola vez por suite** vía `testcontainers` sobre Podman, con el esquema de `backend/ddl/table.sql` copiado a `/docker-entrypoint-initdb.d/`. La exclusión mutua entre procesos de prueba se resuelve con `flock`, y el desmontaje se registra con `#[dtor]`.
-- **Antes de dar por terminado un cambio**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings` y `cargo test --workspace` deben pasar.
+* **Frameworks**: `rstest` para pruebas parametrizadas, `rstest-bdd` (+ `rstest-bdd-macros`) para escenarios BDD en Gherkin, `fake` para generar datos de prueba, `testcontainers` / `testcontainers-modules` para integración contra una base de datos real.
+* **Mocks**: definir las implementaciones mock dentro de `infrastructure/di.rs` (p. ej. `MockUserRepositoryImpl`) e inyectarlas vía `DIOverrides` en `di::new_with_overrides`. Ver §3.1: los overrides son **solo** para pruebas.
+* **Pruebas unitarias**: en un bloque `#[cfg(test)] mod test { ... }` al final del archivo fuente.
+* **Pruebas de integración**: en `tests/` de la crate correspondiente (p. ej. `backend/bin/clickcare/tests/`).
+* **Escenarios BDD**: los `.feature` en Gherkin viven en `backend/bin/clickcare/tests/features/`, los bindings en `tests/scenarios/` y las implementaciones de pasos en `tests/steps/`.
+* **Nombres de prueba**: `snake_case` descriptivo que enuncie el escenario completo — `sign_up_fails_with_invalid_user_id`, no `test_signup`.
+* **Casos parametrizados**: `#[rstest]` con anotaciones `#[case::<etiqueta>]` para que cada escenario quede identificado en la salida.
+* **Pruebas asíncronas**: anotar con `#[rstest]` **y** `#[tokio::test]`; usar `#[future(awt)]` para fixtures asíncronos.
+* **Estado compartido**: `tokio::sync::OnceCell` para singletons asíncronos en módulos de prueba.
+* **Contenedor de Postgres**: se levanta **una sola vez por suite** vía `testcontainers` sobre Podman, con el esquema de `backend/ddl/table.sql` copiado a `/docker-entrypoint-initdb.d/`. La exclusión mutua entre procesos de prueba se resuelve con `flock`, y el desmontaje se registra con `#[dtor]`.
+* **Antes de dar por terminado un cambio**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings` y `cargo test --workspace` deben pasar.
 
 ---
 
 ## 6. Commits y Pull Requests
 
-- **Estilo de commit**: [Conventional Commits](https://www.conventionalcommits.org/) — `feat:`, `fix:`, `chore:`, `test:`, `refactor:`, `docs:`, con el contexto acotado como *scope*.
+* **Estilo de commit**: [Conventional Commits](https://www.conventionalcommits.org/) — `feat:`, `fix:`, `chore:`, `test:`, `refactor:`, `docs:`, con el contexto acotado como *scope*.
+
   ```
   feat(user): [antigravity] add UUID v7 validation to CreateUserUseCase
   fix(user): return AlreadyExists status on duplicate user sign-up
   docs(agents): restore domain rules lost in the modular refactor
   ```
-- **Marca obligatoria**: todo commit con cambios producidos por la IA lleva `[antigravity]` (ver §3.6).
-- **Alcance**: un commit por cambio lógico. No mezclar refactor y funcionalidad.
-- **PRs**: apuntan a la rama `develop`. Incluir qué cambió y por qué, y enlazar el issue `bd` correspondiente.
-- **Seguimiento de tareas**: se usa `bd` (beads) para **todo** el seguimiento. No crear listas TODO en markdown.
+* **Marca obligatoria**: todo commit con cambios producidos por la IA lleva `[antigravity]` (ver §3.6).
+* **Alcance**: un commit por cambio lógico. No mezclar refactor y funcionalidad.
+* **PRs**: apuntan a la rama `develop`. Incluir qué cambió y por qué, y enlazar el issue `bd` correspondiente.
+* **Seguimiento de tareas**: se usa `bd` (beads) para **todo** el seguimiento. No crear listas TODO en markdown.
 
 ---
 
 ## 7. Entorno e Infraestructura Local
 
-- **Variable requerida**: `PG_URL` (URL de conexión a PostgreSQL), cargada desde `.env` vía `dotenvy`. Si no está definida, el DI cae al valor por defecto `postgres://user:password@localhost:5432`.
-- **Secretos**: **no commitear credenciales**. Usar un `.env.example` como plantilla y mantener `.env` fuera del control de versiones.
-- **Servicios locales**: `backend/devops/postgres.yaml` y `backend/devops/tempo.yaml` levantan los servicios; `backend/devops/simulate_telemetry.nu` genera telemetría de prueba.
-- **Esquema SQL**: `backend/ddl/table.sql` (modelo en `backend/ddl/schema.dbml`). Las columnas de clave primaria usan `uuidv7()` como valor por defecto.
-- **Cola de eventos**: el esquema `apalis` lo crean las migraciones embebidas de `apalis-postgres` al construir el DI (`PostgresStorage::setup`). No se versiona en `backend/ddl/`.
-- **Servidor**: escucha en `[::1]:50051` con soporte gRPC-Web y reflexión habilitada.
+* **Variable requerida**: `PG_URL` (URL de conexión a PostgreSQL), cargada desde `.env` vía `dotenvy`. Si no está definida, el DI cae al valor por defecto `postgres://user:password@localhost:5432`.
+* **Secretos**: **no commitear credenciales**. Usar un `.env.example` como plantilla y mantener `.env` fuera del control de versiones.
+* **Servicios locales**: `backend/devops/postgres.yaml` y `backend/devops/tempo.yaml` levantan los servicios; `backend/devops/simulate_telemetry.nu` genera telemetría de prueba.
+* **Esquema SQL**: `backend/ddl/table.sql` (modelo en `backend/ddl/schema.dbml`). Las columnas de clave primaria usan `uuidv7()` como valor por defecto.
+* **Cola de eventos**: el esquema `apalis` lo crean las migraciones embebidas de `apalis-postgres` al construir el DI (`PostgresStorage::setup`). No se versiona en `backend/ddl/`.
+* **Servidor**: escucha en `[::1]:50051` con soporte gRPC-Web y reflexión habilitada.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:970c3bf2 -->
+## Beads Issue Tracker
+
+This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
+
+### Quick Reference
+
+```bash
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --claim  # Claim work
+bd close <id>         # Complete work
+```
+
+### Rules
+
+* Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
+* Run `bd prime` for detailed command reference and session close protocol
+* Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
+
+**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See <https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md> for details and anti-patterns.
+
 ## Agent Context Profiles
 
 The managed Beads block is task-tracking guidance, not permission to override repository, user, or orchestrator instructions.
 
-- **Conservative (default)**: Use `bd` for task tracking. Do not run git commits, git pushes, or Dolt remote sync unless explicitly asked. At handoff, report changed files, validation, and suggested next commands.
-- **Minimal**: Keep tool instruction files as pointers to `bd prime`; use the same conservative git policy unless active instructions say otherwise.
-- **Team-maintainer**: Only when the repository explicitly opts in, agents may close beads, run quality gates, commit, and push as part of session close. A current "do not commit" or "do not push" instruction still wins.
+* **Conservative (default)**: Use `bd` for task tracking. Do not run git commits, git pushes, or Dolt remote sync unless explicitly asked. At handoff, report changed files, validation, and suggested next commands.
+* **Minimal**: Keep tool instruction files as pointers to `bd prime`; use the same conservative git policy unless active instructions say otherwise.
+* **Team-maintainer**: Only when the repository explicitly opts in, agents may close beads, run quality gates, commit, and push as part of session close. A current "do not commit" or "do not push" instruction still wins.
 
 ## Session Completion
 
@@ -464,6 +486,7 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 2. **Run quality gates** (if code changed) - Tests, linters, builds
 3. **Update issue status** - Close finished work, update in-progress items
 4. **Handle git/sync by active profile**:
+
    ```bash
    # Conservative/minimal/default: report status and proposed commands; wait for approval.
    git status
@@ -474,11 +497,11 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
    git push
    git status
    ```
+
 5. **Hand off** - Summarize changes, validation, issue status, and any blocked sync/commit/push step
 
 **Critical rules:**
-- Explicit user or orchestrator instructions override this Beads block.
-- Do not commit or push without clear authority from the active profile or the current user request.
-- If a required sync or push is blocked, stop and report the exact command and error.
+* Explicit user or orchestrator instructions override this Beads block.
+* Do not commit or push without clear authority from the active profile or the current user request.
+* If a required sync or push is blocked, stop and report the exact command and error.
 <!-- END BEADS INTEGRATION -->
-
