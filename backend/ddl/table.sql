@@ -1,6 +1,29 @@
-DROP SCHEMA IF EXISTS identity;
+DROP SCHEMA IF EXISTS identity CASCADE;
 CREATE SCHEMA identity;
-ALTER DATABASE postgres SET search_path TO identity, public;
+
+DROP SCHEMA IF EXISTS administration CASCADE;
+CREATE SCHEMA administration;
+
+-- Toasty no admite nombres de tabla calificados por esquema (`#[table = "..."]` se
+-- serializa como un único identificador entrecomillado), así que los esquemas de los
+-- contextos acotados deben ser alcanzables por `search_path`.
+--
+-- El nombre de la base se resuelve con `current_database()` en lugar de escribirse a
+-- mano: en el contenedor de pruebas es `postgres`, pero en un entorno gestionado (Neon)
+-- es otro, y un nombre fijo dejaría el `search_path` sin aplicar en silencio.
+--
+-- Nota: `administration.patient` precede a la tabla legada `public.patient`, que ya no
+-- usa ningún código Rust.
+--
+-- `ALTER DATABASE` solo afecta a las sesiones nuevas, no a la que ejecuta este script.
+DO $$
+BEGIN
+    EXECUTE format(
+        'ALTER DATABASE %I SET search_path TO identity, administration, public',
+        current_database()
+    );
+END
+$$;
 
 DROP TABLE IF EXISTS patient_search;
 DROP TABLE IF EXISTS patient;
@@ -27,6 +50,58 @@ CREATE TABLE identity.user_account (
     phone           VARCHAR(20),
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- ========================================================================
+-- Bounded Context: administration (crates/administration)
+--
+-- El worker de Apalis consume `UserCreatedEvent` y materializa aquí las réplicas
+-- demográficas autónomas de cada clínica. El recurso FHIR `Person` se guarda como
+-- JSON en una sola columna para conservar el recurso completo sin aplanarlo.
+--
+-- El UNIQUE sobre `user_id` respalda la idempotencia del handler: la entrega de la
+-- cola es at-least-once y el mismo evento puede llegar más de una vez.
+-- ========================================================================
+
+CREATE TABLE administration.organization
+(
+    id            uuid PRIMARY KEY,
+    name          VARCHAR(200) NOT NULL,
+    tax_id        VARCHAR(20),
+    owner_user_id uuid         NOT NULL UNIQUE,
+    active        BOOLEAN      NOT NULL DEFAULT TRUE,
+
+    created_at    TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP             DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE administration.practitioner
+(
+    id                     uuid PRIMARY KEY,
+    user_id                uuid        NOT NULL UNIQUE,
+    active                 BOOLEAN     NOT NULL DEFAULT TRUE,
+    medical_license_number VARCHAR(50) NOT NULL,
+    specialty              VARCHAR(100),
+
+    -- Recurso FHIR R4 Person serializado
+    person                 TEXT        NOT NULL,
+
+    created_at             TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
+    updated_at             TIMESTAMP            DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE administration.patient
+(
+    id         uuid PRIMARY KEY,
+    user_id    uuid    NOT NULL UNIQUE,
+    active     BOOLEAN NOT NULL DEFAULT TRUE,
+
+    -- Recurso FHIR R4 Person serializado
+    person     TEXT    NOT NULL,
+
+    created_at TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP        DEFAULT CURRENT_TIMESTAMP
 );
 
 

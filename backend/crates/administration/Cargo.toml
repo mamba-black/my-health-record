@@ -15,6 +15,7 @@ app_core = { path = "../core", package = "core" }
 thiserror.workspace = true
 async-trait.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 uuid.workspace = true
 bon.workspace = true
 derive-getters.workspace = true
@@ -22,3 +23,8 @@ log.workspace = true
 tracing.workspace = true
 apalis.workspace = true
 apalis-postgres.workspace = true
+toasty.workspace = true
+jiff.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }

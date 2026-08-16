@@ -287,12 +287,57 @@ mod administration_worker {
         .flatten()
     }
 
-    #[rstest]
-    #[tokio::test]
-    async fn sign_up_enqueues_event_and_worker_processes_it(
-        #[future(awt)] test_env: &'static TestEnv,
-    ) {
-        // ── 1. Un sign_up debe encolar el evento ─────────────────────────────
+    /// Cuenta las filas de una tabla de `administration` asociadas a `user_id`.
+    ///
+    /// `owner_column` existe porque la organización referencia al usuario como
+    /// `owner_user_id` y las otras dos como `user_id`.
+    async fn count_rows(
+        pg_conn: &str,
+        table: &str,
+        owner_column: &str,
+        user_id: uuid::Uuid,
+    ) -> i64 {
+        let conn_str = pg_conn.to_string();
+        let statement =
+            format!("SELECT count(*) FROM administration.{table} WHERE {owner_column} = $1");
+        tokio::task::spawn_blocking(move || {
+            let mut db_client = ::postgres::Client::connect(&conn_str, ::postgres::NoTls)
+                .expect("Fallo al conectar con Postgres");
+            let row = db_client
+                .query_one(statement.as_str(), &[&user_id])
+                .expect("Fallo al contar las filas de administration");
+            row.get::<_, i64>(0)
+        })
+        .await
+        .expect("La consulta bloqueante falló")
+    }
+
+    /// Corre el worker hasta que el job de `user_id` quede en `Done`, o venza el plazo.
+    async fn run_worker_until_done(pg_conn: &str, user_id: uuid::Uuid) -> Option<String> {
+        let di = administration_di::new(administration_di::DBType::Postgres(Some(
+            pg_conn.to_string(),
+        )))
+        .await
+        .expect("Fallo al construir el DI de administration");
+
+        let worker = tokio::spawn(di.run_worker());
+
+        let deadline = std::time::Instant::now() + Duration::from_secs(15);
+        let mut last_status = None;
+        while std::time::Instant::now() < deadline {
+            last_status = job_status(pg_conn, user_id).await;
+            if last_status.as_deref() == Some("Done") {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        worker.abort();
+
+        last_status
+    }
+
+    /// Registra un usuario por gRPC y devuelve su `user_id`.
+    async fn sign_up(test_env: &TestEnv, create_clinic: bool) -> uuid::Uuid {
         let mut client = UserApiClient::connect(test_env.grpc_addr.clone())
             .await
             .expect("Fallo al conectar con el servidor gRPC");
@@ -305,10 +350,22 @@ mod administration_worker {
                 user_id: user_id.to_string(),
                 email: format!("worker-{nonce}@example.com"),
                 given_name: "Worker".into(),
+                create_clinic,
                 ..Default::default()
             }))
             .await;
         assert!(response.is_ok(), "El sign_up falló: {response:?}");
+
+        user_id
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn sign_up_enqueues_event_and_worker_persists_the_patient_record(
+        #[future(awt)] test_env: &'static TestEnv,
+    ) {
+        // ── 1. Un sign_up debe encolar el evento ─────────────────────────────
+        let user_id = sign_up(test_env, false).await;
 
         let status = job_status(&test_env.pg_connection_string, user_id).await;
         assert!(
@@ -317,31 +374,65 @@ mod administration_worker {
         );
 
         // ── 2. El worker debe consumirlo hasta dejarlo en 'Done' ─────────────
-        let di = administration_di::new(administration_di::DBType::Postgres(Some(
-            test_env.pg_connection_string.clone(),
-        )))
-        .await
-        .expect("Fallo al construir el DI de administration");
-
-        let worker = tokio::spawn(di.run_worker());
-
-        let deadline = std::time::Instant::now() + Duration::from_secs(15);
-        let mut last_status = None;
-        while std::time::Instant::now() < deadline {
-            last_status = job_status(&test_env.pg_connection_string, user_id).await;
-            if last_status.as_deref() == Some("Done") {
-                break;
-            }
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
-        worker.abort();
-
+        let last_status = run_worker_until_done(&test_env.pg_connection_string, user_id).await;
         assert_eq!(
             last_status.as_deref(),
             Some("Done"),
             "El worker de administration no procesó el evento de user_id={user_id} \
              (último estado observado: {last_status:?})"
         );
+
+        // ── 3. Y debe haber dejado el expediente persistido ──────────────────
+        assert_eq!(
+            count_rows(
+                &test_env.pg_connection_string,
+                "patient",
+                "user_id",
+                user_id
+            )
+            .await,
+            1,
+            "El worker no persistió el expediente de user_id={user_id}"
+        );
+        assert_eq!(
+            count_rows(
+                &test_env.pg_connection_string,
+                "organization",
+                "owner_user_id",
+                user_id
+            )
+            .await,
+            0,
+            "No debió crear una organización: el usuario no es propietario de clínica"
+        );
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn worker_persists_organization_and_practitioner_for_a_clinic_owner(
+        #[future(awt)] test_env: &'static TestEnv,
+    ) {
+        let user_id = sign_up(test_env, true).await;
+
+        let last_status = run_worker_until_done(&test_env.pg_connection_string, user_id).await;
+        assert_eq!(
+            last_status.as_deref(),
+            Some("Done"),
+            "El worker no procesó el evento de user_id={user_id} \
+             (último estado observado: {last_status:?})"
+        );
+
+        for (table, column) in [
+            ("organization", "owner_user_id"),
+            ("practitioner", "user_id"),
+            ("patient", "user_id"),
+        ] {
+            assert_eq!(
+                count_rows(&test_env.pg_connection_string, table, column, user_id).await,
+                1,
+                "El worker no persistió administration.{table} para user_id={user_id}"
+            );
+        }
     }
 }
 

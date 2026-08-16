@@ -5,7 +5,7 @@
 * **Responsabilidad**: Gestión de expedientes de pacientes, profesionales de salud (con colegiatura CMP/COP), locaciones/consultorios y oferta de servicios sanitarios.
 * **Grupos FHIR**: FHIR Individuals / FHIR Entities.
 * **Recursos FHIR Mapeados**: `Patient`, `Practitioner`, `Organization` (HL7 FHIR R4). `Location` y `HealthcareService` están previstos y aún no implementados.
-* **Módulos de Dominio (`src/domain/`)**: `organization.rs`, `patient.rs`, `practitioner.rs`.
+* **Módulos de Dominio (`src/domain/`)**: `organization.rs`, `patient.rs`, `practitioner.rs`, `repository/`.
 * **Proyección / Apuntador Débil**: Apunta débilmente a `user_id` (UUIDv7).
 
 ---
@@ -29,12 +29,43 @@ Este contexto acotado consume `UserCreatedEvent` de forma asíncrona desde `crat
 usando `apalis-postgres` sobre la cola `UserCreatedEvent::QUEUE` (`"user.created"`).
 
 * **Handler**: `src/application/event_handlers.rs::handle_user_created_event`. Es una función
-  de aplicación pura: no conoce Apalis ni tipos de infraestructura.
+  de aplicación pura con la firma `async fn(UserCreatedEvent, &AdministrationState)`: no
+  conoce Apalis ni tipos de infraestructura. `AdministrationState`
+  (`src/application/state.rs`) solo agrupa los tres puertos de repositorio.
 * **Worker**: `src/infrastructure/di.rs`. `di::new(DBType)` prepara el schema `apalis` y
   devuelve un `DI`; `DI::run_worker()` construye y ejecuta el worker sin exponer los tipos
-  genéricos de `WorkerBuilder` fuera del crate.
-* **Aislamiento transaccional**: el worker abre su **propio** pool, exclusivo de la cola. No
-  comparte conexión ni transacción con los repositorios de entidades de ningún contexto.
+  genéricos de `WorkerBuilder` fuera del crate. El handler se registra envuelto en un cierre
+  que extrae el estado del `Data<AdministrationState>` de Apalis, de modo que el extractor
+  nunca entra en la capa de aplicación.
+* **Aislamiento transaccional**: `di::new` abre **dos conexiones independientes** a la misma
+  base de datos — una exclusiva de la cola (`PgPool` de `apalis-postgres`) y otra para los
+  repositorios de entidades (`toasty::Db`). Consumir un evento nunca comparte pool ni
+  transacción con la persistencia del agregado.
+
+---
+
+## Persistencia
+
+Los repositorios viven en `src/infrastructure/repository/` e implementan los puertos de
+`src/domain/repository/`. Las tablas están en el esquema **`administration`** de Postgres
+(`ddl/table.sql`).
+
+| Puerto de dominio | Implementación | Tabla |
+| :--- | :--- | :--- |
+| `OrganizationRepository` | `organization_repository_impl.rs` | `administration.organization` |
+| `PractitionerRepository` | `practitioner_repository_impl.rs` | `administration.practitioner` |
+| `PatientRepository` | `patient_repository_impl.rs` | `administration.patient` |
+
+* **`Person` se guarda serializado como JSON en una sola columna `TEXT`**, no aplanado en
+  columnas sueltas. El expediente conserva el recurso FHIR completo tal como llegó en el
+  evento, sin perder campos ni duplicar el modelo de `crates/core`.
+* **`UNIQUE` sobre el apuntador al usuario** (`user_id`, y `owner_user_id` en la
+  organización): respalda en la base de datos la idempotencia que el handler implementa con
+  el par `exists_by_*` / `save`.
+* **Toasty no admite nombres de tabla calificados por esquema**: `#[table = "..."]` se
+  serializa como un único identificador entrecomillado. Por eso `administration` debe estar
+  en el `search_path` de la base de datos, y las consultas SQL crudas sí califican el
+  esquema de forma explícita.
 
 ---
 

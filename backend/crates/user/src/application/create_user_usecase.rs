@@ -86,8 +86,7 @@ impl UseCase for CreateUserUseCaseImpl {
         if let Err(e) = self.event_publisher.publish_user_created(event).await {
             error!(
                 "No se pudo publicar UserCreatedEvent para user_id={}: {}",
-                user.id,
-                e
+                user.id, e
             );
         }
 
