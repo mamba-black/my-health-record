@@ -1,12 +1,9 @@
 use crate::application::{CreateUserUseCase, CreateUserUseCaseImpl};
-use crate::domain::repository::clinic_repository::ClinicRepository;
 use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::User;
 use app_core::domain::fhir::Identifier;
 
 use crate::infrastructure::event::apalis_publisher::ApalisEventPublisher;
-use crate::infrastructure::repository::clinic_repository_impl::ClinicRepositoryImpl;
-use crate::infrastructure::repository::emitter_impl::EmitterImpl;
 use crate::infrastructure::repository::user_repository_impl::{UserAccount, UserRepositoryImpl};
 use app_core::domain::error::ClickCareError;
 use app_core::domain::event::{EventPublisher, LoggingEventPublisher};
@@ -16,7 +13,6 @@ use std::env::var;
 use std::sync::Arc;
 use toasty::{Db, models};
 use tokio::sync::Mutex;
-use tokio::sync::broadcast::channel;
 use tracing::debug;
 
 // ─── DI container ────────────────────────────────────────────────────────────
@@ -25,7 +21,6 @@ pub struct DI {
     pub create_user_use_case: Arc<dyn CreateUserUseCase>,
     #[allow(dead_code)]
     pub user_repository: Arc<dyn UserRepository>,
-    pub clinic_repository: Arc<dyn ClinicRepository>,
     pub event_publisher: Arc<dyn EventPublisher>,
 }
 
@@ -34,7 +29,6 @@ pub struct DI {
 #[derive(Default)]
 pub struct DIOverrides {
     pub user_repository: Option<Arc<dyn UserRepository>>,
-    pub clinic_repository: Option<Arc<dyn ClinicRepository>>,
     pub event_publisher: Option<Arc<dyn EventPublisher>>,
 }
 
@@ -63,17 +57,6 @@ pub async fn new_with_overrides(
         build_user_repository(db_url.as_deref()).await?
     };
 
-    // ── clinic_repository ────────────────────────────────────────────────────
-    let clinic_repository: Arc<dyn ClinicRepository> =
-        if let Some(repo) = overrides.clinic_repository {
-            repo
-        } else {
-            let (sender, _receiver) = channel::<User>(100);
-            Arc::new(ClinicRepositoryImpl {
-                user_emitter: Box::new(EmitterImpl { sender }),
-            })
-        };
-
     // ── event_publisher ──────────────────────────────────────────────────────
     let event_publisher: Arc<dyn EventPublisher> = if let Some(publ) = overrides.event_publisher {
         publ
@@ -88,14 +71,12 @@ pub async fn new_with_overrides(
     // ── use cases ────────────────────────────────────────────────────────────
     let create_user_use_case = Arc::new(CreateUserUseCaseImpl {
         user_repository: Arc::clone(&user_repository),
-        clinic_repository: Arc::clone(&clinic_repository),
         event_publisher: Arc::clone(&event_publisher),
     });
 
     Ok(DI {
         create_user_use_case,
         user_repository,
-        clinic_repository,
         event_publisher,
     })
 }

@@ -263,7 +263,18 @@ mod administration_worker {
     use clickcare::infrastructure::grpc::SignUpRequest;
     use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
     use rstest::*;
+    use std::sync::LazyLock;
     use std::time::Duration;
+
+    /// Serializa los tests que levantan un worker.
+    ///
+    /// Los dos comparten la misma cola de Apalis. Corriendo en paralelo, el worker de
+    /// un test puede tomar el job del otro y, al abortarse su tarea al terminar, dejarlo
+    /// bloqueado sin llegar nunca a `Done`: el otro test agota su plazo esperando un job
+    /// que ya nadie procesa. Con el lock, cada worker vive lo suficiente para terminar
+    /// lo que tomó.
+    static WORKER_LOCK: LazyLock<tokio::sync::Mutex<()>> =
+        LazyLock::new(|| tokio::sync::Mutex::new(()));
 
     /// Consulta el estado del job encolado para `user_id`, o `None` si aún no existe.
     async fn job_status(pg_conn: &str, user_id: uuid::Uuid) -> Option<String> {
@@ -352,6 +363,8 @@ mod administration_worker {
 
     /// Corre el worker hasta que el job de `user_id` quede en `Done`, o venza el plazo.
     async fn run_worker_until_done(pg_conn: &str, user_id: uuid::Uuid) -> Option<String> {
+        let _worker_guard = WORKER_LOCK.lock().await;
+
         let di = administration_di::new(administration_di::DBType::Postgres(Some(
             pg_conn.to_string(),
         )))

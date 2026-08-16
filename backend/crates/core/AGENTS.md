@@ -12,7 +12,11 @@
 | `domain/error.rs` | `ClickCareError`, el error transversal del sistema. |
 | `domain/event.rs` | `DomainEvent`, el puerto `EventPublisher`, `UserCreatedEvent` y `LoggingEventPublisher`. |
 | `domain/fhir/` | Value Objects FHIR compartidos: `person.rs`, `human_name.rs`, `contact_point.rs`, `identifier.rs`. |
-| `domain/repository/emitter.rs` | Puerto `Emitter` para difusión in-process. |
+
+> La difusión entre contextos acotados se hace **solo** por `EventPublisher` sobre la
+> cola de Apalis. No hay ningún puerto de difusión in-process: un canal en memoria no
+> sobrevive al reinicio del proceso y no da la garantía *at-least-once* que la
+> sincronización entre contextos necesita.
 
 ---
 

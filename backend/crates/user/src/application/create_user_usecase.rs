@@ -2,7 +2,6 @@ use crate::application::create_user_usecase::command::CreateUserError::{
     UnknownError, UserAlreadyExists,
 };
 use crate::application::create_user_usecase::command::*;
-use crate::domain::repository::clinic_repository::ClinicRepository;
 use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::Identifier::DNI;
 use crate::domain::user::User;
@@ -20,7 +19,6 @@ pub trait CreateUserUseCase:
 
 pub(crate) struct CreateUserUseCaseImpl {
     pub(crate) user_repository: Arc<dyn UserRepository>,
-    pub(crate) clinic_repository: Arc<dyn ClinicRepository>,
     pub(crate) event_publisher: Arc<dyn EventPublisher>,
 }
 
@@ -64,18 +62,8 @@ impl UseCase for CreateUserUseCaseImpl {
 
         self.user_repository.save_user(&user).await?;
 
-        if user.is_owner {
-            self.clinic_repository
-                .create_clinic_for_user(&user)
-                .await
-                .map_err(|e| {
-                    UnknownError(ClickCareError::generic(format!(
-                        "Error en crear la clinica para el usuario ({})",
-                        e
-                    )))
-                })?;
-        }
-
+        // La clínica del propietario no se crea aquí: es `crates/administration` quien
+        // la materializa al consumir este evento, dentro de su propio contexto acotado.
         let event = UserCreatedEvent {
             user_id: user.id,
             person: user.person.clone(),
@@ -83,10 +71,10 @@ impl UseCase for CreateUserUseCaseImpl {
         };
         // El usuario ya está persistido: una caída de la cola no debe convertirse en
         // un error de registro para el cliente. Se reporta y se sigue adelante.
-        if let Err(e) = self.event_publisher.publish_user_created(event).await {
+        if let Err(error) = self.event_publisher.publish_user_created(event).await {
             error!(
                 "No se pudo publicar UserCreatedEvent para user_id={}: {}",
-                user.id, e
+                user.id, error
             );
         }
 
