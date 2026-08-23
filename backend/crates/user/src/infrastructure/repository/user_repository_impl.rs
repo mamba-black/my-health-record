@@ -1,6 +1,7 @@
 use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::User;
 use app_core::domain::error::ClickCareError;
+use app_core::domain::fhir::Identifier;
 use async_trait::async_trait;
 use log::{debug, error};
 use toasty::Db;
@@ -32,24 +33,22 @@ pub(crate) struct UserRepositoryImpl {
 
 #[async_trait]
 impl UserRepository for UserRepositoryImpl {
-    async fn exist_user_by_document(
-        &self,
-        document_type: &str,
-        document_value: &str,
-    ) -> Result<bool, ClickCareError> {
-        debug!("user_id: {}", document_value);
+    async fn exist_user_by_document(&self, identifier: Identifier) -> Result<bool, ClickCareError> {
+        debug!("user_id: {}", identifier);
+
+        let Identifier::DNI(dni) = identifier;
         // FIXME: Corregir esto para buscar por documento
         let exist = toasty::sql::query(
             "select 1 from identity.user_account where document_type = $1 and document_value = $2",
         )
-        .bind(document_type)
-        .bind(document_value)
+        .bind("DNI")
+        .bind(dni.clone())
         .exec(&mut self.db.clone())
         .await
         .map_err(|e| {
             error!(
                 "Error desconocido al tratar de buscar el user_account con id:{} ({})",
-                document_value, e
+                dni, e
             );
             ClickCareError::generic(e.to_string())
         })?;

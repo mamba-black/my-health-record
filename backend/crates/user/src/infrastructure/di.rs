@@ -131,19 +131,12 @@ pub struct MockUserRepositoryImpl {
 
 #[async_trait]
 impl UserRepository for MockUserRepositoryImpl {
-    async fn exist_user_by_document(
-        &self,
-        document_type: &str,
-        document_value: &str,
-    ) -> Result<bool, ClickCareError> {
+    async fn exist_user_by_document(&self, identifier: Identifier) -> Result<bool, ClickCareError> {
         let users = self.saved_users.lock().await;
-        let exists = users.iter().any(|u| {
-            if let Some(Identifier::DNI(ref val)) = u.person.identifier {
-                document_type == "DNI" && val == document_value
-            } else {
-                false
-            }
-        });
+
+        let exists = users
+            .iter()
+            .any(|user| user.person.identifier.as_ref() == Some(&identifier));
 
         Ok(exists)
     }
@@ -152,7 +145,7 @@ impl UserRepository for MockUserRepositoryImpl {
         let users = self.saved_users.lock().await;
         users
             .iter()
-            .find(|u| u.id.to_string() == user_id)
+            .find(|user| user.id.to_string() == user_id)
             .cloned()
             .ok_or_else(|| {
                 ClickCareError::generic(format!(
