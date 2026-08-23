@@ -12,10 +12,14 @@ use tonic::transport::Server;
 use tonic_web::GrpcWebLayer;
 use tracing::info;
 
+pub mod cli;
 pub mod grpc;
 pub mod log;
 
-pub async fn start_server(url: Option<String>) -> Result<(), ClickCareError> {
+pub async fn start_server(
+    url: Option<String>,
+    enable_administration_worker: bool,
+) -> Result<(), ClickCareError> {
     let addr = "[::1]:50051".parse().map_err(|e| {
         ClickCareError::generic(format!("Error al parsear la direccion del servidor: {}", e))
     })?;
@@ -41,12 +45,20 @@ pub async fn start_server(url: Option<String>) -> Result<(), ClickCareError> {
         .add_service(reflection_server)
         .serve_with_shutdown(addr, shutdown_signal());
 
-    // Si cualquiera de los dos termina, el proceso completo baja de forma ordenada
-    // en lugar de quedar sirviendo gRPC sin worker (o al revés).
-    tokio::select! {
-        result = server => result
-            .map_err(|e| ClickCareError::generic(format!("Error al iniciar el servidor: {}", e)))?,
-        result = administration.run_worker() => result?,
+    if enable_administration_worker {
+        info!("Iniciando servidor gRPC y worker de administración...");
+        // Si cualquiera de los dos termina, el proceso completo baja de forma ordenada
+        // en lugar de quedar sirviendo gRPC sin worker (o al revés).
+        tokio::select! {
+            result = server => result
+                .map_err(|e| ClickCareError::generic(format!("Error al iniciar el servidor: {}", e)))?,
+            result = administration.run_worker() => result?,
+        }
+    } else {
+        info!("Iniciando servidor gRPC (worker de administración deshabilitado)...");
+        server
+            .await
+            .map_err(|e| ClickCareError::generic(format!("Error al iniciar el servidor: {}", e)))?;
     }
 
     Ok(())

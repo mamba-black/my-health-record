@@ -18,6 +18,7 @@ patient.workspace = true
 ulid.workspace = true
 uuid.workspace = true
 dotenvy.workspace = true
+clap.workspace = true
 
 ## =============================
 ## Dependencies for gRPC server
