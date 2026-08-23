@@ -27,6 +27,15 @@ service UserApi {
     rpc SignIn (SignInRequest) returns (SignInResponse) {}
 }
 
+/// Servicio de gestión de clínicas (FHIR R4 Organization).
+service ClinicApi {
+    /// Crea una clínica y deja a quien la solicita como su propietario.
+    ///
+    /// Es una operación independiente del registro: un usuario ya existente puede
+    /// crear una clínica, y puede crear más de una.
+    rpc CreateClinic (CreateClinicRequest) returns (CreateClinicResponse) {}
+}
+
 
 // ============================================================================
 // MENSAJES DE SOLICITUD Y RESPUESTA DE PACIENTE Y USUARIOS
@@ -76,7 +85,11 @@ message SignUpRequest {
     string address = 13;                     // Dirección domiciliaria
     string birth_date = 14;                  // Fecha de nacimiento (Formato YYYY-MM-DD)
     optional string display_name = 15;       // Nombre de visualización personalizado
-    bool create_clinic = 16;                 // Indica si se debe inicializar una clínica para el usuario
+    // DEPRECADO: la creación de clínica es ahora `ClinicApi.CreateClinic`, una operación
+    // independiente del alta. Este campo sigue vivo mientras el worker de `administration`
+    // lo consuma desde `UserCreatedEvent`; retirarlo depende de decidir el destino de esa
+    // tubería de eventos.
+    bool create_clinic = 16 [deprecated = true];
     optional bool confirm_pending_presencial_link = 17; // Confirma explícitamente la creación de la cuenta dejando la vinculación en estado pendiente presencial
 }
 
@@ -246,3 +259,35 @@ message Patient {
     repeated Attachment photo = 11;     // Fotografía o avatar del paciente
 }
 
+
+
+// ============================================================================
+// MENSAJES DE CLÍNICA (ORGANIZATION)
+// ============================================================================
+
+/// Solicitud de creación de una clínica.
+///
+/// Lleva la demografía del propietario porque el contexto de administración
+/// **no consulta** al contexto de identidad: construye su propia réplica local
+/// del profesional a partir de lo que recibe, conservando la autonomía operativa
+/// de cada clínica.
+message CreateClinicRequest {
+    string owner_user_id = 1;                  // UUID v7 del usuario que crea la clínica
+    string name = 2;                           // Razón social o nombre comercial
+    optional string tax_id = 3;                // RUC o identificador fiscal
+
+    // Demografía del propietario, para su ficha de profesional en esta clínica
+    string given_name = 4;                     // Nombres de pila (FHIR: HumanName.given)
+    optional string family_name = 5;           // Primer apellido
+    optional string second_family_name = 6;    // Segundo apellido (extensión hispana)
+    optional string email = 7;                 // Correo electrónico de contacto
+    optional string phone = 8;                 // Teléfono de contacto
+    optional string medical_license_number = 9; // Colegiatura CMP/COP, si ya se conoce
+}
+
+/// Respuesta a la creación de una clínica.
+message CreateClinicResponse {
+    string organization_id = 1;   // UUID v7 de la clínica creada
+    string practitioner_id = 2;   // UUID v7 de la ficha de profesional del propietario
+    bool already_existed = 3;     // La clínica ya existía y se devolvió sin recrearla
+}
