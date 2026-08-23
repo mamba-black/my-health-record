@@ -34,7 +34,7 @@ impl UseCase for CreateUserUseCaseImpl {
         let exist_user = match &command.identifier {
             Some(DNI(value)) => self
                 .user_repository
-                .exist_user_by_document("DNI", value)
+                .exist_user_by_document(DNI(value.clone()))
                 .await
                 .map_err(|_e| {
                     UnknownError(ClickCareError::generic(format!(
@@ -59,27 +59,23 @@ impl UseCase for CreateUserUseCaseImpl {
 
         let user: Result<User, ClickCareError> = command.into();
         let user = user?;
+        let user_id = user.id.clone();
 
         self.user_repository.save_user(&user).await?;
 
-        // La clínica del propietario no se crea aquí: es `crates/administration` quien
-        // la materializa al consumir este evento, dentro de su propio contexto acotado.
-        let event = UserCreatedEvent {
-            user_id: user.id,
-            person: user.person.clone(),
-            create_clinic: user.is_owner,
-        };
         // El usuario ya está persistido: una caída de la cola no debe convertirse en
         // un error de registro para el cliente. Se reporta y se sigue adelante.
-        if let Err(error) = self.event_publisher.publish_user_created(event).await {
+        if let Err(error) = self.event_publisher.publish_user_created(user.into()).await {
+            // La clínica del propietario no se crea aquí: es `crates/administration` quien
+            // la materializa al consumir este evento, dentro de su propio contexto acotado.
             error!(
                 "No se pudo publicar UserCreatedEvent para user_id={}: {}",
-                user.id, error
+                user_id, error
             );
         }
 
         Ok(CreateUserResponse {
-            user_id: user.id.to_string(),
+            user_id: user_id.to_string(),
         })
     }
 }

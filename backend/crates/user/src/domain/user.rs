@@ -1,4 +1,5 @@
 use app_core::domain::error::ClickCareError;
+use app_core::domain::event::UserCreatedEvent;
 pub use app_core::domain::fhir::{
     ContactPoint, ContactPointSystem, ContactPointUse, HumanName, Identifier, LinkAssuranceLevel,
     Person, PersonLink, PersonLinkTarget,
@@ -102,70 +103,18 @@ impl User {
         }
     }
 
-    /// Retorna el correo electrónico principal de la persona.
-    pub fn email(&self) -> String {
-        self.person
-            .telecom
-            .iter()
-            .find(|c| c.system == ContactPointSystem::Email)
-            .map(|c| c.value.clone())
-            .unwrap_or_default()
-    }
-
-    /// Retorna el teléfono principal de la persona si existe.
-    pub fn phone(&self) -> String {
-        self.person
-            .telecom
-            .iter()
-            .find(|c| c.system == ContactPointSystem::Phone)
-            .map(|c| c.value.clone())
-            .unwrap_or_default()
-    }
-
-    /// Retorna los nombres de pila como lista (FHIR: HumanName.given).
-    pub fn given(&self) -> Vec<String> {
-        self.person.name.given().clone()
-    }
-
-    /// Retorna los nombres de pila formateados en texto.
-    pub fn given_name(&self) -> String {
-        self.person.name.given().join(" ")
-    }
-
-    /// Retorna el primer apellido si existe.
-    pub fn family_name(&self) -> Option<String> {
-        self.person.name.family().clone()
-    }
-
-    /// Retorna el segundo apellido si existe.
-    pub fn second_family_name(&self) -> Option<String> {
-        self.person.name.second_family().clone()
-    }
-
-    /// Retorna el número de DNI si está registrado.
-    pub fn identifier_dni(&self) -> Option<String> {
-        self.person.identifier.as_ref().map(|id| match id {
-            Identifier::DNI(val) => val.clone(),
-        })
-    }
-
     /// Retorna la fecha de nacimiento formateada en texto.
     pub fn birth_date(&self) -> String {
         self.person.birth_date.clone().unwrap_or_default()
     }
+}
 
-    /// Vincula un nuevo recurso FHIR (Patient, Practitioner, Organization) a la identidad de la persona.
-    pub fn add_link(&mut self, target: PersonLinkTarget, assurance: Option<LinkAssuranceLevel>) {
-        self.person.add_link(target, assurance);
-    }
-
-    /// Retorna todos los IDs de recursos `Patient` asociados a esta cuenta de usuario.
-    pub fn patient_ids(&self) -> Vec<Uuid> {
-        self.person.patient_ids()
-    }
-
-    /// Retorna todos los IDs de recursos `Organization` (clínicas) asociados a esta cuenta.
-    pub fn organization_ids(&self) -> Vec<Uuid> {
-        self.person.organization_ids()
+impl From<User> for UserCreatedEvent {
+    fn from(user: User) -> Self {
+        UserCreatedEvent {
+            user_id: user.id,
+            person: user.person.clone(),
+            create_clinic: user.is_owner,
+        }
     }
 }
