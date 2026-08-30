@@ -20,7 +20,7 @@ pub async fn start_server(
     url: Option<String>,
     enable_administration_worker: bool,
 ) -> Result<(), ClickCareError> {
-    let addr = "[::1]:50051".parse().map_err(|e| {
+    let addr: std::net::SocketAddr = "[::1]:50051".parse().map_err(|e| {
         ClickCareError::generic(format!("Error al parsear la direccion del servidor: {}", e))
     })?;
 
@@ -36,6 +36,10 @@ pub async fn start_server(
         &administration.create_clinic_use_case,
     )));
 
+    // let apalis = apalis_board::axum::
+
+
+
     let server = Server::builder()
         .layer(GrpcWebLayer::new())
         .accept_http1(true)
@@ -46,16 +50,14 @@ pub async fn start_server(
         .serve_with_shutdown(addr, shutdown_signal());
 
     if enable_administration_worker {
-        info!("Iniciando servidor gRPC y worker de administración...");
-        // Si cualquiera de los dos termina, el proceso completo baja de forma ordenada
-        // en lugar de quedar sirviendo gRPC sin worker (o al revés).
+        info!("Iniciando servidor gRPC/Web y worker de administración...");
         tokio::select! {
             result = server => result
                 .map_err(|e| ClickCareError::generic(format!("Error al iniciar el servidor: {}", e)))?,
             result = administration.run_worker() => result?,
         }
     } else {
-        info!("Iniciando servidor gRPC (worker de administración deshabilitado)...");
+        info!("Iniciando servidor gRPC/Web (worker de administración deshabilitado)...");
         server
             .await
             .map_err(|e| ClickCareError::generic(format!("Error al iniciar el servidor: {}", e)))?;

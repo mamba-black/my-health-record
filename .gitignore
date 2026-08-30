@@ -202,3 +202,10 @@ backend/docs/fhir_json
 *.db
 .beads-credential-key
 .beads/proxieddb/
+
+# TODO: Falta validar que tanto vamos a ignorar
+.agent/
+.agents/
+.claude/
+openspec/
+

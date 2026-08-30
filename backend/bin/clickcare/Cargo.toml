@@ -48,6 +48,7 @@ sys-info.workspace = true
 ## =============================
 fake.workspace = true
 regex.workspace = true
+apalis-board.workspace = true
 
 [build-dependencies]
 tonic-prost-build.workspace = true
