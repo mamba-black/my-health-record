@@ -1,11 +1,10 @@
 mod infrastructure;
 
-use clap::Parser;
 use crate::infrastructure::cli::Cli;
 use crate::infrastructure::log::init_observability;
 use crate::infrastructure::start_server;
+use clap::Parser;
 use dotenvy::dotenv;
-use tracing::{debug, error, info, warn};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

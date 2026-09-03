@@ -6,17 +6,88 @@ use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::logs::SdkLoggerProvider;
 use opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider};
 use opentelemetry_sdk::trace::SdkTracerProvider;
-use tracing::debug;
+use tracing::{debug, info, warn};
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::{Layer, SubscriberExt};
 use tracing_subscriber::util::SubscriberInitExt as _;
 use tracing_subscriber::{EnvFilter, Registry};
 
+/// Extrae host y puerto de una URL o endpoint (ej. "http://localhost:17011" o "localhost:4317").
+fn parse_host_port(endpoint: &str) -> Option<(String, u16)> {
+    let clean = endpoint.trim();
+    let without_scheme = clean
+        .strip_prefix("http://")
+        .or_else(|| clean.strip_prefix("https://"))
+        .or_else(|| clean.strip_prefix("grpc://"))
+        .unwrap_or(clean);
+
+    let authority = without_scheme.split('/').next()?;
+
+    if let Some((host, port_str)) = authority.rsplit_once(':') {
+        let port = port_str.parse::<u16>().ok()?;
+        Some((host.to_string(), port))
+    } else {
+        Some((authority.to_string(), 4317))
+    }
+}
+
+/// Estado del endpoint de OpenTelemetry (OTLP).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OtelEndpoint {
+    /// La variable OTEL_EXPORTER_OTLP_ENDPOINT no fue configurada o está vacía.
+    NotConfigured,
+    /// El endpoint fue configurado pero no responde a conexiones TCP.
+    Unreachable(String),
+    /// El endpoint fue configurado y está listo para recibir conexiones.
+    Active(String),
+}
+
+impl OtelEndpoint {
+    pub fn from_env() -> Self {
+        match std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT") {
+            Ok(val) => {
+                let trimmed = val.trim();
+                if trimmed.is_empty() {
+                    Self::NotConfigured
+                } else if Self::is_endpoint_reachable(trimmed) {
+                    Self::Active(trimmed.to_string())
+                } else {
+                    Self::Unreachable(trimmed.to_string())
+                }
+            }
+            Err(_) => Self::NotConfigured,
+        }
+    }
+
+    /// Retorna el endpoint activo si está disponible para enviar datos.
+    pub fn as_active(&self) -> Option<&str> {
+        match self {
+            Self::Active(ep) => Some(ep.as_str()),
+            _ => None,
+        }
+    }
+
+    /// Verifica si el endpoint OTLP está escuchando conexiones TCP (con timeout de 500ms).
+    fn is_endpoint_reachable(endpoint: &str) -> bool {
+        use std::net::ToSocketAddrs;
+        let Some((host, port)) = parse_host_port(endpoint) else {
+            return false;
+        };
+
+        if let Ok(mut addrs) = (host.as_str(), port).to_socket_addrs() {
+            if let Some(addr) = addrs.next() {
+                return std::net::TcpStream::connect_timeout(&addr, Duration::from_millis(500)).is_ok();
+            }
+        }
+        false
+    }
+}
+
 /// Configuración común para los exportadores de OpenTelemetry (OTLP).
 #[derive(Debug, Clone)]
 pub struct OtelConfig {
-    pub endpoint: String,
+    pub endpoint: OtelEndpoint,
     pub protocol: String,
     pub metric_export_interval: Option<Duration>,
     pub resource: Resource,
@@ -24,8 +95,7 @@ pub struct OtelConfig {
 
 impl OtelConfig {
     pub fn from_env() -> Self {
-        let endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
-            .unwrap_or_else(|_| "http://localhost:4317".to_string());
+        let endpoint = OtelEndpoint::from_env();
         let protocol = std::env::var("OTEL_EXPORTER_OTLP_PROTOCOL")
             .unwrap_or_else(|_| "grpc".to_string());
         let metric_export_interval = std::env::var("OTEL_METRIC_EXPORT_INTERVAL")
@@ -52,16 +122,16 @@ impl OtelConfig {
 pub fn init_observability() {
     let config = OtelConfig::from_env();
 
-    // 1. Inicializar métricas (MeterProvider y System/Process metrics)
+    // 1. Inicializar métricas (si hay endpoint configurado y alcanzable)
     init_meter(&config);
 
-    // 2. Inicializar layer de Tracing OTLP
+    // 2. Inicializar layer de Tracing OTLP (None si no hay endpoint)
     let otel_tracing_layer = init_tracing_layer(&config);
 
-    // 3. Inicializar layer de Logs OTLP (nivel INFO hacia adelante)
+    // 3. Inicializar layer de Logs OTLP (None si no hay endpoint)
     let otel_log_layer = init_log_layer(&config);
 
-    // 4. Formateador para la consola clásica (fmt)
+    // 4. Formateador para la consola clásica (fmt) - siempre activo
     let fmt_layer = tracing_subscriber::fmt::layer().with_span_events(FmtSpan::CLOSE);
 
     // 5. Filtro global de entorno para la aplicación
@@ -80,25 +150,49 @@ pub fn init_observability() {
     debug!("OTEL_EXPORTER_OTLP_ENDPOINT: {:?}", config.endpoint);
     debug!("OTEL_EXPORTER_OTLP_PROTOCOL: {:?}", config.protocol);
     debug!("OTEL_METRIC_EXPORT_INTERVAL: {:?}", config.metric_export_interval);
+
+    match &config.endpoint {
+        OtelEndpoint::Active(ep) => {
+            info!("OpenTelemetry OTLP conectado y habilitado en: {ep}");
+        }
+        OtelEndpoint::Unreachable(ep) => {
+            info!(
+                "No se pudo conectar al endpoint OTLP en '{ep}'. La aplicación continuará sin enviar telemetría externa."
+            );
+        }
+        OtelEndpoint::NotConfigured => {
+            info!(
+                "OTEL_EXPORTER_OTLP_ENDPOINT no configurado. La aplicación continuará sin enviar telemetría externa."
+            );
+        }
+    }
 }
 
 /// Configura e inicializa el proveedor de trazas y retorna el layer para `tracing`.
-pub fn init_tracing_layer<S>(config: &OtelConfig) -> impl Layer<S>
+pub fn init_tracing_layer<S>(config: &OtelConfig) -> Option<impl Layer<S>>
 where
     S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>,
 {
+    let endpoint = config.endpoint.as_active()?;
+
     let span_exporter = if config.is_http() {
         opentelemetry_otlp::SpanExporter::builder()
             .with_http()
-            .with_endpoint(&config.endpoint)
+            .with_endpoint(endpoint)
             .build()
-            .expect("Error al construir el exportador OTLP de trazas (HTTP)")
     } else {
         opentelemetry_otlp::SpanExporter::builder()
             .with_tonic()
-            .with_endpoint(&config.endpoint)
+            .with_endpoint(endpoint)
             .build()
-            .expect("Error al construir el exportador OTLP de trazas (gRPC)")
+    };
+
+    let span_exporter = match span_exporter {
+        Ok(exporter) => exporter,
+        Err(err) => {
+            warn!("Error al construir el exportador OTLP de trazas: {err}. Trazas OTLP deshabilitadas.");
+            return None;
+        }
     };
 
     let tracer_provider = SdkTracerProvider::builder()
@@ -109,26 +203,34 @@ where
     opentelemetry::global::set_tracer_provider(tracer_provider.clone());
     let tracer = tracer_provider.tracer("clickcare");
 
-    tracing_opentelemetry::layer().with_tracer(tracer)
+    Some(tracing_opentelemetry::layer().with_tracer(tracer))
 }
 
 /// Configura e inicializa el proveedor de logs OTLP y retorna el layer filtrado (nivel INFO en adelante).
-pub fn init_log_layer<S>(config: &OtelConfig) -> impl Layer<S>
+pub fn init_log_layer<S>(config: &OtelConfig) -> Option<impl Layer<S>>
 where
     S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>,
 {
+    let endpoint = config.endpoint.as_active()?;
+
     let log_exporter = if config.is_http() {
         opentelemetry_otlp::LogExporter::builder()
             .with_http()
-            .with_endpoint(&config.endpoint)
+            .with_endpoint(endpoint)
             .build()
-            .expect("Error al construir el exportador OTLP de logs (HTTP)")
     } else {
         opentelemetry_otlp::LogExporter::builder()
             .with_tonic()
-            .with_endpoint(&config.endpoint)
+            .with_endpoint(endpoint)
             .build()
-            .expect("Error al construir el exportador OTLP de logs (gRPC)")
+    };
+
+    let log_exporter = match log_exporter {
+        Ok(exporter) => exporter,
+        Err(err) => {
+            warn!("Error al construir el exportador OTLP de logs: {err}. Logs OTLP deshabilitados.");
+            return None;
+        }
     };
 
     let logger_provider = SdkLoggerProvider::builder()
@@ -136,23 +238,33 @@ where
         .with_resource(config.resource.clone())
         .build();
 
-    OpenTelemetryTracingBridge::new(&logger_provider).with_filter(LevelFilter::INFO)
+    Some(OpenTelemetryTracingBridge::new(&logger_provider).with_filter(LevelFilter::INFO))
 }
 
 /// Configura e inicializa el proveedor de métricas global y las métricas de sistema/proceso.
 pub fn init_meter(config: &OtelConfig) {
+    let Some(endpoint) = config.endpoint.as_active() else {
+        return;
+    };
+
     let metric_exporter = if config.is_http() {
         opentelemetry_otlp::MetricExporter::builder()
             .with_http()
-            .with_endpoint(&config.endpoint)
+            .with_endpoint(endpoint)
             .build()
-            .expect("Error al construir el exportador OTLP de métricas (HTTP)")
     } else {
         opentelemetry_otlp::MetricExporter::builder()
             .with_tonic()
-            .with_endpoint(&config.endpoint)
+            .with_endpoint(endpoint)
             .build()
-            .expect("Error al construir el exportador OTLP de métricas (gRPC)")
+    };
+
+    let metric_exporter = match metric_exporter {
+        Ok(exporter) => exporter,
+        Err(err) => {
+            warn!("Error al construir el exportador OTLP de métricas: {err}. Métricas OTLP deshabilitadas.");
+            return;
+        }
     };
 
     let mut reader_builder = PeriodicReader::builder(metric_exporter);
@@ -168,7 +280,6 @@ pub fn init_meter(config: &OtelConfig) {
 
     opentelemetry::global::set_meter_provider(meter_provider);
     init_meter_system_metrics();
-
 }
 
 pub fn init_meter_system_metrics() {
