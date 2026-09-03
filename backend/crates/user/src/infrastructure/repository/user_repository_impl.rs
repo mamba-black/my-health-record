@@ -3,7 +3,7 @@ use crate::domain::user::User;
 use app_core::domain::error::ClickCareError;
 use app_core::domain::fhir::Identifier;
 use async_trait::async_trait;
-use log::{debug, error};
+use tracing::{debug, error};
 use toasty::Db;
 
 #[derive(Debug, Clone, toasty::Model)]

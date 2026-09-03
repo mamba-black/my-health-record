@@ -122,10 +122,10 @@ mod test {
     use crate::infrastructure::grpc::SignUpRequest;
     use crate::infrastructure::grpc::user_api_impl::UserApiImpl;
     use crate::infrastructure::grpc::user_api_server::UserApi;
-    use crate::infrastructure::log::init_logger;
+    use crate::infrastructure::log::init_observability;
     use app_core::domain::error::ClickCareError;
     use dotenvy::dotenv;
-    use log::info;
+    use tracing::info;
     use rstest::{fixture, rstest};
     use std::sync::{LazyLock, Once};
     use tonic::Request;
@@ -160,7 +160,7 @@ mod test {
     async fn user_api_impl() -> UserApiImpl {
         INIT.call_once(|| {
             dotenv().ok();
-            init_logger();
+            init_observability();
         });
         UserApiImpl::new_mock()
             .await

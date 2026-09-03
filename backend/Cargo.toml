@@ -84,7 +84,7 @@ tracing-opentelemetry = "0.33.0"
 
 opentelemetry = { version = "0.32.0", features = ["metrics", "logs"] }
 opentelemetry_sdk = { version = "0.32.1", features = ["rt-tokio", "metrics", "logs"] }
-opentelemetry-otlp = { version = "0.32.0", features = ["grpc-tonic", "http-proto", "metrics"] }
+opentelemetry-otlp = { version = "0.32.0", features = ["grpc-tonic", "http-proto", "metrics", "logs"] }
 opentelemetry-appender-tracing = "0.32.0"
 sys-info = "0.9.1"
 

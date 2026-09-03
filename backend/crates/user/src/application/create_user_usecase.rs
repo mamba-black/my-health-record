@@ -9,7 +9,7 @@ use app_core::application::UseCase;
 use app_core::domain::error::ClickCareError;
 use app_core::domain::event::{EventPublisher, UserCreatedEvent};
 use async_trait::async_trait;
-use log::error;
+use tracing::error;
 use std::sync::Arc;
 
 pub trait CreateUserUseCase:

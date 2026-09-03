@@ -6,9 +6,10 @@ use crate::infrastructure::grpc::patient_api_server::PatientApiServer;
 use crate::infrastructure::grpc::user_api_impl::UserApiImpl;
 use crate::infrastructure::grpc::user_api_server::UserApiServer;
 use administration::infrastructure::di as administration_di;
+use apalis_board::axum::framework::ApiBuilder;
+use apalis_board::axum::ui::ServeUI;
 use app_core::domain::error::ClickCareError;
 use std::sync::Arc;
-use tonic::transport::Server;
 use tonic_web::GrpcWebLayer;
 use tracing::info;
 
@@ -20,10 +21,6 @@ pub async fn start_server(
     url: Option<String>,
     enable_administration_worker: bool,
 ) -> Result<(), ClickCareError> {
-    let addr: std::net::SocketAddr = "[::1]:50051".parse().map_err(|e| {
-        ClickCareError::generic(format!("Error al parsear la direccion del servidor: {}", e))
-    })?;
-
     let reflection_server = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
         .build_v1alpha()
@@ -36,18 +33,33 @@ pub async fn start_server(
         &administration.create_clinic_use_case,
     )));
 
-    // let apalis = apalis_board::axum::
+    let apalis_board_router: axum::Router = ApiBuilder::new(axum::Router::<()>::new())
+        .build();
 
-
-
-    let server = Server::builder()
-        .layer(GrpcWebLayer::new())
-        .accept_http1(true)
+    let grpc_router: axum::Router = tonic::service::Routes::default()
         .add_service(patient_service_server)
         .add_service(user_service_server)
         .add_service(clinic_service_server)
         .add_service(reflection_server)
-        .serve_with_shutdown(addr, shutdown_signal());
+        .into_axum_router()
+        .layer(GrpcWebLayer::new());
+
+    let app = grpc_router
+        .merge(apalis_board_router)
+        .fallback_service(ServeUI::new());
+
+    let listener = {
+        let addr: std::net::SocketAddr = "[::1]:50051".parse().map_err(|e| {
+            ClickCareError::generic(format!("Error al parsear la direccion del servidor: {}", e))
+        })?;
+
+        tokio::net::TcpListener::bind(addr).await.map_err(|e| {
+            ClickCareError::generic(format!("Error al enlazar la direccion del servidor: {}", e))
+        })?
+    };
+
+    let server = axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal());
 
     if enable_administration_worker {
         info!("Iniciando servidor gRPC/Web y worker de administración...");
@@ -73,4 +85,23 @@ async fn shutdown_signal() {
         return;
     }
     info!("Señal de apagado recibida, deteniendo el servidor");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_router_merging_without_fallback_panic() {
+        let patient_service_server = PatientApiServer::new(PatientApiImpl::default());
+        let apalis_board_router: axum::Router = ApiBuilder::new(axum::Router::<()>::new()).build();
+        let grpc_router: axum::Router = tonic::service::Routes::default()
+            .add_service(patient_service_server)
+            .into_axum_router()
+            .layer(GrpcWebLayer::new());
+
+        let _app = grpc_router
+            .merge(apalis_board_router)
+            .fallback_service(ServeUI::new());
+    }
 }

@@ -1,6 +1,6 @@
 use clickcare::infrastructure::grpc::SignUpRequest;
 use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
-use log::{debug, info};
+use tracing::{debug, info};
 use rstest::*;
 use rstest_bdd_macros::{given, then, when};
 use tonic::Status;

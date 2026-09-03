@@ -6,7 +6,7 @@ pub use app_core::domain::fhir::{
 };
 use bon::Builder;
 use derive_getters::Getters;
-use log::{debug, error};
+use tracing::{debug, error};
 use std::str::FromStr;
 use uuid::{Uuid, Version};
 

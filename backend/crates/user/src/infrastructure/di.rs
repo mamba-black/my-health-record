@@ -8,7 +8,7 @@ use crate::infrastructure::repository::user_repository_impl::{UserAccount, UserR
 use app_core::domain::error::ClickCareError;
 use app_core::domain::event::{EventPublisher, LoggingEventPublisher};
 use async_trait::async_trait;
-use log::error;
+use tracing::error;
 use std::env::var;
 use std::sync::Arc;
 use toasty::{Db, models};

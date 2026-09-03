@@ -6,9 +6,9 @@ use clickcare::infrastructure::grpc::clinic_api_impl::ClinicApiImpl;
 use clickcare::infrastructure::grpc::clinic_api_server::ClinicApiServer;
 use clickcare::infrastructure::grpc::user_api_impl::UserApiImpl;
 use clickcare::infrastructure::grpc::user_api_server::UserApiServer;
-use clickcare::infrastructure::log::init_logger;
+use clickcare::infrastructure::log::init_observability;
 use dotenvy::dotenv;
-use log::info;
+use tracing::info;
 use rstest::*;
 use std::path::PathBuf;
 use testcontainers::ImageExt;
@@ -31,7 +31,7 @@ pub async fn test_env() -> &'static TestEnv {
     debug!("llamando a test_env()");
     TEST_ENV
         .get_or_init(|| async {
-            init_logger();
+            init_observability();
             dotenv().ok();
 
             let pg_cache_path = std::env::temp_dir().join("clickcare_pg_env.txt");
@@ -88,7 +88,7 @@ pub async fn test_env() -> &'static TestEnv {
                     }
                 }
 
-                log::debug!("== INICIANDO CONTENEDOR POSTGRES COMPARTIDO ==");
+                tracing::debug!("== INICIANDO CONTENEDOR POSTGRES COMPARTIDO ==");
                 let user = "admin";
                 let password = "admin123";
                 let schema_path =
@@ -185,7 +185,7 @@ pub async fn test_env() -> &'static TestEnv {
                 .unwrap();
             Box::leak(Box::new(server_rt));
 
-            log::debug!("== SERVIDOR gRPC LISTO EN {} ==", grpc_addr);
+            tracing::debug!("== SERVIDOR gRPC LISTO EN {} ==", grpc_addr);
 
             TestEnv {
                 grpc_addr,
