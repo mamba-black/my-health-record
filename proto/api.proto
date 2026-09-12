@@ -91,6 +91,15 @@ message SignUpRequest {
     // tubería de eventos.
     bool create_clinic = 16 [deprecated = true];
     optional bool confirm_pending_presencial_link = 17; // Confirma explícitamente la creación de la cuenta dejando la vinculación en estado pendiente presencial
+    SignUpIntent intent = 18;                           // Intención declarada por el usuario durante el registro preliminar
+}
+
+/// Intención inicial declarada por el usuario durante el registro inicial (perfilado progresivo).
+enum SignUpIntent {
+    INTENT_UNSPECIFIED = 0;
+    INTENT_CLINIC_OWNER = 1;
+    INTENT_PRACTITIONER = 2;
+    INTENT_PATIENT = 3;
 }
 
 /// Estado del resultado del registro de usuario.
@@ -108,6 +117,7 @@ message SignUpResponse {
     string message = 2;            // Mensaje legible para la interfaz de usuario (UI)
     optional string user_id = 3;   // UUID v7 de la cuenta de usuario creada
     optional PersonLink link = 4;  // Enlace generado con su nivel de certeza (AssuranceLevel)
+    optional string organization_id = 5; // UUID v7 de la organización/clínica pre-asignada (cuando intent = INTENT_CLINIC_OWNER)
 }
 
 /// Solicitud de autenticación de usuario (Sign In).

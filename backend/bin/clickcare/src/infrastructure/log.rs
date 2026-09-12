@@ -75,10 +75,10 @@ impl OtelEndpoint {
             return false;
         };
 
-        if let Ok(mut addrs) = (host.as_str(), port).to_socket_addrs() {
-            if let Some(addr) = addrs.next() {
-                return std::net::TcpStream::connect_timeout(&addr, Duration::from_millis(500)).is_ok();
-            }
+        if let Ok(mut addrs) = (host.as_str(), port).to_socket_addrs()
+            && let Some(addr) = addrs.next()
+        {
+            return std::net::TcpStream::connect_timeout(&addr, Duration::from_millis(500)).is_ok();
         }
         false
     }

@@ -37,6 +37,20 @@ pub enum IdentityProvider {
     Google,
 }
 
+/// Intención inicial declarada por el usuario durante el registro preliminar (perfilado progresivo).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SignUpIntent {
+    /// Intención no especificada.
+    #[default]
+    Unspecified,
+    /// Dueño o fundador de clínica/organización.
+    ClinicOwner,
+    /// Profesional de la salud (médico, enfermero, etc.).
+    Practitioner,
+    /// Paciente o receptor de atención de salud.
+    Patient,
+}
+
 impl User {
     /// Crea una nueva instancia validada de `User` y su `Person` asociada.
     ///

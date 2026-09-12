@@ -205,7 +205,5 @@ backend/docs/fhir_json
 
 # TODO: Falta validar que tanto vamos a ignorar
 .agent/
-.agents/
 .claude/
-openspec/
 

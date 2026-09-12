@@ -62,6 +62,7 @@ impl UserApi for UserApiImpl {
                     message: "Usuario registrado exitosamente.".to_string(),
                     user_id: Some(create_user_response.user_id),
                     link: None,
+                    organization_id: create_user_response.organization_id,
                 })
             })
             .map_err(|err| match err {
@@ -79,7 +80,7 @@ impl UserApi for UserApiImpl {
 }
 
 mod mapper {
-    use crate::infrastructure::grpc::SignUpRequest;
+    use crate::infrastructure::grpc::{SignUpIntent, SignUpRequest};
     use crate::infrastructure::grpc::identifier::IdentifierType;
     use app_core::domain::fhir::Identifier::DNI;
     use user::application::command::CreateUserCommand;
@@ -90,6 +91,13 @@ mod mapper {
         // `administration` lo consuma desde `UserCreatedEvent`.
         #[allow(deprecated)]
         fn from(sign_up_request: SignUpRequest) -> Self {
+            let intent = match sign_up_request.intent() {
+                SignUpIntent::IntentClinicOwner => user::domain::user::SignUpIntent::ClinicOwner,
+                SignUpIntent::IntentPractitioner => user::domain::user::SignUpIntent::Practitioner,
+                SignUpIntent::IntentPatient => user::domain::user::SignUpIntent::Patient,
+                SignUpIntent::IntentUnspecified => user::domain::user::SignUpIntent::Unspecified,
+            };
+
             CreateUserCommand {
                 id_token: sign_up_request.id_token,
                 user_id: sign_up_request.user_id.clone(),
@@ -110,6 +118,7 @@ mod mapper {
                 birthdate: sign_up_request.birth_date,
                 display_name: sign_up_request.display_name,
                 create_clinic: sign_up_request.create_clinic,
+                intent,
                 username: sign_up_request.email,
                 password: "123".to_string(),
             }
@@ -152,6 +161,7 @@ mod test {
         display_name: None,
         create_clinic: false,
         confirm_pending_presencial_link: None,
+        intent: 0,
     });
 
     type TestResult = Result<(), ClickCareError>;

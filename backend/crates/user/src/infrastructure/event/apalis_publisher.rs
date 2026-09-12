@@ -1,16 +1,16 @@
 use apalis::prelude::TaskSink;
 use apalis_postgres::{Config, PgPool, PostgresStorage};
 use app_core::domain::error::ClickCareError;
-use app_core::domain::event::{EventPublisher, UserCreatedEvent};
+use app_core::domain::event::{EventPublisher, FounderRegistered, UserCreatedEvent};
 use async_trait::async_trait;
 use tracing::debug;
 
 /// Adaptador de salida del puerto [`EventPublisher`] respaldado por `apalis-postgres`.
 ///
-/// Encola el evento en la cola [`UserCreatedEvent::QUEUE`], desde donde
-/// `crates/administration` lo consume de forma asíncrona.
+/// Encola eventos en colas dedicadas ([`UserCreatedEvent::QUEUE`], [`FounderRegistered::QUEUE`]).
 pub(crate) struct ApalisEventPublisher {
     storage: PostgresStorage<UserCreatedEvent>,
+    founder_storage: PostgresStorage<FounderRegistered>,
 }
 
 impl ApalisEventPublisher {
@@ -32,13 +32,16 @@ impl ApalisEventPublisher {
         })?;
 
         debug!(
-            "ApalisEventPublisher listo sobre la cola '{}'",
-            UserCreatedEvent::QUEUE
+            "ApalisEventPublisher listo sobre las colas '{}' y '{}'",
+            UserCreatedEvent::QUEUE,
+            FounderRegistered::QUEUE
         );
 
         let config = Config::new(UserCreatedEvent::QUEUE);
+        let founder_config = Config::new(FounderRegistered::QUEUE);
         Ok(Self {
             storage: PostgresStorage::new_with_config(&pool, &config),
+            founder_storage: PostgresStorage::new_with_config(&pool, &founder_config),
         })
     }
 }
@@ -53,6 +56,21 @@ impl EventPublisher for ApalisEventPublisher {
         self.storage.clone().push(event).await.map_err(|e| {
             ClickCareError::generic(format!(
                 "Error al encolar UserCreatedEvent para user_id={user_id} ({e})"
+            ))
+        })?;
+
+        Ok(())
+    }
+
+    async fn publish_founder_registered(
+        &self,
+        event: FounderRegistered,
+    ) -> Result<(), ClickCareError> {
+        let user_id = event.user_id;
+
+        self.founder_storage.clone().push(event).await.map_err(|e| {
+            ClickCareError::generic(format!(
+                "Error al encolar FounderRegistered para user_id={user_id} ({e})"
             ))
         })?;
 
