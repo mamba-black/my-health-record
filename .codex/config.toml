@@ -1,2 +1,5 @@
 [features]
-hooks = true
+  hooks = true
+
+  [mcp_servers.rustrover]
+    url = "http://127.0.0.1:64522/stream"
