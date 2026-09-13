@@ -34,34 +34,43 @@ const MAX_RETRIES: usize = 3;
 /// Identificador del worker, visible en la tabla `apalis.workers`.
 const WORKER_NAME: &str = "administration-worker";
 
-/// Origen de datos del contexto acotado.
+/// Origen de datos y configuración de conexión del contexto acotado de administración.
 pub enum DBType {
-    /// `None` toma la URL de la variable de entorno `PG_URL`.
+    /// Conexión a base de datos PostgreSQL.
+    /// Si es `Some(database_url)`, utiliza dicha cadena de conexión.
+    /// Si es `None`, lee la variable de entorno `DATABASE_URL` (o `PG_URL` como respaldo).
     Postgres(Option<String>),
 }
 
 // ─── DI container ────────────────────────────────────────────────────────────
 
+/// Contenedor de Inyección de Dependencias para el Bounded Context de Administración.
+///
+/// Encapsula las instancias concretas de infraestructura (almacenamiento de cola Apalis,
+/// repositorios Toasty DB) y expone los casos de uso y puertos necesarios.
 pub struct DI {
+    /// Almacenamiento PostgreSQL exclusivo para procesar tareas de la cola Apalis.
     storage: PostgresStorage<UserCreatedEvent>,
+    /// Estado con repositorios de dominio inyectados en los workers.
     pub state: AdministrationState,
+    /// Caso de uso para crear y registrar una nueva clínica u hospital.
     pub create_clinic_use_case: Arc<dyn CreateClinicUseCase>,
 }
 
 // ─── Constructores ───────────────────────────────────────────────────────────
 
-/// Construye el DI del contexto acotado con implementaciones reales.
+/// Construye el DI del contexto acotado con implementaciones reales de base de datos.
 ///
-/// Abre **dos conexiones independientes** a la misma base de datos: una exclusiva
-/// de la cola de eventos y otra para los repositorios de entidades. Encolar o
+/// Abre **dos conexiones independientes** a la base de datos: una exclusiva
+/// de la cola de eventos y otra para los repositorios de entidades Toasty. Encolar o
 /// consumir un evento nunca comparte pool ni transacción con la persistencia del
 /// agregado.
-pub async fn new(dbtype: DBType) -> Result<DI, ClickCareError> {
-    let url = resolve_db_url(dbtype);
-    debug!("URL de la base de datos: {url}");
+pub async fn new(database_type: DBType) -> Result<DI, ClickCareError> {
+    let database_url = resolve_db_url(database_type);
+    debug!("URL de la base de datos: {database_url}");
 
-    let storage = build_event_storage(&url).await?;
-    let state = build_state(&url).await?;
+    let storage = build_event_storage(&database_url).await?;
+    let state = build_state(&database_url).await?;
 
     let create_clinic_use_case = Arc::new(CreateClinicUseCaseImpl {
         state: state.clone(),
@@ -109,21 +118,21 @@ impl DI {
 
 // ─── Helpers privados ────────────────────────────────────────────────────────
 
-/// Resuelve la URL de Postgres del `DBType`.
-fn resolve_db_url(dbtype: DBType) -> String {
-    match dbtype {
-        DBType::Postgres(Some(url)) => url,
-        DBType::Postgres(None) => {
-            var("PG_URL").unwrap_or("postgres://user:password@localhost:5432".to_string())
-        }
+/// Resuelve la URL de Postgres a partir de la configuración `DBType`.
+fn resolve_db_url(database_type: DBType) -> String {
+    match database_type {
+        DBType::Postgres(Some(database_url)) => database_url,
+        DBType::Postgres(None) => var("DATABASE_URL")
+            .or_else(|_| var("PG_URL"))
+            .unwrap_or_else(|_| "postgres://user:password@localhost:5432".to_string()),
     }
 }
 
 /// Abre el pool exclusivo de la cola y prepara el schema `apalis`.
 async fn build_event_storage(
-    url: &str,
+    database_url: &str,
 ) -> Result<PostgresStorage<UserCreatedEvent>, ClickCareError> {
-    let pool = PgPool::connect(url).await.map_err(|error| {
+    let pool = PgPool::connect(database_url).await.map_err(|error| {
         ClickCareError::generic(format!(
             "Error en la conexion a la DB de la cola de eventos ({error})"
         ))
@@ -139,7 +148,7 @@ async fn build_event_storage(
 }
 
 /// Abre la conexión de los repositorios de entidades y arma el estado del worker.
-async fn build_state(url: &str) -> Result<AdministrationState, ClickCareError> {
+async fn build_state(database_url: &str) -> Result<AdministrationState, ClickCareError> {
     let db: Db = toasty::Db::builder()
         .models(models!(
             ClinicalNetworkRecord,
@@ -147,11 +156,11 @@ async fn build_state(url: &str) -> Result<AdministrationState, ClickCareError> {
             PatientRecord,
             PractitionerRecord
         ))
-        .connect(url)
+        .connect(database_url)
         .await
         .map_err(|error| {
             ClickCareError::generic(format!(
-                "Error en la conexion a la Toasty DB [{url}] ({error})"
+                "Error en la conexion a la Toasty DB [{database_url}] ({error})"
             ))
         })?;
 

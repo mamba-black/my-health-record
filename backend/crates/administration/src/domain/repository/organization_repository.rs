@@ -22,8 +22,11 @@ pub trait OrganizationRepository: Send + Sync {
         owner_user_id: &Uuid,
     ) -> Result<Option<Uuid>, ClickCareError>;
 
-    /// Devuelve el par `(organization_id, network_id)` asociado a un subdominio exclusivo.
-    async fn find_org_and_network_by_subdomain(
+    /// Devuelve el par `(organization_id, network_id)` asociado a un subdominio exclusivo de clínica.
+    ///
+    /// Permite resolver el contexto de inquilino (`organization_id`) y el dominio de autenticación
+    /// federado (`network_id`) a partir del subdominio enviado por el cliente.
+    async fn find_organization_and_network_by_subdomain(
         &self,
         subdomain: &str,
     ) -> Result<Option<(Uuid, Uuid)>, ClickCareError>;

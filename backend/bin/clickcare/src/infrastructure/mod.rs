@@ -18,8 +18,13 @@ pub mod cli;
 pub mod grpc;
 pub mod log;
 
+/// Inicia el servidor gRPC y gRPC-Web de ClickCare junto con los workers de eventos en segundo plano.
+///
+/// # Parámetros
+/// - `database_url`: Cadena de conexión a la base de datos PostgreSQL (ej. `"postgres://user:pass@localhost:5432"`).
+/// - `enable_administration_worker`: Si es `true`, ejecuta el worker de administración para procesar eventos en segundo plano.
 pub async fn start_server(
-    url: Option<String>,
+    database_url: Option<String>,
     enable_administration_worker: bool,
 ) -> Result<(), ClickCareError> {
     let reflection_server = tonic_reflection::server::Builder::configure()
@@ -28,14 +33,15 @@ pub async fn start_server(
         .expect("Could not build server");
 
     let administration =
-        administration_di::new(administration_di::DBType::Postgres(url.clone())).await?;
+        administration_di::new(administration_di::DBType::Postgres(database_url.clone())).await?;
     let subdomain_resolver = Arc::new(SubdomainResolver::new(Arc::clone(
         &administration.state.organization_repository,
     )));
 
     let patient_service_server = PatientApiServer::new(PatientApiImpl::default());
-    let user_service_server =
-        UserApiServer::new(UserApiImpl::new(url, Arc::clone(&subdomain_resolver)).await?);
+    let user_service_server = UserApiServer::new(
+        UserApiImpl::new(database_url, Arc::clone(&subdomain_resolver)).await?,
+    );
     let clinic_service_server = ClinicApiServer::new(ClinicApiImpl::new(Arc::clone(
         &administration.create_clinic_use_case,
     )));

@@ -32,6 +32,13 @@ pub struct Patient {
 }
 
 impl Patient {
+    /// Crea un nuevo expediente de paciente activo sin referencias a expedientes previos.
+    ///
+    /// # Parámetros
+    /// - `id`: Identificador único del expediente (UUID v7).
+    /// - `organization_id`: Clínica donde se crea este expediente.
+    /// - `user_id`: Identificador global del usuario en el sistema.
+    /// - `person`: Recurso demográfico FHIR `Person`.
     pub fn new(id: Uuid, organization_id: Uuid, user_id: Uuid, person: Person) -> Self {
         Self {
             id,
@@ -43,6 +50,14 @@ impl Patient {
         }
     }
 
+    /// Crea un expediente de paciente con una lista de identificadores de expedientes previos vinculados.
+    ///
+    /// # Parámetros
+    /// - `id`: Identificador único del expediente (UUID v7).
+    /// - `organization_id`: Clínica donde se crea este expediente.
+    /// - `user_id`: Identificador global del usuario en el sistema.
+    /// - `person`: Recurso demográfico FHIR `Person`.
+    /// - `referenced_patient_ids`: Lista de UUIDs de expedientes absorbidos o vinculados.
     pub fn with_referenced_patient_ids(
         id: Uuid,
         organization_id: Uuid,

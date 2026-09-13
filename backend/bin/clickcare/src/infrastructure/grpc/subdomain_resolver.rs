@@ -1,3 +1,8 @@
+//! Módulo de resolución y extracción de subdominios multi-tenant.
+//!
+//! Permite identificar la red médica (`network_id`) y la clínica (`organization_id`) a partir
+//! de los encabezados HTTP/2 (`Host`, `:authority`) o metadata gRPC (`x-subdomain`).
+
 use administration::domain::repository::organization_repository::OrganizationRepository;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -21,6 +26,7 @@ pub struct SubdomainResolver {
 }
 
 impl SubdomainResolver {
+    /// Crea un nuevo resolvedor respaldado por un repositorio de organizaciones y caché en memoria.
     pub fn new(organization_repository: Arc<dyn OrganizationRepository>) -> Self {
         Self {
             cache: Arc::new(RwLock::new(HashMap::new())),
@@ -28,6 +34,7 @@ impl SubdomainResolver {
         }
     }
 
+    /// Crea un resolvedor mock en memoria para pruebas unitarias sin repositorio real.
     pub fn new_mock() -> Self {
         Self {
             cache: Arc::new(RwLock::new(HashMap::new())),
@@ -94,36 +101,36 @@ impl SubdomainResolver {
         // 1. Verificar caché en memoria
         {
             let cache = self.cache.read().await;
-            if let Some(&(network_id, org_id)) = cache.get(&normalized) {
+            if let Some(&(network_id, organization_id)) = cache.get(&normalized) {
                 debug!(
-                    "Subdominio '{normalized}' resuelto desde caché: network_id={network_id}, org_id={org_id}"
+                    "Subdominio '{normalized}' resuelto desde caché: network_id={network_id}, organization_id={organization_id}"
                 );
-                return Ok((network_id, org_id));
+                return Ok((network_id, organization_id));
             }
         }
 
         // 2. Si no está en caché, consultar repositorio
-        let Some(repo) = &self.organization_repository else {
+        let Some(organization_repository) = &self.organization_repository else {
             return Err(Status::not_found(format!(
                 "Subdominio '{normalized}' no encontrado en la plataforma",
             )));
         };
 
-        let result = repo
-            .find_org_and_network_by_subdomain(&normalized)
+        let result = organization_repository
+            .find_organization_and_network_by_subdomain(&normalized)
             .await
             .map_err(|e| {
                 Status::internal(format!("Error resolviendo subdominio '{normalized}': {e}"))
             })?;
 
         match result {
-            Some((org_id, network_id)) => {
+            Some((organization_id, network_id)) => {
                 info!(
-                    "Subdominio '{normalized}' resuelto desde base de datos: network_id={network_id}, org_id={org_id}"
+                    "Subdominio '{normalized}' resuelto desde base de datos: network_id={network_id}, organization_id={organization_id}"
                 );
                 let mut cache = self.cache.write().await;
-                cache.insert(normalized, (network_id, org_id));
-                Ok((network_id, org_id))
+                cache.insert(normalized, (network_id, organization_id));
+                Ok((network_id, organization_id))
             }
             None => Err(Status::not_found(format!(
                 "Subdominio '{normalized}' no encontrado en la plataforma",
@@ -199,42 +206,42 @@ mod tests {
     #[tokio::test]
     async fn cache_resolves_registered_subdomain() {
         let resolver = SubdomainResolver::new_mock();
-        let net_id = Uuid::now_v7();
-        let org_id = Uuid::now_v7();
+        let network_id = Uuid::now_v7();
+        let organization_id = Uuid::now_v7();
 
         resolver
-            .register("san-borja".to_string(), net_id, org_id)
+            .register("san-borja".to_string(), network_id, organization_id)
             .await;
 
-        let (res_net, res_org) = resolver
+        let (resolved_network_id, resolved_organization_id) = resolver
             .resolve_subdomain("san-borja")
             .await
             .expect("Debe resolver desde caché");
 
-        assert_eq!(res_net, net_id);
-        assert_eq!(res_org, org_id);
+        assert_eq!(resolved_network_id, network_id);
+        assert_eq!(resolved_organization_id, organization_id);
     }
 
     #[tokio::test]
     async fn rejects_reserved_subdomain() {
         let resolver = SubdomainResolver::new_mock();
-        let err = resolver
+        let error = resolver
             .resolve_subdomain("app")
             .await
             .expect_err("Debe rechazar subdominio reservado");
 
-        assert_eq!(err.code(), tonic::Code::InvalidArgument);
+        assert_eq!(error.code(), tonic::Code::InvalidArgument);
     }
 
     #[tokio::test]
     async fn returns_not_found_for_unregistered_subdomain() {
         let resolver = SubdomainResolver::new_mock();
-        let err = resolver
+        let error = resolver
             .resolve_subdomain("inexistente")
             .await
             .expect_err("Debe retornar NotFound");
 
-        assert_eq!(err.code(), tonic::Code::NotFound);
+        assert_eq!(error.code(), tonic::Code::NotFound);
     }
 
     #[tokio::test]
@@ -242,22 +249,22 @@ mod tests {
         let resolver = SubdomainResolver::new_mock();
         let request = Request::new(());
 
-        let (net_id, org_id) = resolver
+        let (network_id, organization_id) = resolver
             .resolve(&request)
             .await
             .expect("Debe usar red por defecto");
 
-        assert_eq!(net_id, DEFAULT_DEV_NETWORK_ID);
-        assert_eq!(org_id, DEFAULT_DEV_NETWORK_ID);
+        assert_eq!(network_id, DEFAULT_DEV_NETWORK_ID);
+        assert_eq!(organization_id, DEFAULT_DEV_NETWORK_ID);
     }
 
     #[tokio::test]
     async fn resolves_via_x_subdomain_metadata() {
         let resolver = SubdomainResolver::new_mock();
-        let net_id = Uuid::now_v7();
-        let org_id = Uuid::now_v7();
+        let network_id = Uuid::now_v7();
+        let organization_id = Uuid::now_v7();
         resolver
-            .register("sede-sur".to_string(), net_id, org_id)
+            .register("sede-sur".to_string(), network_id, organization_id)
             .await;
 
         let mut request = Request::new(());
@@ -265,12 +272,12 @@ mod tests {
             .metadata_mut()
             .insert("x-subdomain", "sede-sur".parse().unwrap());
 
-        let (res_net, res_org) = resolver
+        let (resolved_network_id, resolved_organization_id) = resolver
             .resolve(&request)
             .await
             .expect("Debe resolver vía x-subdomain");
 
-        assert_eq!(res_net, net_id);
-        assert_eq!(res_org, org_id);
+        assert_eq!(resolved_network_id, network_id);
+        assert_eq!(resolved_organization_id, organization_id);
     }
 }

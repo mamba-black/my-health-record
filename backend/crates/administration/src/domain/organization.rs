@@ -23,6 +23,15 @@ pub struct Organization {
 }
 
 impl Organization {
+    /// Crea una nueva organización de salud (clínica u hospital) con estado activo.
+    ///
+    /// # Parámetros
+    /// - `id`: Identificador único de la organización (UUID v7).
+    /// - `network_id`: Identificador de la red médica a la que pertenece (UUID v7).
+    /// - `subdomain`: Subdominio web exclusivo para resolver el inquilino (ej. `"san-borja"`).
+    /// - `name`: Nombre comercial o denominación de la clínica.
+    /// - `tax_id`: Registro fiscal o RUC de la institución (opcional).
+    /// - `owner_user_id`: Identificador del usuario propietario de la clínica (UUID v7).
     pub fn new(
         id: Uuid,
         network_id: Uuid,

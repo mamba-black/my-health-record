@@ -240,7 +240,7 @@ mod test {
             Ok(self.already_exists.then_some(EXISTING_ORGANIZATION_ID))
         }
 
-        async fn find_org_and_network_by_subdomain(
+        async fn find_organization_and_network_by_subdomain(
             &self,
             _subdomain: &str,
         ) -> Result<Option<(Uuid, Uuid)>, ClickCareError> {

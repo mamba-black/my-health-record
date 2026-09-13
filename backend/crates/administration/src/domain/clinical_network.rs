@@ -20,6 +20,12 @@ pub struct ClinicalNetwork {
 }
 
 impl ClinicalNetwork {
+    /// Crea una nueva red médica con estado activo.
+    ///
+    /// # Parámetros
+    /// - `id`: Identificador único de la red (UUID v7).
+    /// - `name`: Nombre descriptivo o comercial de la red.
+    /// - `is_default`: `true` si es la red por defecto creada para una clínica individual/independiente.
     pub fn new(id: Uuid, name: String, is_default: bool) -> Self {
         Self {
             id,

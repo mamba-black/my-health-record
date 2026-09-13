@@ -13,6 +13,10 @@ use std::sync::Arc;
 use tracing::error;
 use uuid::Uuid;
 
+/// Caso de uso para registrar y autenticar un usuario en el sistema.
+///
+/// Valida la no existencia previa del documento de identidad y del correo electrónico
+/// en el ámbito de la red médica (`network_id`), persiste la cuenta y emite el evento `UserCreatedEvent`.
 pub trait CreateUserUseCase:
     UseCase<Command = CreateUserCommand, Response = CreateUserResponse, Error = CreateUserError>
 {
@@ -34,7 +38,7 @@ impl UseCase for CreateUserUseCaseImpl {
     type Error = CreateUserError;
 
     async fn execute(&self, command: Self::Command) -> Result<Self::Response, Self::Error> {
-        let exist_user = match &command.identifier {
+        let user_exists_by_document = match &command.identifier {
             Some(DNI(value)) => self
                 .user_repository
                 .exist_user_by_document(&command.network_id, DNI(value.clone()))
@@ -48,7 +52,7 @@ impl UseCase for CreateUserUseCaseImpl {
             _ => false,
         };
 
-        if exist_user {
+        if user_exists_by_document {
             error!(
                 "User with document ID {:?} already exists in network {}",
                 command.identifier, command.network_id
@@ -60,7 +64,7 @@ impl UseCase for CreateUserUseCaseImpl {
             return Err(UserAlreadyExists(ClickCareError::generic(msg)));
         }
 
-        let exist_email = self
+        let email_already_registered = self
             .user_repository
             .exist_user_by_email(&command.network_id, &command.email)
             .await
@@ -71,7 +75,7 @@ impl UseCase for CreateUserUseCaseImpl {
                 )))
             })?;
 
-        if exist_email {
+        if email_already_registered {
             error!(
                 "User with email {} already exists in network {}",
                 command.email, command.network_id
@@ -144,26 +148,46 @@ pub mod command {
     use app_core::domain::error::ClickCareError;
     use uuid::Uuid;
 
+    /// Parámetros de entrada para el caso de uso de registro de usuario (`CreateUserUseCase`).
     #[derive(Debug, Clone)]
     pub struct CreateUserCommand {
+        /// Red médica en la que se registra el usuario (UUID v7).
         pub network_id: Uuid,
+        /// Token de identidad emitido por el proveedor OAuth/OIDC.
         pub id_token: String,
+        /// Identificador único del usuario (UUID v7).
         pub user_id: String,
+        /// Identificador del usuario provisto por el proveedor OAuth (e.g. Google sub).
         pub provider_id: String,
+        /// Nombre del proveedor de identidad (e.g. "Google").
         pub provider_name: String,
+        /// URL del avatar provisto por el proveedor de identidad.
         pub provider_avatar_url: Option<String>,
+        /// Correo electrónico principal del usuario.
         pub email: String,
+        /// Documento de identidad oficial (ej. DNI, Pasaporte).
         pub identifier: Option<Identifier>,
+        /// Primer nombre de la persona.
         pub first_name: String,
+        /// Primer apellido o apellido paterno.
         pub last_name: Option<String>,
+        /// Segundo apellido o apellido materno.
         pub second_family_name: Option<String>,
+        /// Número telefónico de contacto.
         pub phone: String,
+        /// Dirección de residencia física.
         pub address: String,
+        /// Fecha de nacimiento en formato ISO 8601 (YYYY-MM-DD).
         pub birthdate: String,
+        /// Nombre para mostrar o alias preferido.
         pub display_name: Option<String>,
+        /// Indica si el usuario solicita crear una clínica como propietario.
         pub create_clinic: bool,
+        /// Intención declarada de perfil durante el registro preliminar.
         pub intent: SignUpIntent,
+        /// Nombre de usuario del sistema.
         pub username: String,
+        /// Contraseña asociada a la cuenta (cuando aplique).
         pub password: String,
     }
 
@@ -188,17 +212,23 @@ pub mod command {
         }
     }
 
+    /// Resultado exitoso tras ejecutar `CreateUserUseCase`.
     #[derive(Debug, Clone)]
     pub struct CreateUserResponse {
+        /// Identificador del usuario registrado (UUID v7).
         pub user_id: String,
+        /// Identificador de la clínica creada si correspondía a un propietario (opcional).
         pub organization_id: Option<String>,
     }
 
     pub type SignUpResponse = CreateUserResponse;
 
+    /// Posibles errores que pueden ocurrir durante la ejecución de `CreateUserUseCase`.
     #[derive(Debug)]
     pub enum CreateUserError {
+        /// El usuario ya existe en la red médica indicada (colisión de correo o documento).
         UserAlreadyExists(ClickCareError),
+        /// Error inesperado o fallo de infraestructura.
         UnknownError(ClickCareError),
     }
 

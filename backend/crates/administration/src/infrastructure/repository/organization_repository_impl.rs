@@ -58,7 +58,7 @@ impl OrganizationRepository for OrganizationRepositoryImpl {
         })
     }
 
-    async fn find_org_and_network_by_subdomain(
+    async fn find_organization_and_network_by_subdomain(
         &self,
         subdomain: &str,
     ) -> Result<Option<(Uuid, Uuid)>, ClickCareError> {
@@ -81,23 +81,23 @@ impl OrganizationRepository for OrganizationRepositoryImpl {
         };
 
         let mut fields = row.into_record().fields.into_iter();
-        let org_id_val = fields.next().ok_or_else(|| {
+        let organization_id_value = fields.next().ok_or_else(|| {
             ClickCareError::generic("Falta columna id en la consulta de organización".to_string())
         })?;
-        let network_id_val = fields.next().ok_or_else(|| {
+        let network_id_value = fields.next().ok_or_else(|| {
             ClickCareError::generic(
                 "Falta columna network_id en la consulta de organización".to_string(),
             )
         })?;
 
-        let org_id = Uuid::try_from(org_id_val).map_err(|error| {
+        let organization_id = Uuid::try_from(organization_id_value).map_err(|error| {
             ClickCareError::generic(format!("Columna id no es un UUID válido: {error}"))
         })?;
-        let network_id = Uuid::try_from(network_id_val).map_err(|error| {
+        let network_id = Uuid::try_from(network_id_value).map_err(|error| {
             ClickCareError::generic(format!("Columna network_id no es un UUID válido: {error}"))
         })?;
 
-        Ok(Some((org_id, network_id)))
+        Ok(Some((organization_id, network_id)))
     }
 
     async fn save(&self, organization: &Organization) -> Result<(), ClickCareError> {

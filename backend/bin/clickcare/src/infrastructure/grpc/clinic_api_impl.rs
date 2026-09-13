@@ -5,12 +5,13 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use tracing::debug;
 
-/// Adaptador gRPC del contexto acotado `administration`.
+/// Adaptador del servicio gRPC `ClinicApi` para la creación y administración de clínicas.
 pub struct ClinicApiImpl {
     create_clinic_use_case: Arc<dyn CreateClinicUseCase>,
 }
 
 impl ClinicApiImpl {
+    /// Crea una nueva instancia inyectando el caso de uso `CreateClinicUseCase`.
     pub fn new(create_clinic_use_case: Arc<dyn CreateClinicUseCase>) -> Self {
         Self {
             create_clinic_use_case,
@@ -20,6 +21,7 @@ impl ClinicApiImpl {
 
 #[tonic::async_trait]
 impl ClinicApi for ClinicApiImpl {
+    /// Crea o recupera una clínica con su subdominio exclusivo y ficha de profesional propietario.
     #[tracing::instrument(skip(self, request))]
     async fn create_clinic(
         &self,

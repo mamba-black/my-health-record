@@ -12,9 +12,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_observability();
 
     let cli = Cli::parse();
-    let enable_admin_worker = cli.is_administration_worker_enabled();
+    let enable_administration_worker = cli.is_administration_worker_enabled();
 
-    start_server(None, enable_admin_worker).await?;
+    start_server(None, enable_administration_worker).await?;
 
     Ok(())
 }

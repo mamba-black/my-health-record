@@ -159,7 +159,7 @@ impl UseCase for CreateClinicUseCaseImpl {
         if self
             .state
             .organization_repository
-            .find_org_and_network_by_subdomain(&subdomain)
+            .find_organization_and_network_by_subdomain(&subdomain)
             .await?
             .is_some()
         {
@@ -339,15 +339,15 @@ mod test {
             Ok(self.existing_id)
         }
 
-        async fn find_org_and_network_by_subdomain(
+        async fn find_organization_and_network_by_subdomain(
             &self,
             subdomain: &str,
         ) -> Result<Option<(Uuid, Uuid)>, ClickCareError> {
-            let orgs = self.saved_organizations.lock().unwrap();
-            Ok(orgs
+            let organizations = self.saved_organizations.lock().unwrap();
+            Ok(organizations
                 .iter()
-                .find(|o| o.subdomain == subdomain)
-                .map(|o| (o.id, o.network_id)))
+                .find(|organization| organization.subdomain == subdomain)
+                .map(|organization| (organization.id, organization.network_id)))
         }
 
         async fn save(&self, organization: &Organization) -> Result<(), ClickCareError> {

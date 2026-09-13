@@ -17,51 +17,61 @@ use tracing::error;
 
 // ─── DI container ────────────────────────────────────────────────────────────
 
+/// Contenedor de Inyección de Dependencias para el Bounded Context de Usuario e Identidad.
+///
+/// Expone los casos de uso principales (`CreateUserUseCase`), el repositorio de usuarios
+/// y el publicador de eventos de dominio (`EventPublisher`).
 pub struct DI {
+    /// Caso de uso para registrar y autenticar nuevos usuarios en el sistema.
     pub create_user_use_case: Arc<dyn CreateUserUseCase>,
     #[allow(dead_code)]
+    /// Puerto de repositorio para persistencia de cuentas de usuario.
     pub user_repository: Arc<dyn UserRepository>,
+    /// Puerto para publicar eventos de dominio (ej. `UserCreatedEvent`).
     pub event_publisher: Arc<dyn EventPublisher>,
 }
 
 // ─── Overrides: solo los repos/servicios que quieres mockear en tests ────────
 
+/// Sobrescrituras para sustituir dependencias específicas en pruebas unitarias o de integración.
 #[derive(Default)]
 pub struct DIOverrides {
+    /// Repositorio alternativo o mock para usuarios.
     pub user_repository: Option<Arc<dyn UserRepository>>,
+    /// Publicador alternativo o mock para eventos de dominio.
     pub event_publisher: Option<Arc<dyn EventPublisher>>,
 }
 
 // ─── Constructores ───────────────────────────────────────────────────────────
 
-/// Construye el DI completo con implementaciones reales.
-pub async fn new(dbtype: DBType) -> Result<DI, ClickCareError> {
-    new_with_overrides(dbtype, DIOverrides::default()).await
+/// Construye el contenedor DI de usuarios con implementaciones reales de base de datos.
+pub async fn new(database_type: DBType) -> Result<DI, ClickCareError> {
+    new_with_overrides(database_type, DIOverrides::default()).await
 }
 
-/// Construye el DI usando implementaciones reales, pero sustituye
-/// solo aquellas dependencias presentes en `overrides`.
+/// Construye el contenedor DI usando implementaciones reales, pero sustituyendo
+/// las dependencias especificadas en `overrides`.
 pub async fn new_with_overrides(
-    dbtype: DBType,
+    database_type: DBType,
     overrides: DIOverrides,
 ) -> Result<DI, ClickCareError> {
     // La URL se resuelve una sola vez y se reparte entre los consumidores. Cada uno
     // abre su propia conexión: la cola de eventos nunca comparte pool ni transacción
     // con los repositorios de entidades.
-    let db_url = resolve_db_url(&dbtype);
+    let database_url = resolve_db_url(&database_type);
 
     // ── user_repository ──────────────────────────────────────────────────────
-    let user_repository: Arc<dyn UserRepository> = if let Some(repo) = overrides.user_repository {
-        repo
+    let user_repository: Arc<dyn UserRepository> = if let Some(repository) = overrides.user_repository {
+        repository
     } else {
-        build_user_repository(db_url.as_deref()).await?
+        build_user_repository(database_url.as_deref()).await?
     };
 
     // ── event_publisher ──────────────────────────────────────────────────────
-    let event_publisher: Arc<dyn EventPublisher> = if let Some(publ) = overrides.event_publisher {
-        publ
+    let event_publisher: Arc<dyn EventPublisher> = if let Some(publisher) = overrides.event_publisher {
+        publisher
     } else {
-        match db_url.as_deref() {
+        match database_url.as_deref() {
             Some(url) => Arc::new(ApalisEventPublisher::new(url).await?),
             // Sin base de datos (`DBType::Mock`) la cola no existe: se degrada a log.
             None => Arc::new(LoggingEventPublisher),
@@ -83,49 +93,56 @@ pub async fn new_with_overrides(
 
 // ─── Helpers privados ────────────────────────────────────────────────────────
 
-/// Resuelve la URL de Postgres del `DBType`. `None` significa que no hay base de
-/// datos y las dependencias deben degradarse a sus variantes en memoria.
-fn resolve_db_url(dbtype: &DBType) -> Option<String> {
-    match dbtype {
-        DBType::Postgres(Some(url)) => Some(url.clone()),
-        DBType::Postgres(None) => {
-            Some(var("PG_URL").unwrap_or("postgres://user:password@localhost:5432".to_string()))
-        }
+/// Resuelve la URL de Postgres a partir de la configuración `DBType`.
+/// `None` significa que no hay base de datos física y las dependencias deben degradarse a memoria.
+fn resolve_db_url(database_type: &DBType) -> Option<String> {
+    match database_type {
+        DBType::Postgres(Some(database_url)) => Some(database_url.clone()),
+        DBType::Postgres(None) => Some(
+            var("DATABASE_URL")
+                .or_else(|_| var("PG_URL"))
+                .unwrap_or_else(|_| "postgres://user:password@localhost:5432".to_string()),
+        ),
         DBType::Mock => None,
     }
 }
 
+/// Construye la instancia de `UserRepository` conectada a Toasty PostgreSQL o una versión en memoria.
 async fn build_user_repository(
-    db_url: Option<&str>,
+    database_url: Option<&str>,
 ) -> Result<Arc<dyn UserRepository>, ClickCareError> {
-    let Some(url) = db_url else {
+    let Some(database_url_str) = database_url else {
         return Ok(Arc::new(MockUserRepositoryImpl {
             saved_users: Mutex::new(Vec::new()),
         }));
     };
 
-    debug!("URL de la base de datos: {url}");
+    debug!("URL de la base de datos: {database_url_str}");
     let db: Db = toasty::Db::builder()
         .models(models!(UserAccount))
-        .connect(url)
+        .connect(database_url_str)
         .await
-        .map_err(|e| {
-            error!("Error al crear el Pool para toasty: {e}");
+        .map_err(|error| {
+            error!("Error al crear el Pool para toasty: {error}");
             ClickCareError::generic(format!(
-                "Error en la conexion a la Toasty DB [{}] ({})",
-                url, e
+                "Error en la conexion a la Toasty DB [{database_url_str}] ({error})"
             ))
         })?;
 
     Ok(Arc::new(UserRepositoryImpl { db }))
 }
 
+/// Tipo de backend de persistencia configurado para el contexto de usuario.
 pub enum DBType {
+    /// Conexión a PostgreSQL mediante cadena de conexión opcional (o variable de entorno `DATABASE_URL` / `PG_URL`).
     Postgres(Option<String>),
+    /// Modo mock en memoria para pruebas rápidas sin dependencia de PostgreSQL.
     Mock,
 }
 
+/// Implementación en memoria de `UserRepository` para pruebas unitarias.
 pub struct MockUserRepositoryImpl {
+    /// Lista de usuarios almacenados en memoria durante el test.
     pub saved_users: Mutex<Vec<User>>,
 }
 

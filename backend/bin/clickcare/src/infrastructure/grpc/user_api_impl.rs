@@ -13,35 +13,40 @@ use user::infrastructure::di::DBType;
 
 use user::domain::repository::user_repository::UserRepository;
 
+/// Implementación del servicio gRPC `UserApi` para gestión e identidad de usuarios.
 pub struct UserApiImpl {
     create_user_use_case: Arc<dyn CreateUserUseCase>,
     #[allow(dead_code)]
     pub user_repository: Arc<dyn UserRepository>,
+    /// Resolvedor de subdominio utilizado para determinar `network_id` de cada solicitud.
     pub subdomain_resolver: Arc<SubdomainResolver>,
 }
 
 impl UserApiImpl {
+    /// Inicializa la implementación conectándola a PostgreSQL mediante una URL opcional.
     pub async fn new(
-        db_url: Option<String>,
+        database_url: Option<String>,
         subdomain_resolver: Arc<SubdomainResolver>,
     ) -> Result<UserApiImpl, ClickCareError> {
-        let dbtype = match db_url {
-            Some(u) => DBType::Postgres(Some(u)),
+        let database_type = match database_url {
+            Some(url) => DBType::Postgres(Some(url)),
             None => DBType::Postgres(None),
         };
-        Self::new_with_dbtype(dbtype, subdomain_resolver).await
+        Self::new_with_database_type(database_type, subdomain_resolver).await
     }
 
+    /// Inicializa una versión mock en memoria para pruebas unitarias.
     #[allow(dead_code)]
     pub async fn new_mock() -> Result<UserApiImpl, ClickCareError> {
-        Self::new_with_dbtype(DBType::Mock, Arc::new(SubdomainResolver::new_mock())).await
+        Self::new_with_database_type(DBType::Mock, Arc::new(SubdomainResolver::new_mock())).await
     }
 
-    pub async fn new_with_dbtype(
-        dbtype: DBType,
+    /// Inicializa la implementación con un tipo de base de datos específico (`DBType`).
+    pub async fn new_with_database_type(
+        database_type: DBType,
         subdomain_resolver: Arc<SubdomainResolver>,
     ) -> Result<UserApiImpl, ClickCareError> {
-        let di = di::new(dbtype).await?;
+        let di = di::new(database_type).await?;
         Ok(Self {
             create_user_use_case: di.create_user_use_case,
             user_repository: di.user_repository,
@@ -52,6 +57,7 @@ impl UserApiImpl {
 
 #[async_trait]
 impl UserApi for UserApiImpl {
+    /// Registra un nuevo usuario en la red clínica resuelta a partir del subdominio de la solicitud.
     #[tracing::instrument(skip(self, sign_up_request))]
     async fn sign_up(
         &self,
