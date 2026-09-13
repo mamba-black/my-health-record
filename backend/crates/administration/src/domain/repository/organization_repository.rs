@@ -22,6 +22,12 @@ pub trait OrganizationRepository: Send + Sync {
         owner_user_id: &Uuid,
     ) -> Result<Option<Uuid>, ClickCareError>;
 
+    /// Devuelve el par `(organization_id, network_id)` asociado a un subdominio exclusivo.
+    async fn find_org_and_network_by_subdomain(
+        &self,
+        subdomain: &str,
+    ) -> Result<Option<(Uuid, Uuid)>, ClickCareError>;
+
     /// Persiste la organización.
     async fn save(&self, organization: &Organization) -> Result<(), ClickCareError>;
 }

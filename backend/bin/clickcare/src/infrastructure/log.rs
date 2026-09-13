@@ -1,4 +1,3 @@
-use std::time::Duration;
 use opentelemetry::trace::TracerProvider as _;
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::WithExportConfig;
@@ -6,6 +5,7 @@ use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::logs::SdkLoggerProvider;
 use opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider};
 use opentelemetry_sdk::trace::SdkTracerProvider;
+use std::time::Duration;
 use tracing::{debug, info, warn};
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::fmt::format::FmtSpan;
@@ -96,8 +96,8 @@ pub struct OtelConfig {
 impl OtelConfig {
     pub fn from_env() -> Self {
         let endpoint = OtelEndpoint::from_env();
-        let protocol = std::env::var("OTEL_EXPORTER_OTLP_PROTOCOL")
-            .unwrap_or_else(|_| "grpc".to_string());
+        let protocol =
+            std::env::var("OTEL_EXPORTER_OTLP_PROTOCOL").unwrap_or_else(|_| "grpc".to_string());
         let metric_export_interval = std::env::var("OTEL_METRIC_EXPORT_INTERVAL")
             .ok()
             .and_then(|v| v.parse::<u64>().ok())
@@ -114,7 +114,10 @@ impl OtelConfig {
     }
 
     pub fn is_http(&self) -> bool {
-        matches!(self.protocol.to_lowercase().as_str(), "http" | "http/protobuf")
+        matches!(
+            self.protocol.to_lowercase().as_str(),
+            "http" | "http/protobuf"
+        )
     }
 }
 
@@ -149,7 +152,10 @@ pub fn init_observability() {
 
     debug!("OTEL_EXPORTER_OTLP_ENDPOINT: {:?}", config.endpoint);
     debug!("OTEL_EXPORTER_OTLP_PROTOCOL: {:?}", config.protocol);
-    debug!("OTEL_METRIC_EXPORT_INTERVAL: {:?}", config.metric_export_interval);
+    debug!(
+        "OTEL_METRIC_EXPORT_INTERVAL: {:?}",
+        config.metric_export_interval
+    );
 
     match &config.endpoint {
         OtelEndpoint::Active(ep) => {
@@ -190,7 +196,9 @@ where
     let span_exporter = match span_exporter {
         Ok(exporter) => exporter,
         Err(err) => {
-            warn!("Error al construir el exportador OTLP de trazas: {err}. Trazas OTLP deshabilitadas.");
+            warn!(
+                "Error al construir el exportador OTLP de trazas: {err}. Trazas OTLP deshabilitadas."
+            );
             return None;
         }
     };
@@ -228,7 +236,9 @@ where
     let log_exporter = match log_exporter {
         Ok(exporter) => exporter,
         Err(err) => {
-            warn!("Error al construir el exportador OTLP de logs: {err}. Logs OTLP deshabilitados.");
+            warn!(
+                "Error al construir el exportador OTLP de logs: {err}. Logs OTLP deshabilitados."
+            );
             return None;
         }
     };
@@ -262,7 +272,9 @@ pub fn init_meter(config: &OtelConfig) {
     let metric_exporter = match metric_exporter {
         Ok(exporter) => exporter,
         Err(err) => {
-            warn!("Error al construir el exportador OTLP de métricas: {err}. Métricas OTLP deshabilitadas.");
+            warn!(
+                "Error al construir el exportador OTLP de métricas: {err}. Métricas OTLP deshabilitadas."
+            );
             return;
         }
     };
@@ -301,7 +313,9 @@ pub fn init_meter_system_metrics() {
     // 2. Memoria compartida usada por el proceso en Bytes
     let _ = meter
         .u64_observable_gauge("process.shared_memory_bytes")
-        .with_description("Memoria compartida (SHR: RssFile + RssShmem) usada por el proceso en bytes")
+        .with_description(
+            "Memoria compartida (SHR: RssFile + RssShmem) usada por el proceso en bytes",
+        )
         .with_callback(|observer| {
             if let Some((_, shared_bytes)) = init_meter_system_metrics_process_memory() {
                 observer.observe(shared_bytes, &[]);

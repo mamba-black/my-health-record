@@ -1,4 +1,5 @@
 use crate::infrastructure::grpc::SignUpRequest;
+use crate::infrastructure::grpc::subdomain_resolver::SubdomainResolver;
 use crate::infrastructure::grpc::user_api_server::UserApi;
 use crate::infrastructure::grpc::*;
 use app_core::domain::error::ClickCareError;
@@ -16,27 +17,35 @@ pub struct UserApiImpl {
     create_user_use_case: Arc<dyn CreateUserUseCase>,
     #[allow(dead_code)]
     pub user_repository: Arc<dyn UserRepository>,
+    pub subdomain_resolver: Arc<SubdomainResolver>,
 }
 
 impl UserApiImpl {
-    pub async fn new(url: Option<String>) -> Result<UserApiImpl, ClickCareError> {
-        let dbtype = match url {
+    pub async fn new(
+        db_url: Option<String>,
+        subdomain_resolver: Arc<SubdomainResolver>,
+    ) -> Result<UserApiImpl, ClickCareError> {
+        let dbtype = match db_url {
             Some(u) => DBType::Postgres(Some(u)),
             None => DBType::Postgres(None),
         };
-        Self::new_with_dbtype(dbtype).await
+        Self::new_with_dbtype(dbtype, subdomain_resolver).await
     }
 
     #[allow(dead_code)]
     pub async fn new_mock() -> Result<UserApiImpl, ClickCareError> {
-        Self::new_with_dbtype(DBType::Mock).await
+        Self::new_with_dbtype(DBType::Mock, Arc::new(SubdomainResolver::new_mock())).await
     }
 
-    pub async fn new_with_dbtype(dbtype: DBType) -> Result<UserApiImpl, ClickCareError> {
+    pub async fn new_with_dbtype(
+        dbtype: DBType,
+        subdomain_resolver: Arc<SubdomainResolver>,
+    ) -> Result<UserApiImpl, ClickCareError> {
         let di = di::new(dbtype).await?;
         Ok(Self {
             create_user_use_case: di.create_user_use_case,
             user_repository: di.user_repository,
+            subdomain_resolver,
         })
     }
 }
@@ -48,9 +57,13 @@ impl UserApi for UserApiImpl {
         &self,
         sign_up_request: Request<SignUpRequest>,
     ) -> Result<Response<SignUpResponse>, Status> {
+        let (network_id, _organization_id) =
+            self.subdomain_resolver.resolve(&sign_up_request).await?;
+
         let sign_up_request = sign_up_request.into_inner();
 
-        let create_user_command: CreateUserCommand = sign_up_request.into();
+        let mut create_user_command: CreateUserCommand = sign_up_request.into();
+        create_user_command.network_id = network_id;
         debug!("command: {:?}", create_user_command);
 
         self.create_user_use_case
@@ -80,10 +93,11 @@ impl UserApi for UserApiImpl {
 }
 
 mod mapper {
-    use crate::infrastructure::grpc::{SignUpIntent, SignUpRequest};
     use crate::infrastructure::grpc::identifier::IdentifierType;
+    use crate::infrastructure::grpc::{SignUpIntent, SignUpRequest};
     use app_core::domain::fhir::Identifier::DNI;
     use user::application::command::CreateUserCommand;
+    use uuid::Uuid;
 
     impl From<SignUpRequest> for CreateUserCommand {
         // `create_clinic` está deprecado en el contrato: la creación de clínica es
@@ -99,6 +113,7 @@ mod mapper {
             };
 
             CreateUserCommand {
+                network_id: Uuid::nil(),
                 id_token: sign_up_request.id_token,
                 user_id: sign_up_request.user_id.clone(),
                 provider_id: sign_up_request.provider_id,
@@ -112,7 +127,7 @@ mod mapper {
                 }),
                 first_name: sign_up_request.given_name,
                 last_name: sign_up_request.family_name,
-                second_last_name: sign_up_request.second_family_name,
+                second_family_name: sign_up_request.second_family_name,
                 phone: sign_up_request.phone,
                 address: sign_up_request.address,
                 birthdate: sign_up_request.birth_date,
@@ -134,10 +149,10 @@ mod test {
     use crate::infrastructure::log::init_observability;
     use app_core::domain::error::ClickCareError;
     use dotenvy::dotenv;
-    use tracing::info;
     use rstest::{fixture, rstest};
     use std::sync::{LazyLock, Once};
     use tonic::Request;
+    use tracing::info;
     use uuid::Uuid;
 
     static INIT: Once = Once::new();

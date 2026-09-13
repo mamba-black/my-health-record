@@ -1,9 +1,13 @@
 use crate::application::create_clinic_usecase::{CreateClinicUseCase, CreateClinicUseCaseImpl};
 use crate::application::event_handlers::handle_user_created_event;
 use crate::application::state::AdministrationState;
+use crate::domain::repository::clinical_network_repository::ClinicalNetworkRepository;
 use crate::domain::repository::organization_repository::OrganizationRepository;
 use crate::domain::repository::patient_repository::PatientRepository;
 use crate::domain::repository::practitioner_repository::PractitionerRepository;
+use crate::infrastructure::repository::clinical_network_repository_impl::{
+    ClinicalNetworkRecord, ClinicalNetworkRepositoryImpl,
+};
 use crate::infrastructure::repository::organization_repository_impl::{
     OrganizationRecord, OrganizationRepositoryImpl,
 };
@@ -40,7 +44,7 @@ pub enum DBType {
 
 pub struct DI {
     storage: PostgresStorage<UserCreatedEvent>,
-    state: AdministrationState,
+    pub state: AdministrationState,
     pub create_clinic_use_case: Arc<dyn CreateClinicUseCase>,
 }
 
@@ -138,6 +142,7 @@ async fn build_event_storage(
 async fn build_state(url: &str) -> Result<AdministrationState, ClickCareError> {
     let db: Db = toasty::Db::builder()
         .models(models!(
+            ClinicalNetworkRecord,
             OrganizationRecord,
             PatientRecord,
             PractitionerRecord
@@ -150,6 +155,8 @@ async fn build_state(url: &str) -> Result<AdministrationState, ClickCareError> {
             ))
         })?;
 
+    let clinical_network_repository: Arc<dyn ClinicalNetworkRepository> =
+        Arc::new(ClinicalNetworkRepositoryImpl { db: db.clone() });
     let organization_repository: Arc<dyn OrganizationRepository> =
         Arc::new(OrganizationRepositoryImpl { db: db.clone() });
     let patient_repository: Arc<dyn PatientRepository> =
@@ -158,6 +165,7 @@ async fn build_state(url: &str) -> Result<AdministrationState, ClickCareError> {
         Arc::new(PractitionerRepositoryImpl { db });
 
     Ok(AdministrationState {
+        clinical_network_repository,
         organization_repository,
         patient_repository,
         practitioner_repository,

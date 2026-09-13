@@ -1,5 +1,6 @@
 pub mod clinic_api_impl;
 pub mod patient_api_impl;
+pub mod subdomain_resolver;
 pub mod user_api_impl;
 
 // Submódulo aislado donde Clippy no entrará a fiscalizar

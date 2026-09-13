@@ -8,6 +8,10 @@ use uuid::Uuid;
 pub struct Organization {
     /// Identificador único de la clínica u organización (UUID v7).
     pub id: Uuid,
+    /// Red de clínicas a la que pertenece esta clínica (UUID v7).
+    pub network_id: Uuid,
+    /// Subdominio exclusivo y plano de la clínica (ej. "san-borja").
+    pub subdomain: String,
     /// Razon social o nombre comercial de la clínica.
     pub name: String,
     /// Registro RUC o identificador fiscal (opcional).
@@ -19,9 +23,18 @@ pub struct Organization {
 }
 
 impl Organization {
-    pub fn new(id: Uuid, name: String, tax_id: Option<String>, owner_user_id: Uuid) -> Self {
+    pub fn new(
+        id: Uuid,
+        network_id: Uuid,
+        subdomain: String,
+        name: String,
+        tax_id: Option<String>,
+        owner_user_id: Uuid,
+    ) -> Self {
         Self {
             id,
+            network_id,
+            subdomain,
             name,
             tax_id,
             owner_user_id,

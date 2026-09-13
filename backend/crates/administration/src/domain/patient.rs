@@ -25,6 +25,10 @@ pub struct Patient {
 
     /// Recurso FHIR R4 de la persona física (Demografía completa e identidad).
     pub person: Person,
+
+    /// Identificadores de expedientes previos absorbidos de otras clínicas (HL7 FHIR Patient.link seeAlso / replaces).
+    #[builder(default)]
+    pub referenced_patient_ids: Vec<Uuid>,
 }
 
 impl Patient {
@@ -35,6 +39,24 @@ impl Patient {
             user_id,
             active: true,
             person,
+            referenced_patient_ids: Vec::new(),
+        }
+    }
+
+    pub fn with_referenced_patient_ids(
+        id: Uuid,
+        organization_id: Uuid,
+        user_id: Uuid,
+        person: Person,
+        referenced_patient_ids: Vec<Uuid>,
+    ) -> Self {
+        Self {
+            id,
+            organization_id,
+            user_id,
+            active: true,
+            person,
+            referenced_patient_ids,
         }
     }
 }

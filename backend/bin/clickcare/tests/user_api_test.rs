@@ -8,7 +8,6 @@ use clickcare::infrastructure::grpc::user_api_impl::UserApiImpl;
 use clickcare::infrastructure::grpc::user_api_server::UserApiServer;
 use clickcare::infrastructure::log::init_observability;
 use dotenvy::dotenv;
-use tracing::info;
 use rstest::*;
 use std::path::PathBuf;
 use testcontainers::ImageExt;
@@ -18,6 +17,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::OnceCell;
 use tonic::transport::Server;
 use tracing::debug;
+use tracing::info;
 
 pub struct TestEnv {
     pub grpc_addr: String,
@@ -155,15 +155,20 @@ pub async fn test_env() -> &'static TestEnv {
                     let addr = listener.local_addr().unwrap();
                     let grpc_addr = format!("http://{}", addr);
 
-                    let service = UserApiImpl::new(Some(conn_str.clone())).await.unwrap();
-
                     // `administration` se cablea con su propio DI: el harness no
                     // construye tipos ajenos, solo pide el caso de uso ya resuelto.
                     let administration = administration_di::new(
-                        administration_di::DBType::Postgres(Some(conn_str)),
+                        administration_di::DBType::Postgres(Some(conn_str.clone())),
                     )
                     .await
                     .unwrap();
+                    let subdomain_resolver = std::sync::Arc::new(
+                        clickcare::infrastructure::grpc::subdomain_resolver::SubdomainResolver::new(
+                            std::sync::Arc::clone(&administration.state.organization_repository),
+                        ),
+                    );
+
+                    let service = UserApiImpl::new(Some(conn_str), std::sync::Arc::clone(&subdomain_resolver)).await.unwrap();
                     let clinic_service = ClinicApiImpl::new(std::sync::Arc::clone(
                         &administration.create_clinic_use_case,
                     ));
@@ -412,7 +417,7 @@ mod administration_worker {
             .expect("Fallo al conectar con el servidor gRPC");
 
         let user_id = uuid::Uuid::now_v7();
-        let nonce = &uuid::Uuid::now_v7().to_string()[..8];
+        let nonce = user_id.simple();
         let response = client
             .sign_up(tonic::Request::new(SignUpRequest {
                 id_token: "test-token".into(),
@@ -565,10 +570,14 @@ mod clinic_api {
             .await
             .expect("Fallo al conectar con el servidor gRPC");
 
+        let clean = owner_user_id.replace('-', "").to_lowercase();
+        let subdomain = format!("clinica-{}", clean);
+
         client
             .create_clinic(tonic::Request::new(CreateClinicRequest {
                 owner_user_id: owner_user_id.to_string(),
                 name: name.to_string(),
+                subdomain,
                 tax_id: Some("20512345678".to_string()),
                 given_name: "Ana".into(),
                 family_name: Some("Ramírez".into()),
@@ -681,5 +690,153 @@ mod clinic_api {
         .expect_err("Debió rechazar un UUID v4");
 
         assert_eq!(status.code(), tonic::Code::InvalidArgument);
+    }
+}
+
+/// Pruebas de integración de aislamiento multi-tenant por subdominio y red clínica.
+mod multi_tenancy {
+    use crate::{TestEnv, test_env};
+    use clickcare::infrastructure::grpc::clinic_api_client::ClinicApiClient;
+    use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
+    use clickcare::infrastructure::grpc::{CreateClinicRequest, SignUpRequest};
+    use rstest::*;
+
+    #[rstest]
+    #[tokio::test]
+    async fn isolates_users_by_subdomain_and_network(#[future(awt)] test_env: &'static TestEnv) {
+        let mut clinic_client = ClinicApiClient::connect(test_env.grpc_addr.clone())
+            .await
+            .expect("Fallo al conectar con ClinicApiClient");
+        let mut user_client = UserApiClient::connect(test_env.grpc_addr.clone())
+            .await
+            .expect("Fallo al conectar con UserApiClient");
+
+        let owner_a = uuid::Uuid::now_v7();
+        let owner_b = uuid::Uuid::now_v7();
+
+        let sub_a = format!("red-a-{}", owner_a.simple());
+        let sub_b = format!("red-b-{}", owner_b.simple());
+
+        // 1. Crear Clínica A y Clínica B con diferentes subdominios (y redes)
+        clinic_client
+            .create_clinic(tonic::Request::new(CreateClinicRequest {
+                owner_user_id: owner_a.to_string(),
+                name: "Clínica Red A".into(),
+                subdomain: sub_a.clone(),
+                given_name: "Propietario A".into(),
+                ..Default::default()
+            }))
+            .await
+            .expect("Fallo al crear Clínica Red A");
+
+        clinic_client
+            .create_clinic(tonic::Request::new(CreateClinicRequest {
+                owner_user_id: owner_b.to_string(),
+                name: "Clínica Red B".into(),
+                subdomain: sub_b.clone(),
+                given_name: "Propietario B".into(),
+                ..Default::default()
+            }))
+            .await
+            .expect("Fallo al crear Clínica Red B");
+
+        let shared_email = format!(
+            "medico-compartido-{}@example.com",
+            uuid::Uuid::now_v7().simple()
+        );
+
+        // 2. Registrar usuario en Red A (usando x-subdomain)
+        let user_id_a = uuid::Uuid::now_v7();
+        let mut req_a = tonic::Request::new(SignUpRequest {
+            id_token: "token-a".into(),
+            user_id: user_id_a.to_string(),
+            email: shared_email.clone(),
+            given_name: "Médico".into(),
+            family_name: Some("Red A".into()),
+            ..Default::default()
+        });
+        req_a
+            .metadata_mut()
+            .insert("x-subdomain", sub_a.parse().unwrap());
+
+        let res_a = user_client.sign_up(req_a).await;
+        assert!(
+            res_a.is_ok(),
+            "El registro en Red A debió tener éxito: {res_a:?}"
+        );
+
+        // 3. Registrar al mismo correo en Red B (usando encabezado host)
+        let user_id_b = uuid::Uuid::now_v7();
+        let mut req_b = tonic::Request::new(SignUpRequest {
+            id_token: "token-b".into(),
+            user_id: user_id_b.to_string(),
+            email: shared_email.clone(),
+            given_name: "Médico".into(),
+            family_name: Some("Red B".into()),
+            ..Default::default()
+        });
+        req_b.metadata_mut().insert(
+            "host",
+            format!("{sub_b}.clickcare.com:50051").parse().unwrap(),
+        );
+
+        let res_b = user_client.sign_up(req_b).await;
+        assert!(
+            res_b.is_ok(),
+            "El registro con el mismo email en Red B debió tener éxito por aislamiento de red: {res_b:?}"
+        );
+
+        // 4. Intentar registrar el mismo correo de nuevo en Red A -> Debe fallar por AlreadyExists
+        let user_id_a_dup = uuid::Uuid::now_v7();
+        let mut req_a_dup = tonic::Request::new(SignUpRequest {
+            id_token: "token-a-dup".into(),
+            user_id: user_id_a_dup.to_string(),
+            email: shared_email.clone(),
+            given_name: "Médico Duplicado".into(),
+            ..Default::default()
+        });
+        req_a_dup
+            .metadata_mut()
+            .insert("x-subdomain", sub_a.parse().unwrap());
+
+        let err_a_dup = user_client
+            .sign_up(req_a_dup)
+            .await
+            .expect_err("Debió fallar por correo duplicado en Red A");
+        assert_eq!(err_a_dup.code(), tonic::Code::AlreadyExists);
+
+        // 5. Subdominio no existente -> NotFound
+        let mut req_not_found = tonic::Request::new(SignUpRequest {
+            id_token: "token".into(),
+            user_id: uuid::Uuid::now_v7().to_string(),
+            email: "otro@example.com".into(),
+            given_name: "Usuario".into(),
+            ..Default::default()
+        });
+        req_not_found
+            .metadata_mut()
+            .insert("x-subdomain", "no-existe-subdomain".parse().unwrap());
+        let err_nf = user_client
+            .sign_up(req_not_found)
+            .await
+            .expect_err("Subdominio no registrado debió retornar NotFound");
+        assert_eq!(err_nf.code(), tonic::Code::NotFound);
+
+        // 6. Subdominio reservado de la plataforma -> InvalidArgument
+        let mut req_reserved = tonic::Request::new(SignUpRequest {
+            id_token: "token".into(),
+            user_id: uuid::Uuid::now_v7().to_string(),
+            email: "admin@example.com".into(),
+            given_name: "Admin".into(),
+            ..Default::default()
+        });
+        req_reserved
+            .metadata_mut()
+            .insert("x-subdomain", "app".parse().unwrap());
+        let err_reserved = user_client
+            .sign_up(req_reserved)
+            .await
+            .expect_err("Subdominio reservado debió retornar InvalidArgument");
+        assert_eq!(err_reserved.code(), tonic::Code::InvalidArgument);
     }
 }

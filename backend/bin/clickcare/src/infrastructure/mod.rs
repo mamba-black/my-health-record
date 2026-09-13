@@ -3,6 +3,7 @@ use crate::infrastructure::grpc::clinic_api_impl::ClinicApiImpl;
 use crate::infrastructure::grpc::clinic_api_server::ClinicApiServer;
 use crate::infrastructure::grpc::patient_api_impl::PatientApiImpl;
 use crate::infrastructure::grpc::patient_api_server::PatientApiServer;
+use crate::infrastructure::grpc::subdomain_resolver::SubdomainResolver;
 use crate::infrastructure::grpc::user_api_impl::UserApiImpl;
 use crate::infrastructure::grpc::user_api_server::UserApiServer;
 use administration::infrastructure::di as administration_di;
@@ -26,15 +27,20 @@ pub async fn start_server(
         .build_v1alpha()
         .expect("Could not build server");
 
+    let administration =
+        administration_di::new(administration_di::DBType::Postgres(url.clone())).await?;
+    let subdomain_resolver = Arc::new(SubdomainResolver::new(Arc::clone(
+        &administration.state.organization_repository,
+    )));
+
     let patient_service_server = PatientApiServer::new(PatientApiImpl::default());
-    let user_service_server = UserApiServer::new(UserApiImpl::new(url.clone()).await?);
-    let administration = administration_di::new(administration_di::DBType::Postgres(url)).await?;
+    let user_service_server =
+        UserApiServer::new(UserApiImpl::new(url, Arc::clone(&subdomain_resolver)).await?);
     let clinic_service_server = ClinicApiServer::new(ClinicApiImpl::new(Arc::clone(
         &administration.create_clinic_use_case,
     )));
 
-    let apalis_board_router: axum::Router = ApiBuilder::new(axum::Router::<()>::new())
-        .build();
+    let apalis_board_router: axum::Router = ApiBuilder::new(axum::Router::<()>::new()).build();
 
     let grpc_router: axum::Router = tonic::service::Routes::default()
         .add_service(patient_service_server)
@@ -58,8 +64,7 @@ pub async fn start_server(
         })?
     };
 
-    let server = axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal());
+    let server = axum::serve(listener, app).with_graceful_shutdown(shutdown_signal());
 
     if enable_administration_worker {
         info!("Iniciando servidor gRPC/Web y worker de administración...");

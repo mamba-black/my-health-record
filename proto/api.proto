@@ -293,11 +293,14 @@ message CreateClinicRequest {
     optional string email = 7;                 // Correo electrónico de contacto
     optional string phone = 8;                 // Teléfono de contacto
     optional string medical_license_number = 9; // Colegiatura CMP/COP, si ya se conoce
+    string subdomain = 10;                     // Subdominio exclusivo de la clínica (ej. "san-borja")
+    optional string network_id = 11;           // Identificador de la red a la que asociar la clínica (opcional)
 }
 
 /// Respuesta a la creación de una clínica.
 message CreateClinicResponse {
     string organization_id = 1;   // UUID v7 de la clínica creada
-    string practitioner_id = 2;   // UUID v7 de la ficha de profesional del propietario
-    bool already_existed = 3;     // La clínica ya existía y se devolvió sin recrearla
+    string network_id = 2;        // UUID v7 de la red clínica
+    string practitioner_id = 3;   // UUID v7 de la ficha de profesional del propietario
+    bool already_existed = 4;     // La clínica ya existía y se devolvió sin recrearla
 }

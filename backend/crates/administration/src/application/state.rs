@@ -1,3 +1,4 @@
+use crate::domain::repository::clinical_network_repository::ClinicalNetworkRepository;
 use crate::domain::repository::organization_repository::OrganizationRepository;
 use crate::domain::repository::patient_repository::PatientRepository;
 use crate::domain::repository::practitioner_repository::PractitionerRepository;
@@ -10,6 +11,7 @@ use std::sync::Arc;
 /// implementaciones reales y quien la registra en el worker.
 #[derive(Clone)]
 pub struct AdministrationState {
+    pub clinical_network_repository: Arc<dyn ClinicalNetworkRepository>,
     pub organization_repository: Arc<dyn OrganizationRepository>,
     pub patient_repository: Arc<dyn PatientRepository>,
     pub practitioner_repository: Arc<dyn PractitionerRepository>,

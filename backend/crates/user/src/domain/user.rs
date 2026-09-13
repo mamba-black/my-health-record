@@ -6,8 +6,8 @@ pub use app_core::domain::fhir::{
 };
 use bon::Builder;
 use derive_getters::Getters;
-use tracing::{debug, error};
 use std::str::FromStr;
+use tracing::{debug, error};
 use uuid::{Uuid, Version};
 
 /// Entidad de dominio que representa la **Cuenta de Usuario** del sistema.
@@ -18,6 +18,8 @@ use uuid::{Uuid, Version};
 pub struct User {
     /// Identificador único de la cuenta de usuario (UUID v7).
     pub id: Uuid,
+    /// Red de clínicas a la que pertenece esta cuenta de usuario (UUID v7).
+    pub network_id: Uuid,
     /// Estado activo/inactivo de la cuenta.
     pub active: bool,
 
@@ -67,6 +69,7 @@ impl User {
     /// Retorna `ClickCareError` si el `id` suministrado no es un UUID v7 válido.
     pub fn new(
         id: String,
+        network_id: Uuid,
         given: Vec<String>,
         family: Option<String>,
         second_family: Option<String>,
@@ -76,7 +79,7 @@ impl User {
         phone: Option<String>,
         birth_date: Option<String>,
     ) -> Result<Self, ClickCareError> {
-        debug!("user.id: {id}");
+        debug!("user.id: {id} network_id: {network_id}");
 
         match Uuid::from_str(id.as_str()) {
             Ok(id) if id.get_version() == Some(Version::SortRand) => {
@@ -97,6 +100,7 @@ impl User {
 
                 Ok(Self {
                     id,
+                    network_id,
                     active: true,
                     person,
                     provider_info: IdentityProvider::Google,

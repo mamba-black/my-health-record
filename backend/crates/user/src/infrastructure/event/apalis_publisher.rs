@@ -68,11 +68,15 @@ impl EventPublisher for ApalisEventPublisher {
     ) -> Result<(), ClickCareError> {
         let user_id = event.user_id;
 
-        self.founder_storage.clone().push(event).await.map_err(|e| {
-            ClickCareError::generic(format!(
-                "Error al encolar FounderRegistered para user_id={user_id} ({e})"
-            ))
-        })?;
+        self.founder_storage
+            .clone()
+            .push(event)
+            .await
+            .map_err(|e| {
+                ClickCareError::generic(format!(
+                    "Error al encolar FounderRegistered para user_id={user_id} ({e})"
+                ))
+            })?;
 
         Ok(())
     }

@@ -34,13 +34,21 @@ impl ClinicApi for ClinicApiImpl {
             .map(|response| {
                 Response::new(CreateClinicResponse {
                     organization_id: response.organization_id.to_string(),
+                    network_id: response.network_id.to_string(),
                     practitioner_id: response.practitioner_id.to_string(),
                     already_existed: response.already_existed,
                 })
             })
             .map_err(|error| match error {
-                CreateClinicError::InvalidOwnerUserId(_) | CreateClinicError::EmptyName => {
+                CreateClinicError::InvalidOwnerUserId(_)
+                | CreateClinicError::EmptyName
+                | CreateClinicError::EmptySubdomain
+                | CreateClinicError::ReservedSubdomain(_)
+                | CreateClinicError::InvalidSubdomainFormat(_) => {
                     Status::invalid_argument(error.to_string())
+                }
+                CreateClinicError::SubdomainAlreadyExists(_) => {
+                    Status::already_exists(error.to_string())
                 }
                 CreateClinicError::MissingPractitioner | CreateClinicError::Unknown(_) => {
                     Status::internal(error.to_string())
@@ -52,6 +60,7 @@ impl ClinicApi for ClinicApiImpl {
 mod mapper {
     use crate::infrastructure::grpc::CreateClinicRequest;
     use administration::application::CreateClinicCommand;
+    use uuid::Uuid;
 
     /// Traduce el DTO plano de la API al comando del caso de uso.
     ///
@@ -59,9 +68,16 @@ mod mapper {
     /// estructura plana del DTO no cruza esa frontera.
     impl From<CreateClinicRequest> for CreateClinicCommand {
         fn from(request: CreateClinicRequest) -> Self {
+            let network_id = request
+                .network_id
+                .as_deref()
+                .and_then(|id| Uuid::parse_str(id).ok());
+
             CreateClinicCommand {
                 owner_user_id: request.owner_user_id,
                 name: request.name,
+                subdomain: request.subdomain,
+                network_id,
                 tax_id: request.tax_id,
                 given_name: request.given_name,
                 family_name: request.family_name,

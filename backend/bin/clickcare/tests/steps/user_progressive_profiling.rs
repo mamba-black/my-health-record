@@ -1,9 +1,9 @@
 use clickcare::infrastructure::grpc::SignUpRequest;
 use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
-use tracing::{debug, info};
 use rstest::*;
 use rstest_bdd_macros::{given, then, when};
 use tonic::Status;
+use tracing::{debug, info};
 
 use crate::test_env;
 
@@ -58,8 +58,8 @@ pub async fn when_sign_up_request_sent(
         uuid::Uuid::parse_str(&id).unwrap_or_else(|_| uuid::Uuid::now_v7())
     };
 
-    let nonce_short = &uuid::Uuid::now_v7().to_string()[..8];
-    let unique_email = email.replace('@', &format!("-{}@", nonce_short));
+    let nonce = user_id.simple();
+    let unique_email = email.replace('@', &format!("-{}@", nonce));
 
     let identifier = if !dni.is_empty() && dni != "-" {
         static DNI_COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);

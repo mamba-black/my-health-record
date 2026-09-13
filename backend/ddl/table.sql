@@ -32,6 +32,7 @@ DROP TABLE IF EXISTS identity.user_account;
 
 CREATE TABLE identity.user_account (
     id              uuid PRIMARY KEY,
+    network_id      uuid NOT NULL,
     active          BOOLEAN NOT NULL DEFAULT TRUE,
     is_owner        BOOLEAN NOT NULL DEFAULT FALSE,
     provider_info   VARCHAR(50) NOT NULL DEFAULT 'Google',
@@ -46,11 +47,15 @@ CREATE TABLE identity.user_account (
     document_value  VARCHAR(50),
 
     -- Person / ContactPoint & Audit
-    email           VARCHAR(100),
+    email           VARCHAR(100) NOT NULL,
     phone           VARCHAR(20),
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uq_user_network_email UNIQUE (network_id, email)
 );
+
+CREATE INDEX idx_user_account_network_id ON identity.user_account (network_id);
 
 
 -- ========================================================================
@@ -60,7 +65,11 @@ CREATE TABLE identity.user_account (
 -- demográficas autónomas de cada clínica. El recurso FHIR `Person` se guarda como
 -- JSON en una sola columna para conservar el recurso completo sin aplanarlo.
 --
--- MULTI-CLÍNICA: los esquemas representan fronteras de dominio FHIR, no inquilinos.
+-- MULTI-CLÍNICA & REDES:
+-- La Red de Clínicas (`clinical_network`) define el límite de autenticación e
+-- identidad (`network_id`), mientras que `organization` representa a la clínica
+-- o sede física con su propio `subdomain` único.
+--
 -- El aislamiento entre clínicas es a nivel de fila, con `organization_id` en cada
 -- tabla local de clínica. No se usa `PARTITION BY LIST`: crear una organización
 -- tomaría un `AccessExclusiveLock` sobre la tabla padre.
@@ -71,17 +80,36 @@ CREATE TABLE identity.user_account (
 -- porque la entrega de la cola es at-least-once y el mismo evento puede repetirse.
 -- ========================================================================
 
+CREATE TABLE administration.clinical_network
+(
+    id          uuid PRIMARY KEY,
+    name        VARCHAR(200) NOT NULL,
+    is_default  BOOLEAN      NOT NULL DEFAULT TRUE,
+    active      BOOLEAN      NOT NULL DEFAULT TRUE,
+
+    created_at  TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP             DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE administration.organization
 (
     id            uuid PRIMARY KEY,
+    network_id    uuid         NOT NULL,
+    subdomain     VARCHAR(100) NOT NULL UNIQUE,
     name          VARCHAR(200) NOT NULL,
     tax_id        VARCHAR(20),
-    owner_user_id uuid         NOT NULL UNIQUE,
+    owner_user_id uuid         NOT NULL,
     active        BOOLEAN      NOT NULL DEFAULT TRUE,
 
     created_at    TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
-    updated_at    TIMESTAMP             DEFAULT CURRENT_TIMESTAMP
+    updated_at    TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_organization_network
+        FOREIGN KEY (network_id) REFERENCES administration.clinical_network (id) ON DELETE RESTRICT
 );
+
+CREATE INDEX idx_organization_subdomain ON administration.organization (subdomain);
+CREATE INDEX idx_organization_network_id ON administration.organization (network_id);
 
 CREATE TABLE administration.practitioner
 (
@@ -108,16 +136,19 @@ CREATE INDEX idx_practitioner_org_id ON administration.practitioner (organizatio
 
 CREATE TABLE administration.patient
 (
-    id              uuid PRIMARY KEY,
-    organization_id uuid    NOT NULL,
-    user_id         uuid    NOT NULL,
-    active          BOOLEAN NOT NULL DEFAULT TRUE,
+    id                     uuid PRIMARY KEY,
+    organization_id        uuid    NOT NULL,
+    user_id                uuid    NOT NULL,
+    active                 BOOLEAN NOT NULL DEFAULT TRUE,
 
     -- Recurso FHIR R4 Person serializado
-    person          TEXT    NOT NULL,
+    person                 TEXT    NOT NULL,
 
-    created_at      TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    -- IDs de expedientes previos absorbidos de otras clínicas (HL7 FHIR Patient.link seeAlso / replaces)
+    referenced_patient_ids uuid[]  NOT NULL DEFAULT '{}',
+
+    created_at             TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    updated_at             TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT uq_patient_org_user UNIQUE (organization_id, user_id),
     CONSTRAINT fk_patient_organization
@@ -125,6 +156,7 @@ CREATE TABLE administration.patient
 );
 
 CREATE INDEX idx_patient_org_id ON administration.patient (organization_id, id);
+CREATE INDEX idx_patient_referenced_ids ON administration.patient USING GIN (referenced_patient_ids);
 
 
 CREATE TABLE clinic

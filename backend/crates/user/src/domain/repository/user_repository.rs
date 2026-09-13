@@ -2,14 +2,26 @@ use crate::domain::user::User;
 use app_core::domain::error::ClickCareError;
 use app_core::domain::fhir::Identifier;
 use async_trait::async_trait;
+use uuid::Uuid;
 
 /// Puerto de repositorio de dominio para la persistencia y recuperación de `User`.
 ///
 /// Define el contrato que la capa de infraestructura debe implementar.
 #[async_trait]
 pub trait UserRepository: Send + Sync {
-    /// Verifica si existe un usuario registrado con un documento determinado (ej. DNI).
-    async fn exist_user_by_document(&self, identifier: Identifier) -> Result<bool, ClickCareError>;
+    /// Verifica si existe un usuario registrado con un documento determinado dentro de una red médica.
+    async fn exist_user_by_document(
+        &self,
+        network_id: &Uuid,
+        identifier: Identifier,
+    ) -> Result<bool, ClickCareError>;
+
+    /// Verifica si existe un usuario registrado con un email determinado dentro de una red médica.
+    async fn exist_user_by_email(
+        &self,
+        network_id: &Uuid,
+        email: &str,
+    ) -> Result<bool, ClickCareError>;
 
     /// Busca un usuario por su identificador único (UUID v7).
     async fn find_user_by_id(&self, user_id: &str) -> Result<User, ClickCareError>;

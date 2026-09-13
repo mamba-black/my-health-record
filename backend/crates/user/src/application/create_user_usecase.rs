@@ -37,7 +37,7 @@ impl UseCase for CreateUserUseCaseImpl {
         let exist_user = match &command.identifier {
             Some(DNI(value)) => self
                 .user_repository
-                .exist_user_by_document(DNI(value.clone()))
+                .exist_user_by_document(&command.network_id, DNI(value.clone()))
                 .await
                 .map_err(|_e| {
                     UnknownError(ClickCareError::generic(format!(
@@ -50,12 +50,35 @@ impl UseCase for CreateUserUseCaseImpl {
 
         if exist_user {
             error!(
-                "User with document ID {:?} already exists",
-                command.identifier
+                "User with document ID {:?} already exists in network {}",
+                command.identifier, command.network_id
             );
             let msg = format!(
-                "User with document ID {:?} already exists",
-                command.identifier
+                "User with document ID {:?} already exists in network {}",
+                command.identifier, command.network_id
+            );
+            return Err(UserAlreadyExists(ClickCareError::generic(msg)));
+        }
+
+        let exist_email = self
+            .user_repository
+            .exist_user_by_email(&command.network_id, &command.email)
+            .await
+            .map_err(|_e| {
+                UnknownError(ClickCareError::generic(format!(
+                    "Error verifying email {}",
+                    command.email
+                )))
+            })?;
+
+        if exist_email {
+            error!(
+                "User with email {} already exists in network {}",
+                command.email, command.network_id
+            );
+            let msg = format!(
+                "User with email {} already exists in network {}",
+                command.email, command.network_id
             );
             return Err(UserAlreadyExists(ClickCareError::generic(msg)));
         }
@@ -119,9 +142,11 @@ pub mod command {
     use crate::application::create_user_usecase::command::CreateUserError::UnknownError;
     use crate::domain::user::{Identifier, SignUpIntent, User};
     use app_core::domain::error::ClickCareError;
+    use uuid::Uuid;
 
     #[derive(Debug, Clone)]
     pub struct CreateUserCommand {
+        pub network_id: Uuid,
         pub id_token: String,
         pub user_id: String,
         pub provider_id: String,
@@ -131,7 +156,7 @@ pub mod command {
         pub identifier: Option<Identifier>,
         pub first_name: String,
         pub last_name: Option<String>,
-        pub second_last_name: Option<String>,
+        pub second_family_name: Option<String>,
         pub phone: String,
         pub address: String,
         pub birthdate: String,
@@ -150,9 +175,10 @@ pub mod command {
                 || (command.intent == SignUpIntent::Unspecified && command.create_clinic);
             User::new(
                 command.user_id,
+                command.network_id,
                 vec![command.first_name],
                 command.last_name,
-                command.second_last_name,
+                command.second_family_name,
                 command.identifier,
                 is_owner,
                 command.email,
@@ -217,7 +243,16 @@ mod tests {
     }
 
     fn sample_command(intent: SignUpIntent, create_clinic: bool) -> CreateUserCommand {
+        sample_command_with_network(Uuid::now_v7(), intent, create_clinic)
+    }
+
+    fn sample_command_with_network(
+        network_id: Uuid,
+        intent: SignUpIntent,
+        create_clinic: bool,
+    ) -> CreateUserCommand {
         CreateUserCommand {
+            network_id,
             id_token: "mock-token".to_string(),
             user_id: Uuid::now_v7().to_string(),
             provider_id: "google.com".to_string(),
@@ -227,7 +262,7 @@ mod tests {
             identifier: None,
             first_name: "Juan".to_string(),
             last_name: Some("Pérez".to_string()),
-            second_last_name: None,
+            second_family_name: None,
             phone: "987654321".to_string(),
             address: "Av. Principal 123".to_string(),
             birthdate: "1990-01-01".to_string(),
@@ -364,5 +399,119 @@ mod tests {
         let founder_events = publisher.founder_registered_events.lock().unwrap();
         assert_eq!(founder_events.len(), 1);
         assert_eq!(founder_events[0].user_id.to_string(), user_id);
+    }
+
+    #[tokio::test]
+    async fn test_sign_up_same_email_different_networks_succeeds() {
+        let repo = Arc::new(MockUserRepositoryImpl {
+            saved_users: Mutex::new(Vec::new()),
+        });
+        let publisher = Arc::new(RecordingEventPublisher::default());
+        let use_case = CreateUserUseCaseImpl {
+            user_repository: repo.clone(),
+            event_publisher: publisher.clone(),
+        };
+
+        let email = "doctor@example.com".to_string();
+        let network_a = Uuid::now_v7();
+        let network_b = Uuid::now_v7();
+
+        let mut cmd_a = sample_command_with_network(network_a, SignUpIntent::Patient, false);
+        cmd_a.email = email.clone();
+        let res_a = use_case.execute(cmd_a).await;
+        assert!(
+            res_a.is_ok(),
+            "User in network A must be created successfully"
+        );
+
+        let mut cmd_b = sample_command_with_network(network_b, SignUpIntent::Patient, false);
+        cmd_b.email = email.clone();
+        let res_b = use_case.execute(cmd_b).await;
+        assert!(
+            res_b.is_ok(),
+            "Same email in independent network B must be created successfully"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_sign_up_same_email_same_network_fails() {
+        let repo = Arc::new(MockUserRepositoryImpl {
+            saved_users: Mutex::new(Vec::new()),
+        });
+        let publisher = Arc::new(RecordingEventPublisher::default());
+        let use_case = CreateUserUseCaseImpl {
+            user_repository: repo.clone(),
+            event_publisher: publisher.clone(),
+        };
+
+        let email = "doctor@example.com".to_string();
+        let network_id = Uuid::now_v7();
+
+        let mut cmd1 = sample_command_with_network(network_id, SignUpIntent::Patient, false);
+        cmd1.email = email.clone();
+        let res1 = use_case.execute(cmd1).await;
+        assert!(res1.is_ok());
+
+        let mut cmd2 = sample_command_with_network(network_id, SignUpIntent::Patient, false);
+        cmd2.email = email.clone();
+        let res2 = use_case.execute(cmd2).await;
+        assert!(
+            matches!(res2, Err(CreateUserError::UserAlreadyExists(_))),
+            "Duplicate email in same network must be rejected"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_sign_up_same_document_same_network_fails() {
+        let repo = Arc::new(MockUserRepositoryImpl {
+            saved_users: Mutex::new(Vec::new()),
+        });
+        let publisher = Arc::new(RecordingEventPublisher::default());
+        let use_case = CreateUserUseCaseImpl {
+            user_repository: repo.clone(),
+            event_publisher: publisher.clone(),
+        };
+
+        let network_id = Uuid::now_v7();
+        let mut cmd1 = sample_command_with_network(network_id, SignUpIntent::Patient, false);
+        cmd1.identifier = Some(DNI("12345678".to_string()));
+        let res1 = use_case.execute(cmd1).await;
+        assert!(res1.is_ok());
+
+        let mut cmd2 = sample_command_with_network(network_id, SignUpIntent::Patient, false);
+        cmd2.identifier = Some(DNI("12345678".to_string()));
+        let res2 = use_case.execute(cmd2).await;
+        assert!(
+            matches!(res2, Err(CreateUserError::UserAlreadyExists(_))),
+            "Duplicate document in same network must be rejected"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_sign_up_same_document_different_networks_succeeds() {
+        let repo = Arc::new(MockUserRepositoryImpl {
+            saved_users: Mutex::new(Vec::new()),
+        });
+        let publisher = Arc::new(RecordingEventPublisher::default());
+        let use_case = CreateUserUseCaseImpl {
+            user_repository: repo.clone(),
+            event_publisher: publisher.clone(),
+        };
+
+        let network_a = Uuid::now_v7();
+        let network_b = Uuid::now_v7();
+
+        let mut cmd1 = sample_command_with_network(network_a, SignUpIntent::Patient, false);
+        cmd1.identifier = Some(DNI("12345678".to_string()));
+        let res1 = use_case.execute(cmd1).await;
+        assert!(res1.is_ok());
+
+        let mut cmd2 = sample_command_with_network(network_b, SignUpIntent::Patient, false);
+        cmd2.identifier = Some(DNI("12345678".to_string()));
+        let res2 = use_case.execute(cmd2).await;
+        assert!(
+            res2.is_ok(),
+            "Same document in different networks must succeed"
+        );
     }
 }

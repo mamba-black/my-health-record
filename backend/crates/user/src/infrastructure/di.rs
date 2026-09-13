@@ -8,12 +8,12 @@ use crate::infrastructure::repository::user_repository_impl::{UserAccount, UserR
 use app_core::domain::error::ClickCareError;
 use app_core::domain::event::{EventPublisher, LoggingEventPublisher};
 use async_trait::async_trait;
-use tracing::error;
 use std::env::var;
 use std::sync::Arc;
 use toasty::{Db, models};
 use tokio::sync::Mutex;
 use tracing::debug;
+use tracing::error;
 
 // ─── DI container ────────────────────────────────────────────────────────────
 
@@ -131,12 +131,34 @@ pub struct MockUserRepositoryImpl {
 
 #[async_trait]
 impl UserRepository for MockUserRepositoryImpl {
-    async fn exist_user_by_document(&self, identifier: Identifier) -> Result<bool, ClickCareError> {
+    async fn exist_user_by_document(
+        &self,
+        network_id: &uuid::Uuid,
+        identifier: Identifier,
+    ) -> Result<bool, ClickCareError> {
         let users = self.saved_users.lock().await;
 
-        let exists = users
-            .iter()
-            .any(|user| user.person.identifier.as_ref() == Some(&identifier));
+        let exists = users.iter().any(|user| {
+            user.network_id == *network_id && user.person.identifier.as_ref() == Some(&identifier)
+        });
+
+        Ok(exists)
+    }
+
+    async fn exist_user_by_email(
+        &self,
+        network_id: &uuid::Uuid,
+        email: &str,
+    ) -> Result<bool, ClickCareError> {
+        let users = self.saved_users.lock().await;
+
+        let exists = users.iter().any(|user| {
+            user.network_id == *network_id
+                && user.person.telecom.iter().any(|t| {
+                    t.system == app_core::domain::fhir::ContactPointSystem::Email
+                        && t.value == email
+                })
+        });
 
         Ok(exists)
     }

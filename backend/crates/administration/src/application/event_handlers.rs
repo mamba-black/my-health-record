@@ -1,4 +1,5 @@
 use crate::application::state::AdministrationState;
+use crate::domain::clinical_network::ClinicalNetwork;
 use crate::domain::organization::Organization;
 use crate::domain::patient::Patient;
 use crate::domain::practitioner::Practitioner;
@@ -70,8 +71,24 @@ async fn ensure_organization(
         return Ok(organization_id);
     }
 
+    let default_network_id = Uuid::now_v7();
+    let network = ClinicalNetwork::new(
+        default_network_id,
+        format!("Red {}", event.person.name().text()),
+        true,
+    );
+    state.clinical_network_repository.save(&network).await?;
+
     let clinic_name = format!("Clínica de {}", event.person.name().text());
-    let organization = Organization::new(Uuid::now_v7(), clinic_name, None, event.user_id);
+    let subdomain = format!("clinica-{}", event.user_id.simple());
+    let organization = Organization::new(
+        Uuid::now_v7(),
+        default_network_id,
+        subdomain,
+        clinic_name,
+        None,
+        event.user_id,
+    );
 
     state.organization_repository.save(&organization).await?;
     info!(
@@ -155,6 +172,8 @@ async fn create_patient_if_absent(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::domain::clinical_network::ClinicalNetwork;
+    use crate::domain::repository::clinical_network_repository::ClinicalNetworkRepository;
     use crate::domain::repository::organization_repository::OrganizationRepository;
     use crate::domain::repository::patient_repository::PatientRepository;
     use crate::domain::repository::practitioner_repository::PractitionerRepository;
@@ -165,7 +184,7 @@ mod test {
 
     /// Repositorio en memoria que cuenta las escrituras y simula si la entidad ya existe.
     ///
-    /// Sirve para las tres entidades: al handler solo le importa el par
+    /// Sirve para las entidades: al handler solo le importa el par
     /// «¿existe?» / «guardar», no el tipo concreto que persiste.
     #[derive(Default)]
     struct SpyRepository {
@@ -201,12 +220,31 @@ mod test {
     const EXISTING_PRACTITIONER_ID: Uuid = Uuid::nil();
 
     #[async_trait]
+    impl ClinicalNetworkRepository for SpyRepository {
+        async fn find_by_id(&self, _id: &Uuid) -> Result<Option<ClinicalNetwork>, ClickCareError> {
+            Ok(None)
+        }
+
+        async fn save(&self, _network: &ClinicalNetwork) -> Result<(), ClickCareError> {
+            self.record_save();
+            Ok(())
+        }
+    }
+
+    #[async_trait]
     impl OrganizationRepository for SpyRepository {
         async fn find_id_by_owner_user_id(
             &self,
             _owner_user_id: &Uuid,
         ) -> Result<Option<Uuid>, ClickCareError> {
             Ok(self.already_exists.then_some(EXISTING_ORGANIZATION_ID))
+        }
+
+        async fn find_org_and_network_by_subdomain(
+            &self,
+            _subdomain: &str,
+        ) -> Result<Option<(Uuid, Uuid)>, ClickCareError> {
+            Ok(None)
         }
 
         async fn save(&self, _organization: &Organization) -> Result<(), ClickCareError> {
@@ -247,13 +285,15 @@ mod test {
         }
     }
 
-    /// Arma el estado con los tres espías y lo devuelve junto a ellos para poder afirmarlos.
+    /// Arma el estado con los espías y lo devuelve junto a ellos para poder afirmarlos.
     fn state_with(
+        network: Arc<SpyRepository>,
         organization: Arc<SpyRepository>,
         patient: Arc<SpyRepository>,
         practitioner: Arc<SpyRepository>,
     ) -> AdministrationState {
         AdministrationState {
+            clinical_network_repository: network,
             organization_repository: organization,
             patient_repository: patient,
             practitioner_repository: practitioner,
@@ -280,6 +320,7 @@ mod test {
     /// su expediente aparecerá por demanda cuando una clínica lo registre.
     #[tokio::test]
     async fn creates_nothing_when_the_user_does_not_own_a_clinic() {
+        let network = SpyRepository::empty();
         let organization = SpyRepository::empty();
         let patient = SpyRepository::empty();
         let practitioner = SpyRepository::empty();
@@ -287,6 +328,7 @@ mod test {
         handle_user_created_event(
             event_for(false),
             &state_with(
+                Arc::clone(&network),
                 Arc::clone(&organization),
                 Arc::clone(&patient),
                 Arc::clone(&practitioner),
@@ -295,6 +337,7 @@ mod test {
         .await
         .expect("El handler no debió fallar");
 
+        assert_eq!(network.saved_count(), 0);
         assert_eq!(
             patient.saved_count(),
             0,
@@ -314,6 +357,7 @@ mod test {
 
     #[tokio::test]
     async fn creates_the_three_records_when_the_user_owns_a_clinic() {
+        let network = SpyRepository::empty();
         let organization = SpyRepository::empty();
         let patient = SpyRepository::empty();
         let practitioner = SpyRepository::empty();
@@ -321,6 +365,7 @@ mod test {
         handle_user_created_event(
             event_for(true),
             &state_with(
+                Arc::clone(&network),
                 Arc::clone(&organization),
                 Arc::clone(&patient),
                 Arc::clone(&practitioner),
@@ -329,6 +374,7 @@ mod test {
         .await
         .expect("El handler no debió fallar");
 
+        assert_eq!(network.saved_count(), 1, "Debió crear la red clínica");
         assert_eq!(organization.saved_count(), 1, "Debió crear la organización");
         assert_eq!(
             practitioner.saved_count(),
@@ -341,6 +387,7 @@ mod test {
     /// La entrega de la cola es at-least-once: reprocesar el mismo evento no debe duplicar nada.
     #[tokio::test]
     async fn does_not_write_anything_when_the_records_already_exist() {
+        let network = SpyRepository::existing();
         let organization = SpyRepository::existing();
         let patient = SpyRepository::existing();
         let practitioner = SpyRepository::existing();
@@ -348,6 +395,7 @@ mod test {
         handle_user_created_event(
             event_for(true),
             &state_with(
+                Arc::clone(&network),
                 Arc::clone(&organization),
                 Arc::clone(&patient),
                 Arc::clone(&practitioner),
@@ -356,6 +404,7 @@ mod test {
         .await
         .expect("El handler no debió fallar");
 
+        assert_eq!(network.saved_count(), 0);
         assert_eq!(organization.saved_count(), 0);
         assert_eq!(practitioner.saved_count(), 0);
         assert_eq!(patient.saved_count(), 0);
