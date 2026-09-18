@@ -15,7 +15,7 @@ use user::domain::repository::user_repository::UserRepository;
 
 /// Implementación del servicio gRPC `UserApi` para gestión e identidad de usuarios.
 pub struct UserApiImpl {
-    create_user_use_case: Arc<dyn CreateUserUseCase>,
+    create_user_use_case: Arc<CreateUserUseCase>,
     #[allow(dead_code)]
     pub user_repository: Arc<dyn UserRepository>,
     /// Resolvedor de subdominio utilizado para determinar `network_id` de cada solicitud.

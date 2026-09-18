@@ -54,7 +54,7 @@ pub struct DI {
     /// Estado con repositorios de dominio inyectados en los workers.
     pub state: AdministrationState,
     /// Caso de uso para crear y registrar una nueva clínica u hospital.
-    pub create_clinic_use_case: Arc<dyn CreateClinicUseCase>,
+    pub create_clinic_use_case: Arc<CreateClinicUseCase>,
 }
 
 // ─── Constructores ───────────────────────────────────────────────────────────

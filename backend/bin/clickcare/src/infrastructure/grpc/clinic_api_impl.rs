@@ -7,12 +7,12 @@ use tracing::debug;
 
 /// Adaptador del servicio gRPC `ClinicApi` para la creación y administración de clínicas.
 pub struct ClinicApiImpl {
-    create_clinic_use_case: Arc<dyn CreateClinicUseCase>,
+    create_clinic_use_case: Arc<CreateClinicUseCase>,
 }
 
 impl ClinicApiImpl {
     /// Crea una nueva instancia inyectando el caso de uso `CreateClinicUseCase`.
-    pub fn new(create_clinic_use_case: Arc<dyn CreateClinicUseCase>) -> Self {
+    pub fn new(create_clinic_use_case: Arc<CreateClinicUseCase>) -> Self {
         Self {
             create_clinic_use_case,
         }

@@ -17,19 +17,12 @@ use uuid::Uuid;
 ///
 /// Valida la no existencia previa del documento de identidad y del correo electrónico
 /// en el ámbito de la red médica (`network_id`), persiste la cuenta y emite el evento `UserCreatedEvent`.
-pub trait CreateUserUseCase:
-    UseCase<Command = CreateUserCommand, Response = CreateUserResponse, Error = CreateUserError>
-{
-}
-
-pub type SignUpUseCase = dyn CreateUserUseCase;
+pub type CreateUserUseCase = dyn UseCase<Command = CreateUserCommand, Response = CreateUserResponse, Error = CreateUserError>;
 
 pub(crate) struct CreateUserUseCaseImpl {
     pub(crate) user_repository: Arc<dyn UserRepository>,
     pub(crate) event_publisher: Arc<dyn EventPublisher>,
 }
-
-impl CreateUserUseCase for CreateUserUseCaseImpl {}
 
 #[async_trait]
 impl UseCase for CreateUserUseCaseImpl {

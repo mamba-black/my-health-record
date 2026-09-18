@@ -39,9 +39,8 @@ pub async fn start_server(
     )));
 
     let patient_service_server = PatientApiServer::new(PatientApiImpl::default());
-    let user_service_server = UserApiServer::new(
-        UserApiImpl::new(database_url, Arc::clone(&subdomain_resolver)).await?,
-    );
+    let user_service_server =
+        UserApiServer::new(UserApiImpl::new(database_url, Arc::clone(&subdomain_resolver)).await?);
     let clinic_service_server = ClinicApiServer::new(ClinicApiImpl::new(Arc::clone(
         &administration.create_clinic_use_case,
     )));

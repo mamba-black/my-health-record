@@ -19,10 +19,7 @@ const PENDING_MEDICAL_LICENSE: &str = "CMP-PENDIENTE";
 const RESERVED_SUBDOMAINS: &[&str] = &["app", "api", "admin", "www", "static"];
 
 /// Crea una clínica y deja a quien la solicita como su propietario.
-pub trait CreateClinicUseCase:
-    UseCase<Command = CreateClinicCommand, Response = CreateClinicResponse, Error = CreateClinicError>
-{
-}
+pub type CreateClinicUseCase = dyn UseCase<Command = CreateClinicCommand, Response = CreateClinicResponse, Error = CreateClinicError>;
 
 /// Datos de entrada, planos, tal como llegan desde la API.
 ///
@@ -107,8 +104,6 @@ pub fn validate_subdomain(subdomain: &str) -> Result<String, CreateClinicError> 
 pub(crate) struct CreateClinicUseCaseImpl {
     pub(crate) state: AdministrationState,
 }
-
-impl CreateClinicUseCase for CreateClinicUseCaseImpl {}
 
 #[async_trait]
 impl UseCase for CreateClinicUseCaseImpl {

@@ -23,7 +23,7 @@ use tracing::error;
 /// y el publicador de eventos de dominio (`EventPublisher`).
 pub struct DI {
     /// Caso de uso para registrar y autenticar nuevos usuarios en el sistema.
-    pub create_user_use_case: Arc<dyn CreateUserUseCase>,
+    pub create_user_use_case: Arc<CreateUserUseCase>,
     #[allow(dead_code)]
     /// Puerto de repositorio para persistencia de cuentas de usuario.
     pub user_repository: Arc<dyn UserRepository>,
@@ -61,22 +61,24 @@ pub async fn new_with_overrides(
     let database_url = resolve_db_url(&database_type);
 
     // ── user_repository ──────────────────────────────────────────────────────
-    let user_repository: Arc<dyn UserRepository> = if let Some(repository) = overrides.user_repository {
-        repository
-    } else {
-        build_user_repository(database_url.as_deref()).await?
-    };
+    let user_repository: Arc<dyn UserRepository> =
+        if let Some(repository) = overrides.user_repository {
+            repository
+        } else {
+            build_user_repository(database_url.as_deref()).await?
+        };
 
     // ── event_publisher ──────────────────────────────────────────────────────
-    let event_publisher: Arc<dyn EventPublisher> = if let Some(publisher) = overrides.event_publisher {
-        publisher
-    } else {
-        match database_url.as_deref() {
-            Some(url) => Arc::new(ApalisEventPublisher::new(url).await?),
-            // Sin base de datos (`DBType::Mock`) la cola no existe: se degrada a log.
-            None => Arc::new(LoggingEventPublisher),
-        }
-    };
+    let event_publisher: Arc<dyn EventPublisher> =
+        if let Some(publisher) = overrides.event_publisher {
+            publisher
+        } else {
+            match database_url.as_deref() {
+                Some(url) => Arc::new(ApalisEventPublisher::new(url).await?),
+                // Sin base de datos (`DBType::Mock`) la cola no existe: se degrada a log.
+                None => Arc::new(LoggingEventPublisher),
+            }
+        };
 
     // ── use cases ────────────────────────────────────────────────────────────
     let create_user_use_case = Arc::new(CreateUserUseCaseImpl {
