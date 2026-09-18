@@ -6,8 +6,8 @@ use app_core::domain::error::ClickCareError;
 use std::sync::Arc;
 use tonic::*;
 use tracing::debug;
-use user::application::CreateUserUseCase;
-use user::application::command::{CreateUserCommand, CreateUserError};
+use user::application::create_user_usecase::CreateUserUseCase;
+use user::application::create_user_usecase::model::{CreateUserCommand, CreateUserError};
 use user::infrastructure::di;
 use user::infrastructure::di::DBType;
 
@@ -102,7 +102,7 @@ mod mapper {
     use crate::infrastructure::grpc::identifier::IdentifierType;
     use crate::infrastructure::grpc::{SignUpIntent, SignUpRequest};
     use app_core::domain::fhir::Identifier::DNI;
-    use user::application::command::CreateUserCommand;
+    use user::application::create_user_usecase::model::CreateUserCommand;
     use uuid::Uuid;
 
     impl From<SignUpRequest> for CreateUserCommand {

@@ -1,4 +1,4 @@
-use crate::application::{CreateUserUseCase, CreateUserUseCaseImpl};
+use crate::application::create_user_usecase::{CreateUserUseCase, CreateUserUseCaseImpl};
 use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::User;
 use app_core::domain::fhir::Identifier;

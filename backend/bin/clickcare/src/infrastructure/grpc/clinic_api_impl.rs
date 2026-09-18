@@ -1,6 +1,9 @@
+use crate::infrastructure::grpc;
 use crate::infrastructure::grpc::clinic_api_server::ClinicApi;
-use crate::infrastructure::grpc::{CreateClinicRequest, CreateClinicResponse};
-use administration::application::{CreateClinicCommand, CreateClinicError, CreateClinicUseCase};
+use administration::application::create_clinic_usecase::CreateClinicUseCase;
+use administration::application::create_clinic_usecase::model::{
+    CreateClinicCommand, CreateClinicError,
+};
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use tracing::debug;
@@ -25,8 +28,8 @@ impl ClinicApi for ClinicApiImpl {
     #[tracing::instrument(skip(self, request))]
     async fn create_clinic(
         &self,
-        request: Request<CreateClinicRequest>,
-    ) -> Result<Response<CreateClinicResponse>, Status> {
+        request: Request<grpc::CreateClinicRequest>,
+    ) -> Result<Response<grpc::CreateClinicResponse>, Status> {
         let command: CreateClinicCommand = request.into_inner().into();
         debug!("command: {command:?}");
 
@@ -34,7 +37,7 @@ impl ClinicApi for ClinicApiImpl {
             .execute(command)
             .await
             .map(|response| {
-                Response::new(CreateClinicResponse {
+                Response::new(grpc::CreateClinicResponse {
                     organization_id: response.organization_id.to_string(),
                     network_id: response.network_id.to_string(),
                     practitioner_id: response.practitioner_id.to_string(),
@@ -61,7 +64,7 @@ impl ClinicApi for ClinicApiImpl {
 
 mod mapper {
     use crate::infrastructure::grpc::CreateClinicRequest;
-    use administration::application::CreateClinicCommand;
+    use administration::application::create_clinic_usecase::model::CreateClinicCommand;
     use uuid::Uuid;
 
     /// Traduce el DTO plano de la API al comando del caso de uso.

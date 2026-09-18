@@ -1,3 +1,4 @@
+use crate::application::create_clinic_usecase::model::*;
 use crate::application::state::AdministrationState;
 use crate::domain::clinical_network::ClinicalNetwork;
 use crate::domain::organization::Organization;
@@ -10,96 +11,13 @@ use thiserror::Error;
 use tracing::info;
 use uuid::{Uuid, Version};
 
-/// Colegiatura provisional cuando el propietario aún no declara la suya.
-///
-/// El número real se registra más adelante, al activar su perfil profesional.
-const PENDING_MEDICAL_LICENSE: &str = "CMP-PENDIENTE";
-
-/// Subdominios reservados por la plataforma que no pueden asignarse a clínicas individuales.
-const RESERVED_SUBDOMAINS: &[&str] = &["app", "api", "admin", "www", "static"];
-
 /// Crea una clínica y deja a quien la solicita como su propietario.
-pub type CreateClinicUseCase = dyn UseCase<Command = CreateClinicCommand, Response = CreateClinicResponse, Error = CreateClinicError>;
+pub type CreateClinicUseCase = dyn UseCase<
+        Command = CreateClinicCommand,
+        Response = CreateClinicResponse,
+        Error = CreateClinicError,
+    >;
 
-/// Datos de entrada, planos, tal como llegan desde la API.
-///
-/// La demografía del propietario viaja aquí porque este contexto acotado **no
-/// consulta** al de identidad: construye su propia réplica local del profesional.
-#[derive(Debug, Clone)]
-pub struct CreateClinicCommand {
-    pub owner_user_id: String,
-    pub name: String,
-    pub subdomain: String,
-    pub network_id: Option<Uuid>,
-    pub tax_id: Option<String>,
-    pub given_name: String,
-    pub family_name: Option<String>,
-    pub second_family_name: Option<String>,
-    pub email: Option<String>,
-    pub phone: Option<String>,
-    pub medical_license_number: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct CreateClinicResponse {
-    pub organization_id: Uuid,
-    pub network_id: Uuid,
-    pub practitioner_id: Uuid,
-    /// La clínica ya existía y se devolvió sin recrearla.
-    pub already_existed: bool,
-}
-
-#[derive(Debug, Error)]
-pub enum CreateClinicError {
-    #[error("El identificador del propietario debe ser un UUID v7: {0}")]
-    InvalidOwnerUserId(String),
-
-    #[error("El nombre de la clínica no puede estar vacío")]
-    EmptyName,
-
-    #[error("El subdominio no puede estar vacío")]
-    EmptySubdomain,
-
-    #[error("El subdominio '{0}' está reservado por la plataforma")]
-    ReservedSubdomain(String),
-
-    #[error(
-        "El subdominio '{0}' es inválido (solo debe contener letras minúsculas, números y guiones)"
-    )]
-    InvalidSubdomainFormat(String),
-
-    #[error("El subdominio '{0}' ya está en uso")]
-    SubdomainAlreadyExists(String),
-
-    #[error("La ficha de profesional del propietario no pudo resolverse")]
-    MissingPractitioner,
-
-    #[error(transparent)]
-    Unknown(#[from] ClickCareError),
-}
-
-/// Valida el formato del subdominio y rechaza nombres reservados.
-pub fn validate_subdomain(subdomain: &str) -> Result<String, CreateClinicError> {
-    let normalized = subdomain.trim().to_lowercase();
-    if normalized.is_empty() {
-        return Err(CreateClinicError::EmptySubdomain);
-    }
-    if RESERVED_SUBDOMAINS.contains(&normalized.as_str()) {
-        return Err(CreateClinicError::ReservedSubdomain(normalized));
-    }
-
-    let is_valid = normalized
-        .chars()
-        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
-        && !normalized.starts_with('-')
-        && !normalized.ends_with('-');
-
-    if !is_valid {
-        return Err(CreateClinicError::InvalidSubdomainFormat(normalized));
-    }
-
-    Ok(normalized)
-}
 
 pub(crate) struct CreateClinicUseCaseImpl {
     pub(crate) state: AdministrationState,
@@ -118,14 +36,14 @@ impl UseCase for CreateClinicUseCaseImpl {
     /// en lugar de crear una segunda. Que un usuario pueda tener varias clínicas es
     /// una decisión aparte; hoy la base lo impide con `UNIQUE (owner_user_id)`.
     async fn execute(&self, command: Self::Command) -> Result<Self::Response, Self::Error> {
-        let owner_user_id = parse_owner_user_id(&command.owner_user_id)?;
+        let owner_user_id = self.parse_owner_user_id(&command.owner_user_id)?;
 
         let clinic_name = command.name.trim().to_string();
         if clinic_name.is_empty() {
             return Err(CreateClinicError::EmptyName);
         }
 
-        let subdomain = validate_subdomain(&command.subdomain)?;
+        let subdomain = self.validate_subdomain(&command.subdomain)?;
 
         if let Some(organization_id) = self
             .state
@@ -206,6 +124,14 @@ impl UseCase for CreateClinicUseCaseImpl {
 }
 
 impl CreateClinicUseCaseImpl {
+    /// Colegiatura provisional cuando el propietario aún no declara la suya.
+    ///
+    /// El número real se registra más adelante, al activar su perfil profesional.
+    const PENDING_MEDICAL_LICENSE: &str = "CMP-PENDIENTE";
+
+    /// Subdominios reservados por la plataforma que no pueden asignarse a clínicas individuales.
+    const RESERVED_SUBDOMAINS: &[&str] = &["app", "api", "admin", "www", "static"];
+
     /// Materializa la ficha del propietario en esa clínica, salvo que ya exista.
     async fn ensure_practitioner(
         &self,
@@ -229,8 +155,8 @@ impl CreateClinicUseCaseImpl {
             command
                 .medical_license_number
                 .clone()
-                .unwrap_or_else(|| PENDING_MEDICAL_LICENSE.to_string()),
-            build_owner_person(owner_user_id, command),
+                .unwrap_or_else(|| Self::PENDING_MEDICAL_LICENSE.to_string()),
+            self.build_owner_person(owner_user_id, command),
         );
 
         self.state
@@ -244,36 +170,123 @@ impl CreateClinicUseCaseImpl {
 
         Ok(practitioner.id)
     }
+
+    /// Valida el formato del subdominio y rechaza nombres reservados.
+    pub fn validate_subdomain(&self, subdomain: &str) -> Result<String, CreateClinicError> {
+        let normalized = subdomain.trim().to_lowercase();
+        if normalized.is_empty() {
+            return Err(CreateClinicError::EmptySubdomain);
+        }
+        if Self::RESERVED_SUBDOMAINS.contains(&normalized.as_str()) {
+            return Err(CreateClinicError::ReservedSubdomain(normalized));
+        }
+
+        let is_valid = normalized
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+            && !normalized.starts_with('-')
+            && !normalized.ends_with('-');
+
+        if !is_valid {
+            return Err(CreateClinicError::InvalidSubdomainFormat(normalized));
+        }
+
+        Ok(normalized)
+    }
+
+    /// Valida que el identificador del propietario sea un UUID v7.
+    fn parse_owner_user_id(&self, raw: &str) -> Result<Uuid, CreateClinicError> {
+        match Uuid::parse_str(raw) {
+            Ok(uuid) if uuid.get_version() == Some(Version::SortRand) => Ok(uuid),
+            _ => Err(CreateClinicError::InvalidOwnerUserId(raw.to_string())),
+        }
+    }
+
+    /// Mapea los campos planos del comando al recurso FHIR `Person` del dominio.
+    ///
+    /// Nunca se filtra la estructura plana del DTO dentro de la entidad: entra al
+    /// dominio ya convertida en Value Objects.
+    fn build_owner_person(&self, owner_user_id: &Uuid, command: &CreateClinicCommand) -> Person {
+        let name = HumanName::new(
+            vec![command.given_name.clone()],
+            command.family_name.clone(),
+            command.second_family_name.clone(),
+        );
+
+        let mut telecom = Vec::new();
+        if let Some(email) = &command.email {
+            telecom.push(ContactPoint::email(email.clone()));
+        }
+        if let Some(phone) = &command.phone {
+            telecom.push(ContactPoint::phone(phone.clone(), None));
+        }
+
+        Person::new(*owner_user_id, name, telecom, None, None)
+    }
+
 }
 
-/// Valida que el identificador del propietario sea un UUID v7.
-fn parse_owner_user_id(raw: &str) -> Result<Uuid, CreateClinicError> {
-    match Uuid::parse_str(raw) {
-        Ok(uuid) if uuid.get_version() == Some(Version::SortRand) => Ok(uuid),
-        _ => Err(CreateClinicError::InvalidOwnerUserId(raw.to_string())),
-    }
-}
+pub mod model {
+    use app_core::domain::error::ClickCareError;
+    use thiserror::Error;
+    use uuid::Uuid;
 
-/// Mapea los campos planos del comando al recurso FHIR `Person` del dominio.
-///
-/// Nunca se filtra la estructura plana del DTO dentro de la entidad: entra al
-/// dominio ya convertida en Value Objects.
-fn build_owner_person(owner_user_id: &Uuid, command: &CreateClinicCommand) -> Person {
-    let name = HumanName::new(
-        vec![command.given_name.clone()],
-        command.family_name.clone(),
-        command.second_family_name.clone(),
-    );
-
-    let mut telecom = Vec::new();
-    if let Some(email) = &command.email {
-        telecom.push(ContactPoint::email(email.clone()));
-    }
-    if let Some(phone) = &command.phone {
-        telecom.push(ContactPoint::phone(phone.clone(), None));
+    /// Datos de entrada, planos, tal como llegan desde la API.
+    ///
+    /// La demografía del propietario viaja aquí porque este contexto acotado **no
+    /// consulta** al de identidad: construye su propia réplica local del profesional.
+    #[derive(Debug, Clone)]
+    pub struct CreateClinicCommand {
+        pub owner_user_id: String,
+        pub name: String,
+        pub subdomain: String,
+        pub network_id: Option<Uuid>,
+        pub tax_id: Option<String>,
+        pub given_name: String,
+        pub family_name: Option<String>,
+        pub second_family_name: Option<String>,
+        pub email: Option<String>,
+        pub phone: Option<String>,
+        pub medical_license_number: Option<String>,
     }
 
-    Person::new(*owner_user_id, name, telecom, None, None)
+    #[derive(Debug, Clone)]
+    pub struct CreateClinicResponse {
+        pub organization_id: Uuid,
+        pub network_id: Uuid,
+        pub practitioner_id: Uuid,
+        /// La clínica ya existía y se devolvió sin recrearla.
+        pub already_existed: bool,
+    }
+
+    #[derive(Debug, Error)]
+    pub enum CreateClinicError {
+        #[error("El identificador del propietario debe ser un UUID v7: {0}")]
+        InvalidOwnerUserId(String),
+
+        #[error("El nombre de la clínica no puede estar vacío")]
+        EmptyName,
+
+        #[error("El subdominio no puede estar vacío")]
+        EmptySubdomain,
+
+        #[error("El subdominio '{0}' está reservado por la plataforma")]
+        ReservedSubdomain(String),
+
+        #[error(
+            "El subdominio '{0}' es inválido (solo debe contener letras minúsculas, números y guiones)"
+        )]
+        InvalidSubdomainFormat(String),
+
+        #[error("El subdominio '{0}' ya está en uso")]
+        SubdomainAlreadyExists(String),
+
+        #[error("La ficha de profesional del propietario no pudo resolverse")]
+        MissingPractitioner,
+
+        #[error(transparent)]
+        Unknown(#[from] ClickCareError),
+    }
 }
 
 #[cfg(test)]
@@ -449,7 +462,7 @@ mod test {
             "La ficha debe colgar de la clínica recién creada"
         );
         assert_eq!(
-            fichas[0].medical_license_number, PENDING_MEDICAL_LICENSE,
+            fichas[0].medical_license_number, CreateClinicUseCaseImpl::PENDING_MEDICAL_LICENSE,
             "Sin colegiatura declarada debe quedar la provisional"
         );
     }

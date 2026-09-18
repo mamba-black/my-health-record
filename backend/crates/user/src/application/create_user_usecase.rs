@@ -1,7 +1,7 @@
-use crate::application::create_user_usecase::command::CreateUserError::{
+use crate::application::create_user_usecase::model::CreateUserError::{
     UnknownError, UserAlreadyExists,
 };
-use crate::application::create_user_usecase::command::*;
+use crate::application::create_user_usecase::model::*;
 use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::Identifier::DNI;
 use crate::domain::user::{SignUpIntent, User};
@@ -135,8 +135,8 @@ impl UseCase for CreateUserUseCaseImpl {
     }
 }
 
-pub mod command {
-    use crate::application::create_user_usecase::command::CreateUserError::UnknownError;
+pub mod model {
+    use crate::application::create_user_usecase::model::CreateUserError::UnknownError;
     use crate::domain::user::{Identifier, SignUpIntent, User};
     use app_core::domain::error::ClickCareError;
     use uuid::Uuid;
@@ -184,7 +184,23 @@ pub mod command {
         pub password: String,
     }
 
-    pub type SignUpCommand = CreateUserCommand;
+    /// Resultado exitoso tras ejecutar `CreateUserUseCase`.
+    #[derive(Debug, Clone)]
+    pub struct CreateUserResponse {
+        /// Identificador del usuario registrado (UUID v7).
+        pub user_id: String,
+        /// Identificador de la clínica creada si correspondía a un propietario (opcional).
+        pub organization_id: Option<String>,
+    }
+
+    /// Posibles errores que pueden ocurrir durante la ejecución de `CreateUserUseCase`.
+    #[derive(Debug)]
+    pub enum CreateUserError {
+        /// El usuario ya existe en la red médica indicada (colisión de correo o documento).
+        UserAlreadyExists(ClickCareError),
+        /// Error inesperado o fallo de infraestructura.
+        UnknownError(ClickCareError),
+    }
 
     impl From<CreateUserCommand> for Result<User, ClickCareError> {
         fn from(command: CreateUserCommand) -> Self {
@@ -203,26 +219,6 @@ pub mod command {
                 Some(command.birthdate),
             )
         }
-    }
-
-    /// Resultado exitoso tras ejecutar `CreateUserUseCase`.
-    #[derive(Debug, Clone)]
-    pub struct CreateUserResponse {
-        /// Identificador del usuario registrado (UUID v7).
-        pub user_id: String,
-        /// Identificador de la clínica creada si correspondía a un propietario (opcional).
-        pub organization_id: Option<String>,
-    }
-
-    pub type SignUpResponse = CreateUserResponse;
-
-    /// Posibles errores que pueden ocurrir durante la ejecución de `CreateUserUseCase`.
-    #[derive(Debug)]
-    pub enum CreateUserError {
-        /// El usuario ya existe en la red médica indicada (colisión de correo o documento).
-        UserAlreadyExists(ClickCareError),
-        /// Error inesperado o fallo de infraestructura.
-        UnknownError(ClickCareError),
     }
 
     impl From<ClickCareError> for CreateUserError {

@@ -384,6 +384,31 @@ Leyenda de estado: ✅ implementado · 🚧 andamiaje (miembro del workspace, si
    * Los Casos de Uso **deben** mapear explícitamente esos campos planos a Value Objects ricos del dominio FHIR (`Person`, `HumanName`, `ContactPoint`) al entrar a la capa de dominio.
    * **Nunca filtrar estructuras planas de DTOs dentro de entidades de dominio**, ni al revés: una entidad de dominio no se serializa tal cual hacia la API.
 
+10. **Estructura y Contratos de Casos de Uso (`model::*` y `dyn UseCase`)**
+    * **Contrato tipado con Type Alias**: Cada caso de uso define su contrato público como un alias de tipo sobre el trait base `app_core::application::UseCase`:
+     ```rust
+     pub type CreateUserUseCase = dyn UseCase<
+         Command = CreateUserCommand,
+         Response = CreateUserResponse,
+         Error = CreateUserError,
+     >;
+     ```
+     No crear traits intermedios vacíos (`trait Foo: UseCase {}`) salvo que requieran métodos de dominio adicionales.
+    * **Agrupación en submódulo `pub mod model`**: Las tres estructuras que definen el contrato de datos del caso de uso deben residir juntas dentro de un submódulo `pub mod model`:
+     * `Command`: Struct plano con los parámetros de entrada requeridos para la acción.
+     * `Response`: Struct plano con los resultados producidos tras una ejecución exitosa.
+     * `Error`: Enum específico del caso de uso derivando `thiserror::Error` (o implementando `From<ClickCareError>`), que modela de forma exhaustiva las fallas esperadas y técnicas.
+    * **Implementación desacoplada (`Impl`)**: El struct ejecutor (`pub(crate) struct <Nombre>UseCaseImpl`) implementa directamente `#[async_trait] impl UseCase for <Nombre>UseCaseImpl`.
+    * **Inyección en `di.rs`**: El contenedor `DI` expone el caso de uso como `pub <nombre>_use_case: Arc<<Nombre>UseCase>`.
+    * **Consumo e importación limpia**: Los adaptadores externos (controladores gRPC en `bin/clickcare`, workers o tests) consumen el contrato importándolo limpiamente:
+     ```rust
+     use <crate>::application::<nombre>_usecase::{
+         <Nombre>UseCase,
+         model::{<Nombre>Command, <Nombre>Response, <Nombre>Error},
+     };
+     ```
+     Las peticiones externas (e.g. `SignUpRequest`) se mapean al `Command` mediante implementaciones de `From` en submódulos `mapper`.
+
 ---
 
 ## 4. Comandos de Compilación, Pruebas y Desarrollo
