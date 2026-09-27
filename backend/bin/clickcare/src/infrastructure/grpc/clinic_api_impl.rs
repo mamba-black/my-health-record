@@ -1,12 +1,11 @@
 use crate::infrastructure::grpc;
 use crate::infrastructure::grpc::clinic_api_server::ClinicApi;
 use administration::application::create_clinic_usecase::CreateClinicUseCase;
-use administration::application::create_clinic_usecase::model::{
-    CreateClinicCommand, CreateClinicError,
-};
+use administration::application::create_clinic_usecase::model::{CreateClinicCommand, CreateClinicError, CreateClinicResponse};
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use tracing::debug;
+use crate::infrastructure::grpc::clinic_api_impl::mapper::toStatus;
 
 /// Adaptador del servicio gRPC `ClinicApi` para la creación y administración de clínicas.
 pub struct ClinicApiImpl {
@@ -36,43 +35,23 @@ impl ClinicApi for ClinicApiImpl {
         self.create_clinic_use_case
             .execute(command)
             .await
-            .map(|response| {
-                Response::new(grpc::CreateClinicResponse {
-                    organization_id: response.organization_id.to_string(),
-                    network_id: response.network_id.to_string(),
-                    practitioner_id: response.practitioner_id.to_string(),
-                    already_existed: response.already_existed,
-                })
-            })
-            .map_err(|error| match error {
-                CreateClinicError::InvalidOwnerUserId(_)
-                | CreateClinicError::EmptyName
-                | CreateClinicError::EmptySubdomain
-                | CreateClinicError::ReservedSubdomain(_)
-                | CreateClinicError::InvalidSubdomainFormat(_) => {
-                    Status::invalid_argument(error.to_string())
-                }
-                CreateClinicError::SubdomainAlreadyExists(_) => {
-                    Status::already_exists(error.to_string())
-                }
-                CreateClinicError::MissingPractitioner | CreateClinicError::Unknown(_) => {
-                    Status::internal(error.to_string())
-                }
-            })
+            .map(|response| Response::new(response.into()))
+            .map_err(toStatus)
     }
 }
 
 mod mapper {
-    use crate::infrastructure::grpc::CreateClinicRequest;
-    use administration::application::create_clinic_usecase::model::CreateClinicCommand;
+    use tonic::{Response, Status};
+    use crate::infrastructure::grpc;
+    use administration::application::create_clinic_usecase::model::{CreateClinicCommand, CreateClinicError, CreateClinicResponse};
     use uuid::Uuid;
 
     /// Traduce el DTO plano de la API al comando del caso de uso.
     ///
     /// El mapeo a Value Objects FHIR ocurre después, dentro del dominio: la
     /// estructura plana del DTO no cruza esa frontera.
-    impl From<CreateClinicRequest> for CreateClinicCommand {
-        fn from(request: CreateClinicRequest) -> Self {
+    impl From<grpc::CreateClinicRequest> for CreateClinicCommand {
+        fn from(request: grpc::CreateClinicRequest) -> Self {
             let network_id = request
                 .network_id
                 .as_deref()
@@ -93,4 +72,34 @@ mod mapper {
             }
         }
     }
+
+    impl From<CreateClinicResponse> for grpc::CreateClinicResponse {
+        fn from(response: CreateClinicResponse) -> Self {
+            grpc::CreateClinicResponse {
+                organization_id: response.organization_id.to_string(),
+                network_id: response.network_id.to_string(),
+                practitioner_id: response.practitioner_id.to_string(),
+                already_existed: response.already_existed,
+            }
+        }
+    }
+
+    pub fn toStatus(error: CreateClinicError) -> Status {
+        match error {
+            CreateClinicError::InvalidOwnerUserId(_)
+            | CreateClinicError::EmptyName
+            | CreateClinicError::EmptySubdomain
+            | CreateClinicError::ReservedSubdomain(_)
+            | CreateClinicError::InvalidSubdomainFormat(_) => {
+                Status::invalid_argument(error.to_string())
+            }
+            CreateClinicError::SubdomainAlreadyExists(_) => {
+                Status::already_exists(error.to_string())
+            }
+            CreateClinicError::MissingPractitioner | CreateClinicError::Unknown(_) => {
+                Status::internal(error.to_string())
+            }
+        }
+    }
 }
+
