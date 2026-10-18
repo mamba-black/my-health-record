@@ -1,29 +1,36 @@
 <script lang="ts">
-import { Patient } from "$entities/patient";
+import type { Patient } from "$entities/patient";
+import { log } from "$shared/lib/logger";
 import { SubmitButton } from "$shared/ui";
+import { searchPatients } from "../api/search-patient.api";
 
 let { patients = $bindable() }: { patients: Patient[] } = $props();
 let name: string = $state("");
+let isLoading: boolean = $state(false);
+let errorMessage: string | null = $state(null);
 
-const findPatient = (event: Event) => {
+const findPatient = async (event: Event) => {
   event.preventDefault();
-  name = name.toUpperCase();
+  isLoading = true;
+  errorMessage = null;
 
-  // Simular la llamada externa
-  setTimeout(() => {
-    patients = [
-      new Patient("123321", "Jan", "Picard", 85, "miuler@gmail.com"),
-      new Patient("456465", "Miuler", "Malpica", 45),
-    ];
-  }, 500);
+  try {
+    patients = await searchPatients(name);
+  } catch (error) {
+    log.error("Error al buscar pacientes:", error);
+    errorMessage =
+      "Ocurrió un error al buscar pacientes. Por favor intente nuevamente.";
+  } finally {
+    isLoading = false;
+  }
 };
 </script>
 
-<form onsubmit={findPatient}>
+<form onsubmit={findPatient} class="space-y-2">
   <label
     class="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white"
     for="default-search"
-  >Search</label>
+  >Buscar pacientes</label>
   <div class="relative items-center h-14">
     <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
       <svg
@@ -47,12 +54,24 @@ const findPatient = (event: Event) => {
       bind:value={name}
       class="w-full p-4 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
       id="default-search"
+      name="q"
       placeholder="Busqueda de pacientes, nombre..."
       required={true}
       type="search"
+      disabled={isLoading}
     />
     <span class="absolute right-2.5 pt-2">
-      <SubmitButton label={"Busqueda"}/>
+      <SubmitButton label={isLoading ? "Buscando..." : "Busqueda"}/>
     </span>
   </div>
+
+  {#if errorMessage}
+    <div
+      role="alert"
+      aria-live="polite"
+      class="p-3 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-900/30 dark:text-red-400"
+    >
+      {errorMessage}
+    </div>
+  {/if}
 </form>

@@ -22,13 +22,13 @@ const gotoPatient = (e: Event, patient: Patient) => {
         <div class="flex gap-x-4">
           <div class="min-w-0 flex-auto">
             <p class="text-sm font-semibold leading-6 text-gray-900">
-              {patient.firstName}
+              {patient.firstName} {patient.lastName} {patient.secondLastName ?? ""}
               <span class="relative inline-block px-2 py-0 font-semibold text-green-900 leading-tight">
                 <span class="absolute inset-0 bg-green-200/50 rounded-full"></span>
                 <span class="relative">Cita programada</span>
               </span>
             </p>
-            <p class="mt-1 truncate text-xs leading-5 text-gray-500">{patient.email}</p>
+            <p class="mt-1 truncate text-xs leading-5 text-gray-500">{patient.email ?? ""}</p>
           </div>
         </div>
         <div class="hidden sm:flex sm:flex-col sm:items-end">

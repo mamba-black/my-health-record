@@ -7,4 +7,12 @@ export default defineConfig({
     sveltekit(),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      "^/grpc\\..*": {
+        target: "http://localhost:50051",
+        changeOrigin: true,
+      },
+    },
+  },
 });

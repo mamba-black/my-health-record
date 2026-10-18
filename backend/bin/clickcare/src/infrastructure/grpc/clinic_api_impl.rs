@@ -1,11 +1,11 @@
 use crate::infrastructure::grpc;
 use crate::infrastructure::grpc::clinic_api_server::ClinicApi;
 use administration::application::create_clinic_usecase::CreateClinicUseCase;
-use administration::application::create_clinic_usecase::model::{CreateClinicCommand, CreateClinicError, CreateClinicResponse};
+use administration::application::create_clinic_usecase::model::CreateClinicCommand;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use tracing::debug;
-use crate::infrastructure::grpc::clinic_api_impl::mapper::toStatus;
+use crate::infrastructure::grpc::clinic_api_impl::mapper::to_status;
 
 /// Adaptador del servicio gRPC `ClinicApi` para la creación y administración de clínicas.
 pub struct ClinicApiImpl {
@@ -36,12 +36,12 @@ impl ClinicApi for ClinicApiImpl {
             .execute(command)
             .await
             .map(|response| Response::new(response.into()))
-            .map_err(toStatus)
+            .map_err(to_status)
     }
 }
 
 mod mapper {
-    use tonic::{Response, Status};
+    use tonic::Status;
     use crate::infrastructure::grpc;
     use administration::application::create_clinic_usecase::model::{CreateClinicCommand, CreateClinicError, CreateClinicResponse};
     use uuid::Uuid;
@@ -84,7 +84,7 @@ mod mapper {
         }
     }
 
-    pub fn toStatus(error: CreateClinicError) -> Status {
+    pub fn to_status(error: CreateClinicError) -> Status {
         match error {
             CreateClinicError::InvalidOwnerUserId(_)
             | CreateClinicError::EmptyName
