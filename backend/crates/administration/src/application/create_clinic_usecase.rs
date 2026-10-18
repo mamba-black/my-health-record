@@ -4,10 +4,8 @@ use crate::domain::clinical_network::ClinicalNetwork;
 use crate::domain::organization::Organization;
 use crate::domain::practitioner::Practitioner;
 use app_core::application::UseCase;
-use app_core::domain::error::ClickCareError;
 use app_core::domain::fhir::{ContactPoint, HumanName, Person};
 use async_trait::async_trait;
-use thiserror::Error;
 use tracing::info;
 use uuid::{Uuid, Version};
 

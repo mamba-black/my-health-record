@@ -84,6 +84,11 @@ pub async fn new(database_type: DBType) -> Result<DI, ClickCareError> {
 }
 
 impl DI {
+    /// Devuelve un clon del almacenamiento de la cola Apalis para su monitoreo en `apalis-board`.
+    pub fn storage(&self) -> PostgresStorage<UserCreatedEvent> {
+        self.storage.clone()
+    }
+
     /// Corre el worker que consume [`UserCreatedEvent`] hasta que el proceso termine.
     ///
     /// El worker se construye aquí dentro a propósito: así el tipo genérico que

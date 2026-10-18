@@ -7,7 +7,7 @@ use crate::infrastructure::grpc::subdomain_resolver::SubdomainResolver;
 use crate::infrastructure::grpc::user_api_impl::UserApiImpl;
 use crate::infrastructure::grpc::user_api_server::UserApiServer;
 use administration::infrastructure::di as administration_di;
-use apalis_board::axum::framework::ApiBuilder;
+use apalis_board::axum::framework::{ApiBuilder, RegisterRoute};
 use apalis_board::axum::ui::ServeUI;
 use app_core::domain::error::ClickCareError;
 use std::sync::Arc;
@@ -50,7 +50,10 @@ pub async fn start_server(
         &administration.create_clinic_use_case,
     )));
 
-    let apalis_board_router: axum::Router = ApiBuilder::new(axum::Router::<()>::new()).build();
+    let apalis_api = ApiBuilder::new(axum::Router::<()>::new())
+        .register(administration.storage())
+        .build();
+    let apalis_board_router: axum::Router = axum::Router::new().nest("/api/v1", apalis_api);
 
     let grpc_router: axum::Router = tonic::service::Routes::default()
         .add_service(patient_service_server)
