@@ -129,13 +129,13 @@ pub fn init_observability() {
     init_meter(&config);
 
     // 2. Inicializar layer de Tracing OTLP (None si no hay endpoint)
-    let otel_tracing_layer = init_tracing_layer(&config);
+    let otel_tracing_layer = init_otel_tracing_layer(&config);
 
     // 3. Inicializar layer de Logs OTLP (None si no hay endpoint)
-    let otel_log_layer = init_log_layer(&config);
+    let otel_log_layer = init_otel_log_layer(&config);
 
     // 4. Formateador para la consola clásica (fmt) - siempre activo
-    let fmt_layer = tracing_subscriber::fmt::layer().with_span_events(FmtSpan::CLOSE);
+    let log_fmt_layer = init_log_layer();
 
     // 5. Filtro global de entorno para la aplicación
     let env_filter_layer = EnvFilter::try_from_default_env().unwrap_or_else(|_| {
@@ -146,7 +146,7 @@ pub fn init_observability() {
         .with(env_filter_layer)
         .with(otel_tracing_layer)
         .with(otel_log_layer)
-        .with(fmt_layer);
+        .with(log_fmt_layer);
 
     let _ = subscriber.try_init();
 
@@ -175,7 +175,7 @@ pub fn init_observability() {
 }
 
 /// Configura e inicializa el proveedor de trazas y retorna el layer para `tracing`.
-pub fn init_tracing_layer<S>(config: &OtelConfig) -> Option<impl Layer<S>>
+fn init_otel_tracing_layer<S>(config: &OtelConfig) -> Option<impl Layer<S>>
 where
     S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>,
 {
@@ -215,7 +215,7 @@ where
 }
 
 /// Configura e inicializa el proveedor de logs OTLP y retorna el layer filtrado (nivel INFO en adelante).
-pub fn init_log_layer<S>(config: &OtelConfig) -> Option<impl Layer<S>>
+fn init_otel_log_layer<S>(config: &OtelConfig) -> Option<impl Layer<S>>
 where
     S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>,
 {
@@ -248,11 +248,26 @@ where
         .with_resource(config.resource.clone())
         .build();
 
-    Some(OpenTelemetryTracingBridge::new(&logger_provider).with_filter(LevelFilter::INFO))
+    let logger_layer_otel_tracing_bridge_filtered = OpenTelemetryTracingBridge::new(&logger_provider)
+        .with_filter(LevelFilter::INFO);
+
+    Some(logger_layer_otel_tracing_bridge_filtered)
+}
+
+fn init_log_layer<S>() -> impl Layer<S>
+where
+    S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>,
+{
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info,tower::buffer::worker=off"));
+
+    tracing_subscriber::fmt::layer()
+        .with_span_events(FmtSpan::CLOSE)
+        .with_filter(filter)
 }
 
 /// Configura e inicializa el proveedor de métricas global y las métricas de sistema/proceso.
-pub fn init_meter(config: &OtelConfig) {
+fn init_meter(config: &OtelConfig) {
     let Some(endpoint) = config.endpoint.as_active() else {
         return;
     };
@@ -294,7 +309,7 @@ pub fn init_meter(config: &OtelConfig) {
     init_meter_system_metrics();
 }
 
-pub fn init_meter_system_metrics() {
+fn init_meter_system_metrics() {
     let meter = opentelemetry::global::meter("clickcare");
 
     // --- Métricas del Proceso Actual ---

@@ -27,9 +27,14 @@ pub async fn start_server(
     database_url: Option<String>,
     enable_administration_worker: bool,
 ) -> Result<(), ClickCareError> {
-    let reflection_server = tonic_reflection::server::Builder::configure()
+    let reflection_server_v1alpha = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
         .build_v1alpha()
+        .expect("Could not build server");
+
+    let reflection_server_v1 = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
+        .build_v1()
         .expect("Could not build server");
 
     let administration =
@@ -51,7 +56,8 @@ pub async fn start_server(
         .add_service(patient_service_server)
         .add_service(user_service_server)
         .add_service(clinic_service_server)
-        .add_service(reflection_server)
+        .add_service(reflection_server_v1alpha)
+        .add_service(reflection_server_v1)
         .into_axum_router()
         .layer(GrpcWebLayer::new());
 
@@ -60,7 +66,7 @@ pub async fn start_server(
         .fallback_service(ServeUI::new());
 
     let listener = {
-        let addr: std::net::SocketAddr = "[::1]:50051".parse().map_err(|e| {
+        let addr: std::net::SocketAddr = "0.0.0.0:50051".parse().map_err(|e| {
             ClickCareError::generic(format!("Error al parsear la direccion del servidor: {}", e))
         })?;
 
