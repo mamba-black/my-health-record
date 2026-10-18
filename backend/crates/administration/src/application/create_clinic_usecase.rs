@@ -298,6 +298,7 @@ mod test {
     use crate::domain::repository::practitioner_repository::PractitionerRepository;
     use std::sync::Arc;
     use std::sync::Mutex;
+    use app_core::domain::error::ClickCareError;
 
     /// Repositorio en memoria que registra lo guardado y puede simular preexistencia.
     #[derive(Default)]
