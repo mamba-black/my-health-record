@@ -1,66 +1,122 @@
 <script lang="ts">
+import { onMount } from "svelte";
 import { clearAuth, setAuthToken } from "$entities/session";
 import { log } from "$shared/lib/logger";
 
-const GOOGLE_CLIENT_URL = "https://accounts.google.com/gsi/fedcm.json";
 const GOOGLE_CLIENT_ID =
   "937186309482-kmain19anvo9rjljci5c7d6iiibuhvlu.apps.googleusercontent.com";
 
-interface FedCMCredentialRequestOptions extends CredentialRequestOptions {
-  identity?: {
-    providers: Array<{
-      configURL: string;
-      clientId: string;
-      nonce: string;
-    }>;
-  };
+interface GoogleCredentialResponse {
+  credential?: string;
+  select_by?: string;
 }
 
-const handleGoogleFedCMLogin = async () => {
-  try {
-    log.debug("Google FedCM login initiated");
-    if (!navigator.credentials || !navigator.credentials.get) {
-      log.error("Credentials API not supported");
-      return;
-    }
+interface GoogleAccountsId {
+  initialize: (config: {
+    client_id: string;
+    callback: (response: GoogleCredentialResponse) => void;
+    use_fedcm_for_prompt?: boolean;
+    use_fedcm_for_button?: boolean;
+  }) => void;
+  prompt: () => void;
+  renderButton: (
+    parent: HTMLElement,
+    options: {
+      theme?: "outline" | "filled_blue" | "filled_black";
+      size?: "large" | "medium" | "small";
+      type?: "standard" | "icon";
+      text?: "signin_with" | "signup_with" | "continue_with" | "signin";
+      shape?: "rectangular" | "pill" | "circle" | "square";
+    },
+  ) => void;
+}
 
-    log.debug("Login with Google FedCM");
-    const options: FedCMCredentialRequestOptions = {
-      identity: {
-        providers: [
-          {
-            configURL: GOOGLE_CLIENT_URL,
-            clientId: GOOGLE_CLIENT_ID,
-            nonce: crypto.randomUUID(),
-          },
-        ],
-      },
+type WindowWithGoogle = Window & {
+  google?: {
+    accounts?: {
+      id?: GoogleAccountsId;
     };
-    const credential = await navigator.credentials.get(options);
+  };
+};
 
-    if (credential && credential.type === "identity") {
-      log.info("Federated credential found:", credential);
-      const token = credential.id;
-      setAuthToken(token, "Google");
-    } else {
-      log.error("No federated credential found", credential);
+const getGoogleId = (): GoogleAccountsId | undefined =>
+  (window as WindowWithGoogle).google?.accounts?.id;
+
+let email = $state("");
+let password = $state("");
+let googleButtonContainer: HTMLDivElement | undefined = $state();
+let gisLoaded = $state(false);
+let errorMessage = $state<string | null>(null);
+
+const handleGoogleCredentialResponse = (response: GoogleCredentialResponse) => {
+  if (response.credential) {
+    log.info("Google GIS/FedCM JWT credential received");
+    errorMessage = null;
+    setAuthToken(response.credential, "Google");
+  } else {
+    log.error("No credential received from Google GIS", response);
+    errorMessage = "No se pudo obtener la credencial de Google.";
+  }
+};
+
+onMount(() => {
+  const initGoogleGis = () => {
+    const googleId = getGoogleId();
+    if (!googleId) return;
+
+    googleId.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredentialResponse,
+      use_fedcm_for_prompt: true,
+      use_fedcm_for_button: true,
+    });
+
+    if (googleButtonContainer) {
+      googleId.renderButton(googleButtonContainer, {
+        theme: "outline",
+        size: "large",
+        text: "continue_with",
+        shape: "rectangular",
+      });
     }
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "NotAllowedError") {
-      log.error("User denied Google FedCM login");
-    } else {
-      log.error("Error handling Google FedCM login:", error);
-    }
+    gisLoaded = true;
+  };
+
+  if (getGoogleId()) {
+    initGoogleGis();
+    return;
+  }
+
+  const script = document.createElement("script");
+  script.src = "https://accounts.google.com/gsi/client";
+  script.async = true;
+  script.defer = true;
+  script.onload = initGoogleGis;
+  script.onerror = () => {
+    log.error("Failed to load Google Identity Services script");
+  };
+  document.head.appendChild(script);
+});
+
+const handleGooglePromptFallback = () => {
+  const googleId = getGoogleId();
+  if (googleId) {
+    googleId.prompt();
+  } else {
+    errorMessage =
+      "El servicio de Google aún no está disponible o fue bloqueado por el navegador.";
   }
 };
 
 const onSignOut = (_event: MouseEvent) => {
-  log.info("Usuario desconectado de Google");
+  log.info("Usuario desconectado");
   clearAuth();
 };
 
 const loginHandler = (event: Event) => {
   event.preventDefault();
+  errorMessage = null;
+  setAuthToken("1234567890", email.trim() || "Miuler");
 };
 </script>
 
@@ -68,13 +124,21 @@ const loginHandler = (event: Event) => {
   <div>
     <h1 class="text-2xl font-semibold">Login</h1>
   </div>
+
+  {#if errorMessage}
+    <div class="mt-4 p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">
+      {errorMessage}
+    </div>
+  {/if}
+
   <div class="divide-y divide-gray-200">
     <form onsubmit={loginHandler}>
       <div class="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
         <div class="relative">
           <input
-            autocomplete="off"
-            class="peer placeholder-transparent h-10 w-full border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:borer-rose-600"
+            bind:value={email}
+            autocomplete="email"
+            class="peer placeholder-transparent h-10 w-full border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-rose-600"
             id="email"
             name="email"
             placeholder="Email address"
@@ -87,8 +151,9 @@ const loginHandler = (event: Event) => {
         </div>
         <div class="relative">
           <input
-            autocomplete="off"
-            class="peer placeholder-transparent h-10 w-full border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:borer-rose-600"
+            bind:value={password}
+            autocomplete="current-password"
+            class="peer placeholder-transparent h-10 w-full border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-rose-600"
             id="password"
             name="password"
             placeholder="Password"
@@ -100,58 +165,27 @@ const loginHandler = (event: Event) => {
           >Password</label>
         </div>
         <div class="relative">
-          <button class="bg-cyan-500 text-white rounded-md px-2 py-1" type="submit">Submit</button>
+          <button class="bg-cyan-500 hover:bg-cyan-600 text-white rounded-md px-4 py-1.5" type="submit">
+            Submit
+          </button>
         </div>
       </div>
     </form>
   </div>
 </div>
 
-<div class="w-full flex justify-center">
-  <button
-    onclick={handleGoogleFedCMLogin}
-    type="button"
-    class="flex items-center bg-white border border-gray-300 rounded-lg shadow-md px-6 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-  >
-    <svg
-      class="h-6 w-6 mr-2"
-      height="800px"
-      version="1.1"
-      viewBox="-0.5 0 48 48"
-      width="800px"
-      xmlns="http://www.w3.org/2000/svg"
+<div class="w-full flex flex-col items-center justify-center">
+  <div bind:this={googleButtonContainer} class="flex justify-center"></div>
+
+  {#if !gisLoaded}
+    <button
+      onclick={handleGooglePromptFallback}
+      type="button"
+      class="flex items-center bg-white border border-gray-300 rounded-lg shadow-md px-6 py-2 text-sm font-medium text-gray-800 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
     >
-      <title>Google-color</title>
-      <desc>Created with Sketch.</desc>
-      <g fill="none" fill-rule="evenodd" id="Icons" stroke="none" stroke-width="1">
-        <g id="Color-" transform="translate(-401.000000, -860.000000)">
-          <g id="Google" transform="translate(401.000000, 860.000000)">
-            <path
-              d="M9.82727273,24 C9.82727273,22.4757333 10.0804318,21.0144 10.5322727,19.6437333 L2.62345455,13.6042667 C1.08206818,16.7338667 0.213636364,20.2602667 0.213636364,24 C0.213636364,27.7365333 1.081,31.2608 2.62025,34.3882667 L10.5247955,28.3370667 C10.0772273,26.9728 9.82727273,25.5168 9.82727273,24"
-              fill="#FBBC05"
-              id="Fill-1"
-            ></path>
-            <path
-              d="M23.7136364,10.1333333 C27.025,10.1333333 30.0159091,11.3066667 32.3659091,13.2266667 L39.2022727,6.4 C35.0363636,2.77333333 29.6954545,0.533333333 23.7136364,0.533333333 C14.4268636,0.533333333 6.44540909,5.84426667 2.62345455,13.6042667 L10.5322727,19.6437333 C12.3545909,14.112 17.5491591,10.1333333 23.7136364,10.1333333"
-              fill="#EB4335"
-              id="Fill-2"
-            ></path>
-            <path
-              d="M23.7136364,37.8666667 C17.5491591,37.8666667 12.3545909,33.888 10.5322727,28.3562667 L2.62345455,34.3946667 C6.44540909,42.1557333 14.4268636,47.4666667 23.7136364,47.4666667 C29.4455,47.4666667 34.9177955,45.4314667 39.0249545,41.6181333 L31.5177727,35.8144 C29.3995682,37.1488 26.7323182,37.8666667 23.7136364,37.8666667"
-              fill="#34A853"
-              id="Fill-3"
-            ></path>
-            <path
-              d="M46.1454545,24 C46.1454545,22.6133333 45.9318182,21.12 45.6113636,19.7333333 L23.7136364,19.7333333 L23.7136364,28.8 L36.3181818,28.8 C35.6879545,31.8912 33.9724545,34.2677333 31.5177727,35.8144 L39.0249545,41.6181333 C43.3393409,37.6138667 46.1454545,31.6490667 46.1454545,24"
-              fill="#4285F4"
-              id="Fill-4"
-            ></path>
-          </g>
-        </g>
-      </g>
-    </svg>
-    <span>Continue with Google</span>
-  </button>
+      <span>Continue with Google</span>
+    </button>
+  {/if}
 </div>
 
 <div class="w-full flex justify-center mt-4">

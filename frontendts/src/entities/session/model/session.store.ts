@@ -34,10 +34,15 @@ export const setAuthToken = (token: string, user: unknown = null) => {
   }
   authStore.set({ isAuthenticated: true, token, user });
 
-  const previousPage = page.state as Page;
-  log.debug(`AuthService: previous path ${previousPage.path}`);
+  const previousPage = page.state as Partial<Page> | undefined;
+  log.debug(`AuthService: previous path ${previousPage?.path}`);
 
-  const url = previousPage.path ? `${base}${previousPage.path}` : `${base}/`;
+  const targetPath = previousPage?.path;
+  const url = targetPath
+    ? targetPath.startsWith(base)
+      ? targetPath
+      : `${base}${targetPath}`
+    : `${base}/`;
 
   log.debug(`AuthService: redirecting to ${url}`);
   goto(url);
