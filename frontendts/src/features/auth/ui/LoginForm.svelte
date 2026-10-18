@@ -1,6 +1,6 @@
 <script lang="ts">
 import { onMount } from "svelte";
-import { clearAuth, setAuthToken } from "$entities/session";
+import { setAuthToken } from "$entities/session";
 import { log } from "$shared/lib/logger";
 
 const GOOGLE_CLIENT_ID =
@@ -108,11 +108,6 @@ const handleGooglePromptFallback = () => {
   }
 };
 
-const onSignOut = (_event: MouseEvent) => {
-  log.info("Usuario desconectado");
-  clearAuth();
-};
-
 const loginHandler = (event: Event) => {
   event.preventDefault();
   errorMessage = null;
@@ -188,12 +183,3 @@ const loginHandler = (event: Event) => {
   {/if}
 </div>
 
-<div class="w-full flex justify-center mt-4">
-  <button
-    onclick={onSignOut}
-    type="button"
-    class="flex items-center bg-gray-200 border border-gray-300 rounded-lg shadow-md px-6 py-2 text-sm font-medium text-gray-800 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-  >
-    Cerrar Sesión Local
-  </button>
-</div>

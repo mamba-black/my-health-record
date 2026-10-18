@@ -11,10 +11,12 @@ import { Navbar } from "$widgets/navbar";
 let { children }: { children: Snippet } = $props();
 
 const PUBLIC_ROUTES = [ROOT, LOGIN, CALLBACK];
+const isPublicRoute = $derived(
+  PUBLIC_ROUTES.some((route) => page.url.pathname === route),
+);
 
 $effect(() => {
   const currentPath = page.url.pathname;
-  const isPublicRoute = PUBLIC_ROUTES.some((route) => currentPath === route);
 
   if (!$authStore.isAuthenticated && !isPublicRoute) {
     log.info(`User not authenticated. Redirecting ${currentPath} to login.`);
@@ -25,9 +27,9 @@ $effect(() => {
 onMount(() => {
   const unsubscribe = authStore.subscribe(async ($auth) => {
     const currentPath = page.url.pathname;
-    const isPublicRoute = PUBLIC_ROUTES.some((route) => currentPath === route);
+    const publicRoute = PUBLIC_ROUTES.some((route) => currentPath === route);
 
-    if (!$auth.isAuthenticated && !isPublicRoute) {
+    if (!$auth.isAuthenticated && !publicRoute) {
       log.info(`User not authenticated. Redirecting ${currentPath} to login.`);
       await goto(LOGIN, { state: new Page(currentPath) });
     }
@@ -41,6 +43,8 @@ onMount(() => {
 
 <main class="pt-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
   <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8">
-    {@render children()}
+    {#if $authStore.isAuthenticated || isPublicRoute}
+      {@render children()}
+    {/if}
   </div>
 </main>
