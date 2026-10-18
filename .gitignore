@@ -200,6 +200,7 @@ backend/docs/fhir_json
 # Beads / Dolt files (added by bd init)
 .dolt/
 *.db
+.beads
 .beads-credential-key
 .beads/proxieddb/
 
