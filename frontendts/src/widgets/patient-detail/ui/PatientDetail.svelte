@@ -26,6 +26,14 @@ let _medicalConditions = $state<MedicalConditions>(
 );
 let readOnly = $state(true);
 
+$effect(() => {
+  if (patient) {
+    patientCache = toPlainObject(patient);
+    _patient = toPlainObject(patientCache);
+    _medicalConditions = toPlainObject(patientCache.medicalConditions);
+  }
+});
+
 function reset_handle() {
   log.debug("reset/patientCache:", patientCache);
   log.debug("reset/_patient:", $state.snapshot(_patient));
