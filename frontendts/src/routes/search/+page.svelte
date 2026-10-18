@@ -1,6 +1,5 @@
 <script lang="ts">
-import Search from "$lib/components/pages/Search.svelte";
+import { PatientSearchPage } from "$pages/patient-search";
 </script>
 
-<Search/>
-
+<PatientSearchPage/>

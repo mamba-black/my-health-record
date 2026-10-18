@@ -21,12 +21,13 @@ my-health-record/
 │   ├── docs/use_cases.md   # Casos de uso del ciclo de vida de identidad
 │   └── crates/             # Crates del Cargo Workspace por Contexto Acotado
 │
-└── frontendts/             # ⚡ Frontend Web (Svelte 5 + SvelteKit + TypeScript + Tailwind CSS v4)
+└── frontendts/             # ⚡ Frontend Web (Svelte 5 + SvelteKit + FSD + Tailwind CSS v4)
+    ├── AGENTS.md           # 📖 Guía técnica detallada del Frontend (Feature-Sliced Design)
     ├── package.json        # Dependencias y scripts de frontend (Bun/Vite)
-    ├── svelte.config.js    # Configuración de SvelteKit (@sveltejs/adapter-static)
+    ├── svelte.config.js    # Configuración de SvelteKit y alias de capas FSD
     ├── vite.config.ts      # Configuración de Vite / Rolldown
     ├── docs/use_cases.md   # Casos de uso de frontend y flujos de usuario
-    └── src/                # Código fuente de la aplicación Svelte 5
+    └── src/                # Código fuente FSD (routes, app, pages, widgets, features, entities, shared)
 ```
 
 ---
@@ -72,10 +73,14 @@ cargo clippy --workspace --all-targets -- -D warnings
 
 ## 3. Frontend (`frontendts/`)
 
-El frontend está estructurado en **Svelte 5** utilizando **SvelteKit** (con adaptador estático `@sveltejs/adapter-static`), TypeScript, **Tailwind CSS v4** y comunicación gRPC-Web hacia el backend.
+El frontend está estructurado en **Svelte 5** utilizando **SvelteKit** (con adaptador estático `@sveltejs/adapter-static`), TypeScript, **Tailwind CSS v4** y arquitectura **Feature-Sliced Design (FSD v2.1)** alineada con los recursos **HL7 FHIR R4**.
+
+> [!IMPORTANT]
+> Para conocer las reglas arquitectónicas de Feature-Sliced Design (jerarquía de capas `app` → `pages` → `widgets` → `features` → `entities` → `shared`, aislamiento de slices, API pública `index.ts` y convenciones de Svelte 5), consulta:
+> 👉 **[frontendts/AGENTS.md](frontendts/AGENTS.md)**
 
 * **Ruta**: `frontendts/`
-* **Tecnologías**: Svelte 5, SvelteKit, TypeScript, Vite / Rolldown, Tailwind CSS v4, Lucide Icons, TipTap, grpc-web.
+* **Tecnologías**: Svelte 5, SvelteKit, Feature-Sliced Design (FSD), TypeScript, Vite / Rolldown, Tailwind CSS v4, Lucide Icons, TipTap, grpc-web.
 * **Documentación y Casos de Uso**: [frontendts/docs/use_cases.md](frontendts/docs/use_cases.md)
 
 ### Comandos de Frontend (desde `frontendts/`)
@@ -83,7 +88,7 @@ El frontend está estructurado en **Svelte 5** utilizando **SvelteKit** (con ada
 bun install             # Instalar dependencias
 bun run dev             # Servidor de desarrollo Vite
 bun run build           # Compilación para producción
-bun run check           # Verificación de tipos con svelte-check y tsc
+bun run check           # Verificación de tipos con svelte-check
 ```
 
 ---

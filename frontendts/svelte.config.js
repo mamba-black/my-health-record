@@ -15,8 +15,16 @@ const config = {
       strict: true,
     }),
     paths: {
-      base: process.env.NODE_ENV === 'production' ? '/health.miuler.com' : '',
-    }
+      base: process.env.NODE_ENV === "production" ? "/health.miuler.com" : "",
+    },
+    alias: {
+      $shared: "src/shared",
+      $entities: "src/entities",
+      $features: "src/features",
+      $widgets: "src/widgets",
+      $pages: "src/pages",
+      $app_layer: "src/app",
+    },
   },
 };
 
