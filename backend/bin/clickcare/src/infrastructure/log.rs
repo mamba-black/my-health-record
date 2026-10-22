@@ -248,8 +248,8 @@ where
         .with_resource(config.resource.clone())
         .build();
 
-    let logger_layer_otel_tracing_bridge_filtered = OpenTelemetryTracingBridge::new(&logger_provider)
-        .with_filter(LevelFilter::INFO);
+    let logger_layer_otel_tracing_bridge_filtered =
+        OpenTelemetryTracingBridge::new(&logger_provider).with_filter(LevelFilter::INFO);
 
     Some(logger_layer_otel_tracing_bridge_filtered)
 }

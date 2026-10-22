@@ -16,7 +16,6 @@ pub type CreateClinicUseCase = dyn UseCase<
         Error = CreateClinicError,
     >;
 
-
 pub(crate) struct CreateClinicUseCaseImpl {
     pub(crate) state: AdministrationState,
 }
@@ -221,7 +220,6 @@ impl CreateClinicUseCaseImpl {
 
         Person::new(*owner_user_id, name, telecom, None, None)
     }
-
 }
 
 pub mod model {
@@ -296,9 +294,9 @@ mod test {
     use crate::domain::repository::organization_repository::OrganizationRepository;
     use crate::domain::repository::patient_repository::PatientRepository;
     use crate::domain::repository::practitioner_repository::PractitionerRepository;
+    use app_core::domain::error::ClickCareError;
     use std::sync::Arc;
     use std::sync::Mutex;
-    use app_core::domain::error::ClickCareError;
 
     /// Repositorio en memoria que registra lo guardado y puede simular preexistencia.
     #[derive(Default)]
@@ -461,7 +459,8 @@ mod test {
             "La ficha debe colgar de la clínica recién creada"
         );
         assert_eq!(
-            fichas[0].medical_license_number, CreateClinicUseCaseImpl::PENDING_MEDICAL_LICENSE,
+            fichas[0].medical_license_number,
+            CreateClinicUseCaseImpl::PENDING_MEDICAL_LICENSE,
             "Sin colegiatura declarada debe quedar la provisional"
         );
     }

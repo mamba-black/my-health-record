@@ -1,11 +1,11 @@
 use crate::infrastructure::grpc;
+use crate::infrastructure::grpc::clinic_api_impl::mapper::to_status;
 use crate::infrastructure::grpc::clinic_api_server::ClinicApi;
 use administration::application::create_clinic_usecase::CreateClinicUseCase;
 use administration::application::create_clinic_usecase::model::CreateClinicCommand;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use tracing::debug;
-use crate::infrastructure::grpc::clinic_api_impl::mapper::to_status;
 
 /// Adaptador del servicio gRPC `ClinicApi` para la creación y administración de clínicas.
 pub struct ClinicApiImpl {
@@ -41,9 +41,11 @@ impl ClinicApi for ClinicApiImpl {
 }
 
 mod mapper {
-    use tonic::Status;
     use crate::infrastructure::grpc;
-    use administration::application::create_clinic_usecase::model::{CreateClinicCommand, CreateClinicError, CreateClinicResponse};
+    use administration::application::create_clinic_usecase::model::{
+        CreateClinicCommand, CreateClinicError, CreateClinicResponse,
+    };
+    use tonic::Status;
     use uuid::Uuid;
 
     /// Traduce el DTO plano de la API al comando del caso de uso.
@@ -102,4 +104,3 @@ mod mapper {
         }
     }
 }
-

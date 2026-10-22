@@ -1,8 +1,8 @@
-use async_trait::async_trait;
-use google_jwt_verify::Client;
-use app_core::domain::error::ClickCareError;
 use crate::application::integration::service::token_service::TokenService;
 use crate::application::use_case::sign_in_usecase::model::SignInError;
+use app_core::domain::error::ClickCareError;
+use async_trait::async_trait;
+use google_jwt_verify::Client;
 
 pub struct TokenServiceImpl {}
 
@@ -29,8 +29,9 @@ impl TokenService for TokenServiceImpl {
         let google_client_id = std::env::var("PUBLIC_GOOGLE_CLIENT_ID")
             .map_err(|err| SignInError::UnknownError(ClickCareError::generic(err.to_string())))?;
         let client = Client::new(google_client_id.as_str());
-        let token = client.verify_id_token(id_token)
-            .map_err(|err| SignInError::InvalidToken(ClickCareError::generic(format!("{:?}", err))))?;
+        let token = client.verify_id_token(id_token).map_err(|err| {
+            SignInError::InvalidToken(ClickCareError::generic(format!("{:?}", err)))
+        })?;
         let claims = token.get_claims();
         let email = token.get_payload().get_email();
 

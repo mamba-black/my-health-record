@@ -125,9 +125,7 @@ impl User {
         self.person
             .telecom()
             .iter()
-            .find(|telecom_entry| {
-                telecom_entry.system == ContactPointSystem::Email
-            })
+            .find(|telecom_entry| telecom_entry.system == ContactPointSystem::Email)
             .map(|telecom_entry| telecom_entry.value.clone())
             .unwrap_or_default()
     }

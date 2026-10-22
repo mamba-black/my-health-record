@@ -136,10 +136,7 @@ impl PatientApi for PatientApiImpl {
                 name: vec![HumanName {
                     r#use: "official".to_string(),
                     family: vec!["Paciente".to_string()],
-                    given: vec![format!(
-                        "Demo ({})",
-                        &patient_id[..patient_id.len().min(8)]
-                    )],
+                    given: vec![format!("Demo ({})", &patient_id[..patient_id.len().min(8)])],
                 }],
                 telecom: vec![ContactPoint {
                     system: contact_point::System::Email as i32,

@@ -160,23 +160,39 @@ pub async fn test_env() -> &'static TestEnv {
                     let administration = administration_di::new(
                         administration_di::DBType::Postgres(Some(conn_str.clone())),
                     )
-                    .await
-                    .unwrap();
+                        .await
+                        .unwrap();
                     let subdomain_resolver = std::sync::Arc::new(
                         clickcare::infrastructure::grpc::subdomain_resolver::SubdomainResolver::new(
                             std::sync::Arc::clone(&administration.state.organization_repository),
                         ),
                     );
 
-                    let service = UserApiImpl::new(Some(conn_str), std::sync::Arc::clone(&subdomain_resolver)).await.unwrap();
-                    let clinic_service = ClinicApiImpl::new(std::sync::Arc::clone(
+                    let user_di = user::infrastructure::di::new_with_overrides(
+                        user::infrastructure::di::DBType::Postgres(Some(conn_str)),
+                        user::infrastructure::di::DIOverrides {
+                            token_service: Some(std::sync::Arc::new(
+                                user::infrastructure::di::MockTokenServiceImpl,
+                            )),
+                            ..Default::default()
+                        },
+                    )
+                        .await
+                        .unwrap();
+
+                    let user_api = UserApiImpl::from_use_cases(
+                        std::sync::Arc::clone(&user_di.create_user_use_case),
+                        std::sync::Arc::clone(&user_di.sign_in_use_case),
+                        std::sync::Arc::clone(&subdomain_resolver),
+                    );
+                    let clinic_api = ClinicApiImpl::new(std::sync::Arc::clone(
                         &administration.create_clinic_use_case,
                     ));
 
                     tokio::spawn(async move {
                         Server::builder()
-                            .add_service(UserApiServer::new(service))
-                            .add_service(ClinicApiServer::new(clinic_service))
+                            .add_service(UserApiServer::new(user_api))
+                            .add_service(ClinicApiServer::new(clinic_api))
                             .serve_with_incoming(tokio_stream::wrappers::TcpListenerStream::new(
                                 listener,
                             ))

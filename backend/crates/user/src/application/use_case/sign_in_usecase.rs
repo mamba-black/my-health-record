@@ -1,15 +1,16 @@
 use crate::application::integration::service::token_service::TokenService;
-use crate::application::use_case::sign_in_usecase::model::{SignInCommand, SignInError, SignInResponse};
+use crate::application::use_case::sign_in_usecase::model::{
+    SignInCommand, SignInError, SignInResponse,
+};
 use crate::domain::repository::user_repository::UserRepository;
 use app_core::application::UseCase;
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;
+use google_jwt_verify::Client;
+use jsonwebtoken::{DecodingKey, TokenData, Validation, decode};
 use serde::Deserialize;
 use std::sync::Arc;
 use tracing::{debug, warn};
-use jsonwebtoken::{decode, TokenData, DecodingKey, Validation};
-use google_jwt_verify::Client;
-
 
 /// Caso de uso para autenticar un usuario existente en una red médica (`network_id`)
 /// mediante un token de identidad OAuth/OIDC (`id_token`).
@@ -40,7 +41,10 @@ impl UseCase for SignInUseCaseImpl {
             )));
         }
 
-        let email = self.token_service.validate_and_extract_email(&command.id_token).await?;
+        let email = self
+            .token_service
+            .validate_and_extract_email(&command.id_token)
+            .await?;
         debug!(
             "Iniciando sesión para email={} en network_id={}",
             email, command.network_id
@@ -112,18 +116,9 @@ pub mod model {
 mod tests {
     use super::*;
     use crate::domain::user::User;
-    use crate::infrastructure::di::MockUserRepositoryImpl;
+    use crate::infrastructure::di::{MockTokenServiceImpl, MockUserRepositoryImpl};
     use tokio::sync::Mutex;
     use uuid::Uuid;
-
-    struct mock {}
-    #[async_trait]
-    impl TokenService  for mock {
-        async fn validate_and_extract_email(&self, id_token: &str) -> Result<String, SignInError> {
-            todo!()
-        }
-    }
-
 
     fn encode_base64url(input_bytes: &[u8]) -> String {
         const ALPHABET: &[u8; 64] =
@@ -191,14 +186,14 @@ mod tests {
         )
         .expect("User creation must succeed");
 
-        let repository = Arc::new(MockUserRepositoryImpl {
+        let user_repository = Arc::new(MockUserRepositoryImpl {
             saved_users: Mutex::new(vec![existing_user]),
         });
 
-        let token_service = Arc::new(mock {});
+        let token_service = Arc::new(MockTokenServiceImpl);
         let use_case = SignInUseCaseImpl {
-            user_repository: repository,
-            token_service: token_service,
+            user_repository,
+            token_service,
         };
 
         let future_exp = jiff::Timestamp::now().as_second() + 3600;
@@ -239,8 +234,7 @@ mod tests {
         let user_repository = Arc::new(MockUserRepositoryImpl {
             saved_users: Mutex::new(vec![user_in_network_a]),
         });
-        let token_service = Arc::new(mock {});
-        let token_service = Arc::new(mock {});
+        let token_service = Arc::new(MockTokenServiceImpl);
         let use_case = SignInUseCaseImpl {
             user_repository,
             token_service,
@@ -261,7 +255,7 @@ mod tests {
         let user_repository = Arc::new(MockUserRepositoryImpl {
             saved_users: Mutex::new(Vec::new()),
         });
-        let token_service = Arc::new(mock {});
+        let token_service = Arc::new(MockTokenServiceImpl);
         let use_case = SignInUseCaseImpl {
             user_repository,
             token_service,

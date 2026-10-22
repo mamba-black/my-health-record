@@ -1,10 +1,12 @@
-use crate::application::use_case::sign_in_usecase::{SignInUseCase, SignInUseCaseImpl};
 use crate::application::use_case::create_user_usecase::{CreateUserUseCase, CreateUserUseCaseImpl};
+use crate::application::use_case::sign_in_usecase::{SignInUseCase, SignInUseCaseImpl};
 use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::User;
 use app_core::domain::fhir::Identifier;
 
+use crate::application::integration::service::token_service::TokenService;
 use crate::infrastructure::event::apalis_publisher::ApalisEventPublisher;
+use crate::infrastructure::integration::service::token_service_impl::TokenServiceImpl;
 use crate::infrastructure::repository::user_repository_impl::{UserAccount, UserRepositoryImpl};
 use app_core::domain::error::ClickCareError;
 use app_core::domain::event::{EventPublisher, LoggingEventPublisher};
@@ -15,8 +17,6 @@ use toasty::{Db, models};
 use tokio::sync::Mutex;
 use tracing::debug;
 use tracing::error;
-use crate::application::integration::service::token_service::TokenService;
-use crate::infrastructure::integration::service::token_service_impl::TokenServiceImpl;
 // ─── DI container ───────────────────────────────────────────────────────────
 
 /// Contenedor de Inyección de Dependencias para el Bounded Context de Usuario e Identidad.
@@ -45,6 +45,8 @@ pub struct DIOverrides {
     pub user_repository: Option<Arc<dyn UserRepository>>,
     /// Publicador alternativo o mock para eventos de dominio.
     pub event_publisher: Option<Arc<dyn EventPublisher>>,
+    /// Servicio alternativo o mock para validación de tokens JWT.
+    pub token_service: Option<Arc<dyn TokenService>>,
 }
 
 // ─── Constructores ──────────────────────────────────────────────────────────
@@ -66,7 +68,15 @@ pub async fn new_with_overrides(
     let database_url = resolve_db_url(&database_type);
 
     // ── token_service ──────────────────────────────────────────────────────
-    let token_service: Arc<dyn TokenService> = Arc::new(TokenServiceImpl::new());
+    let token_service: Arc<dyn TokenService> = if let Some(token_service) = overrides.token_service
+    {
+        token_service
+    } else {
+        match database_url.as_deref() {
+            Some(_) => Arc::new(TokenServiceImpl::new()),
+            None => Arc::new(MockTokenServiceImpl),
+        }
+    };
 
     // ── user_repository ──────────────────────────────────────────────────────
     let user_repository: Arc<dyn UserRepository> =
@@ -234,5 +244,51 @@ impl UserRepository for MockUserRepositoryImpl {
         let mut users = self.saved_users.lock().await;
         users.push(user.clone());
         Ok(())
+    }
+}
+
+/// Implementación mock de [`TokenService`] para pruebas unitarias y de integración.
+///
+/// Decodifica el payload JWT sin validar firma criptográfica contra Google,
+/// pero verificando estructura de 3 segmentos y expiración (`exp`).
+#[derive(Default)]
+pub struct MockTokenServiceImpl;
+
+#[async_trait]
+impl TokenService for MockTokenServiceImpl {
+    async fn validate_and_extract_email(
+        &self,
+        id_token: &str,
+    ) -> Result<String, crate::application::use_case::sign_in_usecase::model::SignInError> {
+        use crate::application::use_case::sign_in_usecase::model::SignInError;
+
+        let segments: Vec<&str> = id_token.trim().split('.').collect();
+        if segments.len() != 3 || segments.iter().any(|s| s.is_empty()) {
+            return Err(SignInError::InvalidToken(ClickCareError::generic(
+                "El id_token no tiene una estructura JWT válida de 3 segmentos".to_string(),
+            )));
+        }
+
+        #[derive(serde::Deserialize)]
+        struct Claims {
+            email: String,
+            exp: Option<i64>,
+        }
+
+        let token_data = jsonwebtoken::dangerous::insecure_decode::<Claims>(id_token.as_bytes())
+            .map_err(|err| {
+                SignInError::InvalidToken(ClickCareError::generic(format!("{:?}", err)))
+            })?;
+
+        if let Some(exp) = token_data.claims.exp {
+            let current_epoch = jiff::Timestamp::now().as_second();
+            if exp <= current_epoch {
+                return Err(SignInError::InvalidToken(ClickCareError::generic(
+                    "El id_token ha expirado".to_string(),
+                )));
+            }
+        }
+
+        Ok(token_data.claims.email)
     }
 }

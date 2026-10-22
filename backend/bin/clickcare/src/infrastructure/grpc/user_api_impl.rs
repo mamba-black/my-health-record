@@ -6,10 +6,10 @@ use app_core::domain::error::ClickCareError;
 use std::sync::Arc;
 use tonic::*;
 use tracing::{debug, error};
-use user::application::use_case::sign_in_usecase::SignInUseCase;
-use user::application::use_case::sign_in_usecase::model::{SignInCommand, SignInError};
 use user::application::use_case::create_user_usecase::CreateUserUseCase;
 use user::application::use_case::create_user_usecase::model::{CreateUserCommand, CreateUserError};
+use user::application::use_case::sign_in_usecase::SignInUseCase;
+use user::application::use_case::sign_in_usecase::model::{SignInCommand, SignInError};
 use user::infrastructure::di;
 use user::infrastructure::di::DBType;
 
@@ -22,6 +22,19 @@ pub struct UserApiImpl {
 }
 
 impl UserApiImpl {
+    /// Crea una nueva instancia inyectando directamente los casos de uso ya resueltos.
+    pub fn from_use_cases(
+        create_user_use_case: Arc<CreateUserUseCase>,
+        sign_in_use_case: Arc<SignInUseCase>,
+        subdomain_resolver: Arc<SubdomainResolver>,
+    ) -> Self {
+        Self {
+            create_user_use_case,
+            sign_in_use_case,
+            subdomain_resolver,
+        }
+    }
+
     /// Inicializa la implementación conectándola a PostgreSQL mediante una URL opcional.
     pub async fn new(
         database_url: Option<String>,
@@ -46,11 +59,11 @@ impl UserApiImpl {
         subdomain_resolver: Arc<SubdomainResolver>,
     ) -> Result<UserApiImpl, ClickCareError> {
         let di = di::new(database_type).await?;
-        Ok(Self {
-            create_user_use_case: di.create_user_use_case,
-            sign_in_use_case: di.sign_in_use_case,
+        Ok(Self::from_use_cases(
+            di.create_user_use_case,
+            di.sign_in_use_case,
             subdomain_resolver,
-        })
+        ))
     }
 }
 
@@ -138,8 +151,8 @@ mod mapper {
     use crate::infrastructure::grpc::identifier::IdentifierType;
     use crate::infrastructure::grpc::{SignInRequest, SignUpIntent, SignUpRequest};
     use app_core::domain::fhir::Identifier::DNI;
-    use user::application::use_case::sign_in_usecase::model::SignInCommand;
     use user::application::use_case::create_user_usecase::model::CreateUserCommand;
+    use user::application::use_case::sign_in_usecase::model::SignInCommand;
     use uuid::Uuid;
 
     impl From<SignInRequest> for SignInCommand {

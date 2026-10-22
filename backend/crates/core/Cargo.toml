@@ -15,7 +15,6 @@ thiserror.workspace = true
 async-trait.workspace = true
 serde.workspace = true
 uuid.workspace = true
-apalis.workspace = true
 bon.workspace = true
 derive-getters.workspace = true
 tracing.workspace = true
