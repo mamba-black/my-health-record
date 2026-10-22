@@ -205,7 +205,7 @@ export interface SignInRequest {
     /**
      * @generated from protobuf field: string provider_id = 2
      */
-    providerId: string; // Identificador del proveedor de autenticación
+    providerId: string; // Identificador del proveedor de autenticación (ej. "google.com")
 }
 /**
  * / Respuesta a la autenticación de usuario.
@@ -213,6 +213,26 @@ export interface SignInRequest {
  * @generated from protobuf message grpc.SignInResponse
  */
 export interface SignInResponse {
+    /**
+     * @generated from protobuf field: string user_id = 1
+     */
+    userId: string; // UUID v7 del usuario en la plataforma
+    /**
+     * @generated from protobuf field: string email = 2
+     */
+    email: string; // Correo electrónico principal
+    /**
+     * @generated from protobuf field: string given_name = 3
+     */
+    givenName: string; // Nombres de pila
+    /**
+     * @generated from protobuf field: optional string family_name = 4
+     */
+    familyName?: string; // Primer apellido
+    /**
+     * @generated from protobuf field: bool is_owner = 5
+     */
+    isOwner: boolean; // Indica si es propietario/administrador de clínica
 }
 // ============================================================================
 // TIPOS DE DATOS CLAVE (DATA TYPES - HL7 FHIR R4)
@@ -1251,10 +1271,20 @@ export const SignInRequest = new SignInRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class SignInResponse$Type extends MessageType<SignInResponse> {
     constructor() {
-        super("grpc.SignInResponse", []);
+        super("grpc.SignInResponse", [
+            { no: 1, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "email", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "given_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "family_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "is_owner", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
     }
     create(value?: PartialMessage<SignInResponse>): SignInResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.userId = "";
+        message.email = "";
+        message.givenName = "";
+        message.isOwner = false;
         if (value !== undefined)
             reflectionMergePartial<SignInResponse>(this, message, value);
         return message;
@@ -1264,6 +1294,21 @@ class SignInResponse$Type extends MessageType<SignInResponse> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
+                case /* string user_id */ 1:
+                    message.userId = reader.string();
+                    break;
+                case /* string email */ 2:
+                    message.email = reader.string();
+                    break;
+                case /* string given_name */ 3:
+                    message.givenName = reader.string();
+                    break;
+                case /* optional string family_name */ 4:
+                    message.familyName = reader.string();
+                    break;
+                case /* bool is_owner */ 5:
+                    message.isOwner = reader.bool();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1276,6 +1321,21 @@ class SignInResponse$Type extends MessageType<SignInResponse> {
         return message;
     }
     internalBinaryWrite(message: SignInResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string user_id = 1; */
+        if (message.userId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.userId);
+        /* string email = 2; */
+        if (message.email !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.email);
+        /* string given_name = 3; */
+        if (message.givenName !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.givenName);
+        /* optional string family_name = 4; */
+        if (message.familyName !== undefined)
+            writer.tag(4, WireType.LengthDelimited).string(message.familyName);
+        /* bool is_owner = 5; */
+        if (message.isOwner !== false)
+            writer.tag(5, WireType.Varint).bool(message.isOwner);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

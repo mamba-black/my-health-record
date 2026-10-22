@@ -259,7 +259,7 @@ where
     S: tracing::Subscriber + for<'span> tracing_subscriber::registry::LookupSpan<'span>,
 {
     let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info,tower::buffer::worker=off"));
+        .unwrap_or_else(|_| EnvFilter::new("debug,tower::buffer::worker=warn"));
 
     tracing_subscriber::fmt::layer()
         .with_span_events(FmtSpan::CLOSE)

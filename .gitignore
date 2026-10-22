@@ -208,3 +208,6 @@ backend/docs/fhir_json
 .agent/
 .claude/
 
+
+# Beads / Dolt files (added by bd init)
+*.gate.lock*

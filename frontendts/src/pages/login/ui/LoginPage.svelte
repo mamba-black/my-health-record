@@ -1,10 +1,3 @@
-<svelte:head>
-  <meta
-    content="937186309482-kmain19anvo9rjljci5c7d6iiibuhvlu.apps.googleusercontent.com"
-    name="google-signin-client_id"
-  />
-</svelte:head>
-
 <script lang="ts">
 import { LoginForm } from "$features/auth";
 </script>

@@ -21,8 +21,13 @@ log = "0.4.33"
 uuid.workspace = true
 bon.workspace = true
 derive-getters.workspace = true
-tracing = "0.1.44"
+tracing.workspace = true
 jiff.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+jsonwebtoken.workspace = true
+google-jwt-verify.workspace = true
 
 [dev-dependencies]
 testcontainers.workspace = true

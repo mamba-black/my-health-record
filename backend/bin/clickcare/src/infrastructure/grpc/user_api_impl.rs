@@ -5,19 +5,18 @@ use crate::infrastructure::grpc::*;
 use app_core::domain::error::ClickCareError;
 use std::sync::Arc;
 use tonic::*;
-use tracing::debug;
-use user::application::create_user_usecase::CreateUserUseCase;
-use user::application::create_user_usecase::model::{CreateUserCommand, CreateUserError};
+use tracing::{debug, error};
+use user::application::use_case::sign_in_usecase::SignInUseCase;
+use user::application::use_case::sign_in_usecase::model::{SignInCommand, SignInError};
+use user::application::use_case::create_user_usecase::CreateUserUseCase;
+use user::application::use_case::create_user_usecase::model::{CreateUserCommand, CreateUserError};
 use user::infrastructure::di;
 use user::infrastructure::di::DBType;
-
-use user::domain::repository::user_repository::UserRepository;
 
 /// Implementación del servicio gRPC `UserApi` para gestión e identidad de usuarios.
 pub struct UserApiImpl {
     create_user_use_case: Arc<CreateUserUseCase>,
-    #[allow(dead_code)]
-    pub user_repository: Arc<dyn UserRepository>,
+    sign_in_use_case: Arc<SignInUseCase>,
     /// Resolvedor de subdominio utilizado para determinar `network_id` de cada solicitud.
     pub subdomain_resolver: Arc<SubdomainResolver>,
 }
@@ -37,19 +36,19 @@ impl UserApiImpl {
 
     /// Inicializa una versión mock en memoria para pruebas unitarias.
     #[allow(dead_code)]
-    pub async fn new_mock() -> Result<UserApiImpl, ClickCareError> {
+    async fn new_mock() -> Result<UserApiImpl, ClickCareError> {
         Self::new_with_database_type(DBType::Mock, Arc::new(SubdomainResolver::new_mock())).await
     }
 
     /// Inicializa la implementación con un tipo de base de datos específico (`DBType`).
-    pub async fn new_with_database_type(
+    async fn new_with_database_type(
         database_type: DBType,
         subdomain_resolver: Arc<SubdomainResolver>,
     ) -> Result<UserApiImpl, ClickCareError> {
         let di = di::new(database_type).await?;
         Ok(Self {
             create_user_use_case: di.create_user_use_case,
-            user_repository: di.user_repository,
+            sign_in_use_case: di.sign_in_use_case,
             subdomain_resolver,
         })
     }
@@ -63,6 +62,7 @@ impl UserApi for UserApiImpl {
         &self,
         sign_up_request: Request<SignUpRequest>,
     ) -> Result<Response<SignUpResponse>, Status> {
+        debug!("sign_up_request: {:?}", sign_up_request);
         let (network_id, _organization_id) =
             self.subdomain_resolver.resolve(&sign_up_request).await?;
 
@@ -85,25 +85,72 @@ impl UserApi for UserApiImpl {
                 })
             })
             .map_err(|err| match err {
-                CreateUserError::UserAlreadyExists(e) => Status::already_exists(e.to_string()),
-                CreateUserError::UnknownError(e) => Status::unknown(e.to_string()),
+                CreateUserError::UserAlreadyExists(error) => {
+                    Status::already_exists(error.to_string())
+                }
+                CreateUserError::UnknownError(error) => Status::unknown(error.to_string()),
             })
     }
 
+    /// Autentica un usuario existente validando su `id_token` y buscando su cuenta en la red clínica.
+    #[tracing::instrument(skip(self, sign_in_request))]
     async fn sign_in(
         &self,
-        _request: Request<SignInRequest>,
+        sign_in_request: Request<SignInRequest>,
     ) -> Result<Response<SignInResponse>, Status> {
-        todo!()
+        debug!("sign_in_request: {:?}", sign_in_request);
+        let (network_id, _organization_id) =
+            self.subdomain_resolver.resolve(&sign_in_request).await?;
+
+        let sign_in_request = sign_in_request.into_inner();
+        let mut sign_in_command: SignInCommand = sign_in_request.into();
+        sign_in_command.network_id = network_id;
+
+        self.sign_in_use_case
+            .execute(sign_in_command)
+            .await
+            .map(|sign_in_response| {
+                let user = sign_in_response.user;
+                let email = user.email();
+                let given_name = user.person.name().given().join(" ");
+                let family_name = user.person.name().family().clone();
+
+                Response::new(SignInResponse {
+                    user_id: user.id.to_string(),
+                    email,
+                    given_name,
+                    family_name,
+                    is_owner: user.is_owner,
+                })
+            })
+            .map_err(|sign_in_error| {
+                error!("sign_in_error: {:?}", sign_in_error);
+                match sign_in_error {
+                    SignInError::InvalidToken(error) => Status::unauthenticated(error.to_string()),
+                    SignInError::UserNotFound(error) => Status::not_found(error.to_string()),
+                    SignInError::UnknownError(error) => Status::internal(error.to_string()),
+                }
+            })
     }
 }
 
 mod mapper {
     use crate::infrastructure::grpc::identifier::IdentifierType;
-    use crate::infrastructure::grpc::{SignUpIntent, SignUpRequest};
+    use crate::infrastructure::grpc::{SignInRequest, SignUpIntent, SignUpRequest};
     use app_core::domain::fhir::Identifier::DNI;
-    use user::application::create_user_usecase::model::CreateUserCommand;
+    use user::application::use_case::sign_in_usecase::model::SignInCommand;
+    use user::application::use_case::create_user_usecase::model::CreateUserCommand;
     use uuid::Uuid;
+
+    impl From<SignInRequest> for SignInCommand {
+        fn from(sign_in_request: SignInRequest) -> Self {
+            SignInCommand {
+                network_id: Uuid::nil(),
+                id_token: sign_in_request.id_token,
+                provider_id: sign_in_request.provider_id,
+            }
+        }
+    }
 
     impl From<SignUpRequest> for CreateUserCommand {
         // `create_clinic` está deprecado en el contrato: la creación de clínica es
@@ -241,13 +288,7 @@ mod test {
         let result = user_api_impl.sign_up(request).await;
         let response = result.expect("Fallo inesperado al ejecutar sign_up");
         let sign_up_response = response.get_ref();
-        assert_eq!(sign_up_response.user_id, Some(user_id.clone()));
-
-        let user = user_api_impl
-            .user_repository
-            .find_user_by_id(&user_id)
-            .await?;
-        assert_eq!(user.id.to_string(), user_id);
+        assert_eq!(sign_up_response.user_id, Some(user_id));
 
         Ok(())
     }

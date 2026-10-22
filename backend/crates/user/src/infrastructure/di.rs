@@ -1,4 +1,5 @@
-use crate::application::create_user_usecase::{CreateUserUseCase, CreateUserUseCaseImpl};
+use crate::application::use_case::sign_in_usecase::{SignInUseCase, SignInUseCaseImpl};
+use crate::application::use_case::create_user_usecase::{CreateUserUseCase, CreateUserUseCaseImpl};
 use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::User;
 use app_core::domain::fhir::Identifier;
@@ -14,21 +15,25 @@ use toasty::{Db, models};
 use tokio::sync::Mutex;
 use tracing::debug;
 use tracing::error;
-
-// ─── DI container ────────────────────────────────────────────────────────────
+use crate::application::integration::service::token_service::TokenService;
+use crate::infrastructure::integration::service::token_service_impl::TokenServiceImpl;
+// ─── DI container ───────────────────────────────────────────────────────────
 
 /// Contenedor de Inyección de Dependencias para el Bounded Context de Usuario e Identidad.
 ///
-/// Expone los casos de uso principales (`CreateUserUseCase`), el repositorio de usuarios
-/// y el publicador de eventos de dominio (`EventPublisher`).
+/// Expone los casos de uso principales (`CreateUserUseCase`, `SignInUseCase`), el repositorio
+/// de usuarios y el publicador de eventos de dominio (`EventPublisher`).
 pub struct DI {
     /// Caso de uso para registrar y autenticar nuevos usuarios en el sistema.
     pub create_user_use_case: Arc<CreateUserUseCase>,
+    /// Caso de uso para autenticar usuarios existentes mediante su token OAuth/OIDC.
+    pub sign_in_use_case: Arc<SignInUseCase>,
     #[allow(dead_code)]
     /// Puerto de repositorio para persistencia de cuentas de usuario.
     pub user_repository: Arc<dyn UserRepository>,
     /// Puerto para publicar eventos de dominio (ej. `UserCreatedEvent`).
     pub event_publisher: Arc<dyn EventPublisher>,
+    pub token_service: Arc<dyn TokenService>,
 }
 
 // ─── Overrides: solo los repos/servicios que quieres mockear en tests ────────
@@ -42,7 +47,7 @@ pub struct DIOverrides {
     pub event_publisher: Option<Arc<dyn EventPublisher>>,
 }
 
-// ─── Constructores ───────────────────────────────────────────────────────────
+// ─── Constructores ──────────────────────────────────────────────────────────
 
 /// Construye el contenedor DI de usuarios con implementaciones reales de base de datos.
 pub async fn new(database_type: DBType) -> Result<DI, ClickCareError> {
@@ -59,6 +64,9 @@ pub async fn new_with_overrides(
     // abre su propia conexión: la cola de eventos nunca comparte pool ni transacción
     // con los repositorios de entidades.
     let database_url = resolve_db_url(&database_type);
+
+    // ── token_service ──────────────────────────────────────────────────────
+    let token_service: Arc<dyn TokenService> = Arc::new(TokenServiceImpl::new());
 
     // ── user_repository ──────────────────────────────────────────────────────
     let user_repository: Arc<dyn UserRepository> =
@@ -85,15 +93,21 @@ pub async fn new_with_overrides(
         user_repository: Arc::clone(&user_repository),
         event_publisher: Arc::clone(&event_publisher),
     });
+    let sign_in_use_case = Arc::new(SignInUseCaseImpl {
+        user_repository: Arc::clone(&user_repository),
+        token_service: Arc::clone(&token_service),
+    });
 
     Ok(DI {
         create_user_use_case,
+        sign_in_use_case,
         user_repository,
         event_publisher,
+        token_service,
     })
 }
 
-// ─── Helpers privados ────────────────────────────────────────────────────────
+// ─── Helpers privados ───────────────────────────────────────────────────────
 
 /// Resuelve la URL de Postgres a partir de la configuración `DBType`.
 /// `None` significa que no hay base de datos física y las dependencias deben degradarse a memoria.
@@ -173,13 +187,34 @@ impl UserRepository for MockUserRepositoryImpl {
 
         let exists = users.iter().any(|user| {
             user.network_id == *network_id
-                && user.person.telecom.iter().any(|t| {
-                    t.system == app_core::domain::fhir::ContactPointSystem::Email
-                        && t.value == email
+                && user.person.telecom.iter().any(|telecom_entry| {
+                    telecom_entry.system == app_core::domain::fhir::ContactPointSystem::Email
+                        && telecom_entry.value == email
                 })
         });
 
         Ok(exists)
+    }
+
+    async fn find_user_by_email(
+        &self,
+        network_id: &uuid::Uuid,
+        email: &str,
+    ) -> Result<Option<User>, ClickCareError> {
+        let users = self.saved_users.lock().await;
+
+        let matched_user = users
+            .iter()
+            .find(|user| {
+                user.network_id == *network_id
+                    && user.person.telecom.iter().any(|telecom_entry| {
+                        telecom_entry.system == app_core::domain::fhir::ContactPointSystem::Email
+                            && telecom_entry.value == email
+                    })
+            })
+            .cloned();
+
+        Ok(matched_user)
     }
 
     async fn find_user_by_id(&self, user_id: &str) -> Result<User, ClickCareError> {

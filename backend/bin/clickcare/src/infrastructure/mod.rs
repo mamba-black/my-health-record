@@ -66,7 +66,8 @@ pub async fn start_server(
 
     let app = grpc_router
         .merge(apalis_board_router)
-        .fallback_service(ServeUI::new());
+        .fallback_service(ServeUI::new())
+        .layer(axum::middleware::from_fn(grpc_web_cors_middleware));
 
     let listener = {
         let addr: std::net::SocketAddr = "0.0.0.0:50051".parse().map_err(|e| {
@@ -95,6 +96,46 @@ pub async fn start_server(
     }
 
     Ok(())
+}
+
+/// Middleware CORS para peticiones gRPC-Web desde el navegador (ej. `http://localhost:5173`).
+async fn grpc_web_cors_middleware(
+    request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    if request.method() == axum::http::Method::OPTIONS {
+        let mut preflight_response = axum::response::Response::new(axum::body::Body::empty());
+        *preflight_response.status_mut() = axum::http::StatusCode::NO_CONTENT;
+        insert_grpc_web_cors_headers(preflight_response.headers_mut());
+        return preflight_response;
+    }
+
+    let mut response = next.run(request).await;
+    insert_grpc_web_cors_headers(response.headers_mut());
+    response
+}
+
+fn insert_grpc_web_cors_headers(headers: &mut axum::http::HeaderMap) {
+    headers.insert(
+        axum::http::header::ACCESS_CONTROL_ALLOW_ORIGIN,
+        axum::http::HeaderValue::from_static("*"),
+    );
+    headers.insert(
+        axum::http::header::ACCESS_CONTROL_ALLOW_METHODS,
+        axum::http::HeaderValue::from_static("POST, GET, OPTIONS"),
+    );
+    headers.insert(
+        axum::http::header::ACCESS_CONTROL_ALLOW_HEADERS,
+        axum::http::HeaderValue::from_static(
+            "content-type, x-grpc-web, x-user-agent, x-subdomain, authorization",
+        ),
+    );
+    headers.insert(
+        axum::http::header::ACCESS_CONTROL_EXPOSE_HEADERS,
+        axum::http::HeaderValue::from_static(
+            "grpc-status, grpc-message, grpc-encoding, grpc-accept-encoding",
+        ),
+    );
 }
 
 /// Espera a `Ctrl-C` para permitir un apagado ordenado del servidor gRPC.

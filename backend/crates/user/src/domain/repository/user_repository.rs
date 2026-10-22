@@ -23,6 +23,13 @@ pub trait UserRepository: Send + Sync {
         email: &str,
     ) -> Result<bool, ClickCareError>;
 
+    /// Busca un usuario por su correo electrónico dentro de una red médica (`network_id`).
+    async fn find_user_by_email(
+        &self,
+        network_id: &Uuid,
+        email: &str,
+    ) -> Result<Option<User>, ClickCareError>;
+
     /// Busca un usuario por su identificador único (UUID v7).
     async fn find_user_by_id(&self, user_id: &str) -> Result<User, ClickCareError>;
 

@@ -31,7 +31,7 @@ impl Display for ClickCareError {
                 file,
                 line,
             } => {
-                write!(f, "ClickCareError: {} (en {}:{})", message, file, line)
+                write!(f, "description: {} (en {}:{})", message, file, line)
             }
         }
     }

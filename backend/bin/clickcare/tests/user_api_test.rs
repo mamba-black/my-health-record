@@ -519,36 +519,145 @@ mod administration_worker {
 
 mod sign_in {
     use crate::{TestEnv, test_env};
-    #[allow(unused_imports)]
-    use clickcare::infrastructure::grpc::SignInRequest;
-    #[allow(unused_imports)]
     use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
+    use clickcare::infrastructure::grpc::{SignInRequest, SignUpIntent, SignUpRequest};
     use rstest::rstest;
 
+    fn encode_base64url(input_bytes: &[u8]) -> String {
+        const ALPHABET: &[u8; 64] =
+            b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+        let mut encoded = String::new();
+        let mut index = 0;
+
+        while index < input_bytes.len() {
+            let byte0 = input_bytes[index];
+            let byte1 = if index + 1 < input_bytes.len() {
+                input_bytes[index + 1]
+            } else {
+                0
+            };
+            let byte2 = if index + 2 < input_bytes.len() {
+                input_bytes[index + 2]
+            } else {
+                0
+            };
+
+            encoded.push(ALPHABET[(byte0 >> 2) as usize] as char);
+            encoded.push(ALPHABET[(((byte0 & 0x03) << 4) | (byte1 >> 4)) as usize] as char);
+            if index + 1 < input_bytes.len() {
+                encoded.push(ALPHABET[(((byte1 & 0x0F) << 2) | (byte2 >> 6)) as usize] as char);
+            }
+            if index + 2 < input_bytes.len() {
+                encoded.push(ALPHABET[(byte2 & 0x3F) as usize] as char);
+            }
+
+            index += 3;
+        }
+
+        encoded
+    }
+
+    fn build_jwt_token(email: &str, expiration_epoch_seconds: Option<i64>) -> String {
+        let header = encode_base64url(br#"{"alg":"RS256","typ":"JWT"}"#);
+        let payload_json = match expiration_epoch_seconds {
+            Some(exp) => format!(r#"{{"sub":"google-sub-123","email":"{email}","exp":{exp}}}"#),
+            None => format!(r#"{{"sub":"google-sub-123","email":"{email}"}}"#),
+        };
+        let payload = encode_base64url(payload_json.as_bytes());
+        format!("{header}.{payload}.signature")
+    }
+
     #[rstest]
     #[tokio::test]
-    #[ignore = "TODO: SignIn no implementado en UserApiImpl"]
     async fn sign_in_succeeds_with_valid_credentials(#[future(awt)] test_env: &'static TestEnv) {
-        let _ = test_env;
-        todo!(
-            "registrar un usuario y luego sign_in con id_token+provider_id válidos -> esperar Ok"
-        );
+        let mut client = UserApiClient::connect(test_env.grpc_addr.clone())
+            .await
+            .expect("Fallo al conectar con el servidor gRPC");
+
+        let user_id = uuid::Uuid::now_v7();
+        let email = format!("signin-ok-{}@example.com", user_id.simple());
+        let future_expiration = jiff::Timestamp::now().as_second() + 3600;
+        let id_token = build_jwt_token(&email, Some(future_expiration));
+
+        client
+            .sign_up(tonic::Request::new(SignUpRequest {
+                id_token: id_token.clone(),
+                user_id: user_id.to_string(),
+                provider_id: "google.com".into(),
+                provider_name: "Google".into(),
+                email: email.clone(),
+                given_name: "Lucía".into(),
+                family_name: Some("Mendoza".into()),
+                intent: SignUpIntent::IntentClinicOwner as i32,
+                ..Default::default()
+            }))
+            .await
+            .expect("El registro previo al sign_in debió tener éxito");
+
+        let sign_in_response = client
+            .sign_in(tonic::Request::new(SignInRequest {
+                id_token,
+                provider_id: "google.com".into(),
+            }))
+            .await
+            .expect("El sign_in con credenciales válidas debió tener éxito")
+            .into_inner();
+
+        assert_eq!(sign_in_response.user_id, user_id.to_string());
+        assert_eq!(sign_in_response.email, email);
+        assert_eq!(sign_in_response.given_name, "Lucía");
+        assert_eq!(sign_in_response.family_name.as_deref(), Some("Mendoza"));
+        assert!(sign_in_response.is_owner);
     }
 
     #[rstest]
     #[tokio::test]
-    #[ignore = "TODO: SignIn no implementado en UserApiImpl"]
     async fn sign_in_fails_when_user_not_found(#[future(awt)] test_env: &'static TestEnv) {
-        let _ = test_env;
-        todo!("sign_in con un provider_id que no existe -> esperar status NotFound");
+        let mut client = UserApiClient::connect(test_env.grpc_addr.clone())
+            .await
+            .expect("Fallo al conectar con el servidor gRPC");
+
+        let unregistered_email =
+            format!("unregistered-{}@example.com", uuid::Uuid::now_v7().simple());
+        let id_token = build_jwt_token(&unregistered_email, None);
+
+        let status = client
+            .sign_in(tonic::Request::new(SignInRequest {
+                id_token,
+                provider_id: "google.com".into(),
+            }))
+            .await
+            .expect_err("El sign_in de un usuario no registrado debió fallar con NotFound");
+
+        assert_eq!(status.code(), tonic::Code::NotFound);
     }
 
     #[rstest]
     #[tokio::test]
-    #[ignore = "TODO: SignIn no implementado + verificación del id_token"]
     async fn sign_in_fails_when_id_token_is_invalid(#[future(awt)] test_env: &'static TestEnv) {
-        let _ = test_env;
-        todo!("sign_in con id_token inválido/expirado -> esperar status Unauthenticated");
+        let mut client = UserApiClient::connect(test_env.grpc_addr.clone())
+            .await
+            .expect("Fallo al conectar con el servidor gRPC");
+
+        let malformed_status = client
+            .sign_in(tonic::Request::new(SignInRequest {
+                id_token: "token-malformado".into(),
+                provider_id: "google.com".into(),
+            }))
+            .await
+            .expect_err("Un id_token malformado debió ser rechazado");
+        assert_eq!(malformed_status.code(), tonic::Code::Unauthenticated);
+
+        let expired_epoch = jiff::Timestamp::now().as_second() - 120;
+        let expired_token = build_jwt_token("expired@example.com", Some(expired_epoch));
+        let expired_status = client
+            .sign_in(tonic::Request::new(SignInRequest {
+                id_token: expired_token,
+                provider_id: "google.com".into(),
+            }))
+            .await
+            .expect_err("Un id_token expirado debió ser rechazado");
+        assert_eq!(expired_status.code(), tonic::Code::Unauthenticated);
     }
 }
 

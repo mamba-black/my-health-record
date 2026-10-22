@@ -5,4 +5,5 @@ export {
   Page,
   ROOT,
   SEARCH,
+  SIGNUP,
 } from "./paths";

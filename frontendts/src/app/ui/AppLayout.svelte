@@ -4,13 +4,13 @@ import { onMount, type Snippet } from "svelte";
 import { goto } from "$app/navigation";
 import { page } from "$app/state";
 import { authStore } from "$entities/session";
-import { CALLBACK, LOGIN, Page, ROOT } from "$shared/config/routes";
+import { CALLBACK, LOGIN, Page, ROOT, SIGNUP } from "$shared/config/routes";
 import { log } from "$shared/lib/logger";
 import { Navbar } from "$widgets/navbar";
 
 let { children }: { children: Snippet } = $props();
 
-const PUBLIC_ROUTES = [ROOT, LOGIN, CALLBACK];
+const PUBLIC_ROUTES = [ROOT, LOGIN, SIGNUP, CALLBACK];
 const isPublicRoute = $derived(
   PUBLIC_ROUTES.some((route) => page.url.pathname === route),
 );

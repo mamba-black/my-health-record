@@ -74,6 +74,9 @@ tonic-prost-build = "0.14.6"
 prost = "0.14.4"
 prost-types = "0.14.4"
 
+jsonwebtoken = "11.1.0"
+google-jwt-verify = "0.3.0"
+
 
 ## =============================
 ## Observability

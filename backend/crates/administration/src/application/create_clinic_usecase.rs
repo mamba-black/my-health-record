@@ -213,7 +213,7 @@ impl CreateClinicUseCaseImpl {
 
         let mut telecom = Vec::new();
         if let Some(email) = &command.email {
-            telecom.push(ContactPoint::email(email.clone()));
+            telecom.push(ContactPoint::primary_email(email.clone()));
         }
         if let Some(phone) = &command.phone {
             telecom.push(ContactPoint::phone(phone.clone(), None));

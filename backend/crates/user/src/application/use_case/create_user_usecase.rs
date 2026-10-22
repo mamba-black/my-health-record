@@ -1,7 +1,7 @@
-use crate::application::create_user_usecase::model::CreateUserError::{
+use crate::application::use_case::create_user_usecase::model::CreateUserError::{
     UnknownError, UserAlreadyExists,
 };
-use crate::application::create_user_usecase::model::*;
+use crate::application::use_case::create_user_usecase::model::*;
 use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::Identifier::DNI;
 use crate::domain::user::{SignUpIntent, User};
@@ -136,7 +136,7 @@ impl UseCase for CreateUserUseCaseImpl {
 }
 
 pub mod model {
-    use crate::application::create_user_usecase::model::CreateUserError::UnknownError;
+    use crate::application::use_case::create_user_usecase::model::CreateUserError::UnknownError;
     use crate::domain::user::{Identifier, SignUpIntent, User};
     use app_core::domain::error::ClickCareError;
     use uuid::Uuid;

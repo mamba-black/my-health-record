@@ -1,4 +1,4 @@
-use crate::domain::fhir::{ContactPoint, HumanName, Identifier};
+use crate::domain::fhir::{ContactPoint, ContactPointSystem, HumanName, Identifier};
 use bon::Builder;
 use derive_getters::Getters;
 use serde::{Deserialize, Serialize};

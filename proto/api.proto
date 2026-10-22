@@ -123,11 +123,17 @@ message SignUpResponse {
 /// Solicitud de autenticación de usuario (Sign In).
 message SignInRequest {
     string id_token = 1;     // Token JWT del proveedor de identidad
-    string provider_id = 2;  // Identificador del proveedor de autenticación
+    string provider_id = 2;  // Identificador del proveedor de autenticación (ej. "google.com")
 }
 
 /// Respuesta a la autenticación de usuario.
-message SignInResponse {}
+message SignInResponse {
+    string user_id = 1;               // UUID v7 del usuario en la plataforma
+    string email = 2;                 // Correo electrónico principal
+    string given_name = 3;            // Nombres de pila
+    optional string family_name = 4;  // Primer apellido
+    bool is_owner = 5;                // Indica si es propietario/administrador de clínica
+}
 
 
 // ============================================================================

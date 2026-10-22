@@ -1,10 +1,11 @@
 <script lang="ts">
 import { onMount } from "svelte";
-import { setAuthToken } from "$entities/session";
+import { goto } from "$app/navigation";
+import { setAuthToken, setPendingRegistration } from "$entities/session";
+import { UserApiError, userApi } from "$shared/api/user";
+import { GOOGLE_CLIENT_ID, SIGNUP } from "$shared/config";
+import { decodeGoogleJwt } from "$shared/lib/jwt";
 import { log } from "$shared/lib/logger";
-
-const GOOGLE_CLIENT_ID =
-  "937186309482-kmain19anvo9rjljci5c7d6iiibuhvlu.apps.googleusercontent.com";
 
 interface GoogleCredentialResponse {
   credential?: string;
@@ -46,16 +47,58 @@ let email = $state("");
 let password = $state("");
 let googleButtonContainer: HTMLDivElement | undefined = $state();
 let gisLoaded = $state(false);
+let isSubmitting = $state(false);
 let errorMessage = $state<string | null>(null);
 
-const handleGoogleCredentialResponse = (response: GoogleCredentialResponse) => {
-  if (response.credential) {
-    log.info("Google GIS/FedCM JWT credential received");
-    errorMessage = null;
-    setAuthToken(response.credential, "Google");
-  } else {
+const handleGoogleCredentialResponse = async (
+  response: GoogleCredentialResponse,
+) => {
+  if (!response.credential) {
     log.error("No credential received from Google GIS", response);
     errorMessage = "No se pudo obtener la credencial de Google.";
+    return;
+  }
+
+  const idToken = response.credential;
+  const claims = decodeGoogleJwt(idToken);
+  log.info("Google GIS/FedCM JWT credential received", claims?.email);
+
+  errorMessage = null;
+  isSubmitting = true;
+
+  try {
+    const result = await userApi.signIn({
+      idToken,
+      providerId: "google.com",
+    });
+
+    const displayName =
+      result.givenName || claims?.given_name || claims?.name || result.email;
+    setAuthToken(idToken, displayName);
+  } catch (error) {
+    if (error instanceof UserApiError && error.code === "NOT_FOUND") {
+      log.info(
+        "Usuario no encontrado en la red clínica; redirigiendo a /signup para perfilado progresivo",
+      );
+      setPendingRegistration({
+        idToken,
+        email: claims?.email ?? "",
+        givenName: claims?.given_name ?? claims?.name ?? "",
+        familyName: claims?.family_name,
+        picture: claims?.picture,
+        providerId: "google.com",
+      });
+      await goto(SIGNUP);
+      return;
+    }
+
+    log.error("Error durante la validación de usuario con Google:", error);
+    errorMessage =
+      error instanceof Error
+        ? error.message
+        : "No se pudo validar tu cuenta con el servidor.";
+  } finally {
+    isSubmitting = false;
   }
 };
 
@@ -126,6 +169,12 @@ const loginHandler = (event: Event) => {
     </div>
   {/if}
 
+  {#if isSubmitting}
+    <div class="mt-4 p-3 rounded-md bg-cyan-50 border border-cyan-200 text-sm text-cyan-800">
+      Verificando tu cuenta con Google...
+    </div>
+  {/if}
+
   <div class="divide-y divide-gray-200">
     <form onsubmit={loginHandler}>
       <div class="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
@@ -160,7 +209,11 @@ const loginHandler = (event: Event) => {
           >Password</label>
         </div>
         <div class="relative">
-          <button class="bg-cyan-500 hover:bg-cyan-600 text-white rounded-md px-4 py-1.5" type="submit">
+          <button
+            class="bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 text-white rounded-md px-4 py-1.5"
+            disabled={isSubmitting}
+            type="submit"
+          >
             Submit
           </button>
         </div>
@@ -182,4 +235,3 @@ const loginHandler = (event: Event) => {
     </button>
   {/if}
 </div>
-

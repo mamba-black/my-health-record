@@ -1,6 +1,7 @@
 use bon::Builder;
 use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
+use tracing::log::__private_api::Value;
 
 /// Sistema de telecomunicación utilizado según FHIR R4.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -47,15 +48,28 @@ pub struct ContactPoint {
     pub value: String,
     /// Contexto o propósito de uso opcional.
     pub use_type: Option<ContactPointUse>,
+    /// Orden de preferencia según FHIR R4
+    pub rank: Option<u8>,
 }
 
 impl ContactPoint {
+    /// Crea un punto de contacto de tipo Email Principal
+    pub fn primary_email(value: impl Into<String>) -> Self {
+        Self {
+            system: ContactPointSystem::Email,
+            value: value.into(),
+            use_type: None,
+            rank: Some(1),
+        }
+    }
+
     /// Crea un punto de contacto de tipo Email.
     pub fn email(value: impl Into<String>) -> Self {
         Self {
             system: ContactPointSystem::Email,
             value: value.into(),
             use_type: None,
+            rank: None,
         }
     }
 
@@ -65,6 +79,7 @@ impl ContactPoint {
             system: ContactPointSystem::Phone,
             value: value.into(),
             use_type,
+            rank: None,
         }
     }
 }

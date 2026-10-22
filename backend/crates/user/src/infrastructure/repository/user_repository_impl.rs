@@ -4,6 +4,7 @@ use app_core::domain::error::ClickCareError;
 use app_core::domain::fhir::Identifier;
 use async_trait::async_trait;
 use toasty::Db;
+use toasty::stmt::Type;
 use tracing::{debug, error};
 use uuid::Uuid;
 
@@ -86,6 +87,51 @@ impl UserRepository for UserRepositoryImpl {
         Ok(!exist.is_empty())
     }
 
+    async fn find_user_by_email(
+        &self,
+        network_id: &Uuid,
+        email: &str,
+    ) -> Result<Option<User>, ClickCareError> {
+        debug!("find_user_by_email network_id: {network_id} email: {email}");
+
+        let rows = toasty::sql::query(
+            "select id, active, is_owner, given_name, \
+             coalesce(family_name, ''), coalesce(second_family_name, ''), \
+             coalesce(document_type, ''), coalesce(document_value, ''), \
+             coalesce(email, ''), coalesce(phone, '') \
+             from identity.user_account where network_id = $1 and email = $2 limit 1",
+        )
+        .bind(*network_id)
+        .bind(email.to_string())
+        .column_types([
+            Type::Uuid,
+            Type::Bool,
+            Type::Bool,
+            Type::String,
+            Type::String,
+            Type::String,
+            Type::String,
+            Type::String,
+            Type::String,
+            Type::String,
+        ])
+        .exec(&mut self.db.clone())
+        .await
+        .map_err(|error| {
+            error!(
+                "Error al consultar user_account con email:{} en network_id:{} ({})",
+                email, network_id, error
+            );
+            ClickCareError::generic(error.to_string())
+        })?;
+
+        let Some(row) = rows.into_iter().next() else {
+            return Ok(None);
+        };
+
+        map_row_to_user(row, *network_id).map(Some)
+    }
+
     async fn find_user_by_id(&self, _user_id: &str) -> Result<User, ClickCareError> {
         // Aquí iría la lógica para buscar un usuario en la base de datos
         // let a = query_as!(User, "SELECT * FROM user WHERE id = $1", user_id)
@@ -148,4 +194,82 @@ impl UserRepository for UserRepositoryImpl {
 
         Ok(())
     }
+}
+
+fn next_uuid_column(
+    fields: &mut std::vec::IntoIter<toasty::stmt::Value>,
+    column_name: &str,
+) -> Result<Uuid, ClickCareError> {
+    let field_value = fields.next().ok_or_else(|| {
+        ClickCareError::generic(format!("Falta columna {column_name} en user_account"))
+    })?;
+    Uuid::try_from(field_value).map_err(|error| {
+        ClickCareError::generic(format!(
+            "Columna {column_name} no es un UUID válido: {error}"
+        ))
+    })
+}
+
+fn next_bool_column(
+    fields: &mut std::vec::IntoIter<toasty::stmt::Value>,
+    column_name: &str,
+) -> Result<bool, ClickCareError> {
+    let field_value = fields.next().ok_or_else(|| {
+        ClickCareError::generic(format!("Falta columna {column_name} en user_account"))
+    })?;
+    bool::try_from(field_value).map_err(|error| {
+        ClickCareError::generic(format!("Columna {column_name} no es booleana: {error}"))
+    })
+}
+
+fn next_string_column(
+    fields: &mut std::vec::IntoIter<toasty::stmt::Value>,
+    column_name: &str,
+) -> Result<String, ClickCareError> {
+    let field_value = fields.next().ok_or_else(|| {
+        ClickCareError::generic(format!("Falta columna {column_name} en user_account"))
+    })?;
+    String::try_from(field_value).map_err(|error| {
+        ClickCareError::generic(format!("Columna {column_name} no es texto: {error}"))
+    })
+}
+
+fn map_row_to_user(row: toasty::stmt::Value, network_id: Uuid) -> Result<User, ClickCareError> {
+    let mut fields = row.into_record().fields.into_iter();
+
+    let user_id = next_uuid_column(&mut fields, "id")?;
+    let active = next_bool_column(&mut fields, "active")?;
+    let is_owner = next_bool_column(&mut fields, "is_owner")?;
+    let given_name = next_string_column(&mut fields, "given_name")?;
+    let family_name_raw = next_string_column(&mut fields, "family_name")?;
+    let second_family_name_raw = next_string_column(&mut fields, "second_family_name")?;
+    let document_type_raw = next_string_column(&mut fields, "document_type")?;
+    let document_value_raw = next_string_column(&mut fields, "document_value")?;
+    let email_string = next_string_column(&mut fields, "email")?;
+    let phone_raw = next_string_column(&mut fields, "phone")?;
+
+    let family_name = (!family_name_raw.is_empty()).then_some(family_name_raw);
+    let second_family_name = (!second_family_name_raw.is_empty()).then_some(second_family_name_raw);
+    let identifier = if document_type_raw == "DNI" && !document_value_raw.is_empty() {
+        Some(Identifier::DNI(document_value_raw))
+    } else {
+        None
+    };
+    let phone = (!phone_raw.is_empty()).then_some(phone_raw);
+
+    let mut user = User::new(
+        user_id.to_string(),
+        network_id,
+        vec![given_name],
+        family_name,
+        second_family_name,
+        identifier,
+        is_owner,
+        email_string,
+        phone,
+        None,
+    )?;
+    user.active = active;
+
+    Ok(user)
 }

@@ -83,7 +83,7 @@ impl User {
 
         match Uuid::from_str(id.as_str()) {
             Ok(id) if id.get_version() == Some(Version::SortRand) => {
-                let mut telecom = vec![ContactPoint::email(email)];
+                let mut telecom = vec![ContactPoint::primary_email(email)];
                 if let Some(p) = phone
                     && !p.is_empty()
                 {
@@ -119,6 +119,17 @@ impl User {
                 )))
             }
         }
+    }
+
+    pub fn email(&self) -> String {
+        self.person
+            .telecom()
+            .iter()
+            .find(|telecom_entry| {
+                telecom_entry.system == ContactPointSystem::Email
+            })
+            .map(|telecom_entry| telecom_entry.value.clone())
+            .unwrap_or_default()
     }
 
     /// Retorna la fecha de nacimiento formateada en texto.
