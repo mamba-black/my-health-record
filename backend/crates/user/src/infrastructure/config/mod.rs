@@ -1,28 +1,25 @@
+use crate::application::integration::service::token_service::TokenService;
 use crate::application::use_case::create_user_usecase::{CreateUserUseCase, CreateUserUseCaseImpl};
 use crate::application::use_case::sign_in_usecase::{SignInUseCase, SignInUseCaseImpl};
-use crate::domain::repository::user_repository::UserRepository;
-use crate::domain::user::User;
-use app_core::domain::fhir::Identifier;
-
-use crate::application::integration::service::token_service::TokenService;
-use crate::infrastructure::event::apalis_publisher::ApalisEventPublisher;
+use crate::domain::user::user_repository::UserRepository;
+use crate::infrastructure::integration::event::apalis_publisher::ApalisIntegrationEventPublisherImpl;
+use crate::infrastructure::integration::event::logging_publisher::LoggingIntegrationEventPublisherImpl;
 use crate::infrastructure::integration::service::token_service_impl::TokenServiceImpl;
 use crate::infrastructure::repository::user_repository_impl::{UserAccount, UserRepositoryImpl};
+use app_core::application::integration::event_publisher::IntegrationEventPublisher;
 use app_core::domain::error::ClickCareError;
-use app_core::domain::event::{EventPublisher, LoggingEventPublisher};
-use async_trait::async_trait;
 use std::env::var;
 use std::sync::Arc;
 use toasty::{Db, models};
-use tokio::sync::Mutex;
 use tracing::debug;
 use tracing::error;
+
 // ─── DI container ───────────────────────────────────────────────────────────
 
 /// Contenedor de Inyección de Dependencias para el Bounded Context de Usuario e Identidad.
 ///
 /// Expone los casos de uso principales (`CreateUserUseCase`, `SignInUseCase`), el repositorio
-/// de usuarios y el publicador de eventos de dominio (`EventPublisher`).
+/// de usuarios y el publicador de eventos de integración (`IntegrationEventPublisher`).
 pub struct DI {
     /// Caso de uso para registrar y autenticar nuevos usuarios en el sistema.
     pub create_user_use_case: Arc<CreateUserUseCase>,
@@ -32,19 +29,22 @@ pub struct DI {
     /// Puerto de repositorio para persistencia de cuentas de usuario.
     pub user_repository: Arc<dyn UserRepository>,
     /// Puerto para publicar eventos de dominio (ej. `UserCreatedEvent`).
-    pub event_publisher: Arc<dyn EventPublisher>,
+    pub event_publisher: Arc<dyn IntegrationEventPublisher>,
     pub token_service: Arc<dyn TokenService>,
 }
 
 // ─── Overrides: solo los repos/servicios que quieres mockear en tests ────────
 
 /// Sobrescrituras para sustituir dependencias específicas en pruebas unitarias o de integración.
+///
+/// Con `DBType::Mock` no hay base de datos, así que el repositorio y el servicio de tokens
+/// deben venir de aquí. Los dobles de prueba están en `crate::testing` (feature `test-support`).
 #[derive(Default)]
 pub struct DIOverrides {
     /// Repositorio alternativo o mock para usuarios.
     pub user_repository: Option<Arc<dyn UserRepository>>,
     /// Publicador alternativo o mock para eventos de dominio.
-    pub event_publisher: Option<Arc<dyn EventPublisher>>,
+    pub event_publisher: Option<Arc<dyn IntegrationEventPublisher>>,
     /// Servicio alternativo o mock para validación de tokens JWT.
     pub token_service: Option<Arc<dyn TokenService>>,
 }
@@ -68,33 +68,32 @@ pub async fn new_with_overrides(
     let database_url = resolve_db_url(&database_type);
 
     // ── token_service ──────────────────────────────────────────────────────
-    let token_service: Arc<dyn TokenService> = if let Some(token_service) = overrides.token_service
-    {
-        token_service
-    } else {
-        match database_url.as_deref() {
-            Some(_) => Arc::new(TokenServiceImpl::new()),
-            None => Arc::new(MockTokenServiceImpl),
-        }
-    };
-
-    // ── user_repository ──────────────────────────────────────────────────────
-    let user_repository: Arc<dyn UserRepository> =
-        if let Some(repository) = overrides.user_repository {
-            repository
-        } else {
-            build_user_repository(database_url.as_deref()).await?
+    let token_service: Arc<dyn TokenService> =
+        match (overrides.token_service, database_url.as_deref()) {
+            (Some(token_service), _) => token_service,
+            (None, Some(_)) => Arc::new(TokenServiceImpl::new()),
+            (None, None) => {
+                return Err(ClickCareError::generic(
+                    "DBType::Mock requiere un TokenService en DIOverrides".to_string(),
+                ));
+            }
         };
 
+    // ── user_repository ──────────────────────────────────────────────────────
+    let user_repository: Arc<dyn UserRepository> = match overrides.user_repository {
+        Some(repository) => repository,
+        None => build_user_repository(database_url.as_deref()).await?,
+    };
+
     // ── event_publisher ──────────────────────────────────────────────────────
-    let event_publisher: Arc<dyn EventPublisher> =
+    let event_publisher: Arc<dyn IntegrationEventPublisher> =
         if let Some(publisher) = overrides.event_publisher {
             publisher
         } else {
             match database_url.as_deref() {
-                Some(url) => Arc::new(ApalisEventPublisher::new(url).await?),
+                Some(url) => Arc::new(ApalisIntegrationEventPublisherImpl::new(url).await?),
                 // Sin base de datos (`DBType::Mock`) la cola no existe: se degrada a log.
-                None => Arc::new(LoggingEventPublisher),
+                None => Arc::new(LoggingIntegrationEventPublisherImpl),
             }
         };
 
@@ -120,7 +119,7 @@ pub async fn new_with_overrides(
 // ─── Helpers privados ───────────────────────────────────────────────────────
 
 /// Resuelve la URL de Postgres a partir de la configuración `DBType`.
-/// `None` significa que no hay base de datos física y las dependencias deben degradarse a memoria.
+/// `None` significa que no hay base de datos física y las dependencias deben sustituirse por overrides.
 fn resolve_db_url(database_type: &DBType) -> Option<String> {
     match database_type {
         DBType::Postgres(Some(database_url)) => Some(database_url.clone()),
@@ -133,14 +132,14 @@ fn resolve_db_url(database_type: &DBType) -> Option<String> {
     }
 }
 
-/// Construye la instancia de `UserRepository` conectada a Toasty PostgreSQL o una versión en memoria.
+/// Construye la instancia de `UserRepository` conectada a Toasty PostgreSQL.
 async fn build_user_repository(
     database_url: Option<&str>,
 ) -> Result<Arc<dyn UserRepository>, ClickCareError> {
     let Some(database_url_str) = database_url else {
-        return Ok(Arc::new(MockUserRepositoryImpl {
-            saved_users: Mutex::new(Vec::new()),
-        }));
+        return Err(ClickCareError::generic(
+            "DBType::Mock requiere un UserRepository en DIOverrides".to_string(),
+        ));
     };
 
     debug!("URL de la base de datos: {database_url_str}");
@@ -162,133 +161,6 @@ async fn build_user_repository(
 pub enum DBType {
     /// Conexión a PostgreSQL mediante cadena de conexión opcional (o variable de entorno `DATABASE_URL` / `PG_URL`).
     Postgres(Option<String>),
-    /// Modo mock en memoria para pruebas rápidas sin dependencia de PostgreSQL.
+    /// Sin base de datos: las dependencias de persistencia y de tokens deben llegar por `DIOverrides`.
     Mock,
-}
-
-/// Implementación en memoria de `UserRepository` para pruebas unitarias.
-pub struct MockUserRepositoryImpl {
-    /// Lista de usuarios almacenados en memoria durante el test.
-    pub saved_users: Mutex<Vec<User>>,
-}
-
-#[async_trait]
-impl UserRepository for MockUserRepositoryImpl {
-    async fn exist_user_by_document(
-        &self,
-        network_id: &uuid::Uuid,
-        identifier: Identifier,
-    ) -> Result<bool, ClickCareError> {
-        let users = self.saved_users.lock().await;
-
-        let exists = users.iter().any(|user| {
-            user.network_id == *network_id && user.person.identifier.as_ref() == Some(&identifier)
-        });
-
-        Ok(exists)
-    }
-
-    async fn exist_user_by_email(
-        &self,
-        network_id: &uuid::Uuid,
-        email: &str,
-    ) -> Result<bool, ClickCareError> {
-        let users = self.saved_users.lock().await;
-
-        let exists = users.iter().any(|user| {
-            user.network_id == *network_id
-                && user.person.telecom.iter().any(|telecom_entry| {
-                    telecom_entry.system == app_core::domain::fhir::ContactPointSystem::Email
-                        && telecom_entry.value == email
-                })
-        });
-
-        Ok(exists)
-    }
-
-    async fn find_user_by_email(
-        &self,
-        network_id: &uuid::Uuid,
-        email: &str,
-    ) -> Result<Option<User>, ClickCareError> {
-        let users = self.saved_users.lock().await;
-
-        let matched_user = users
-            .iter()
-            .find(|user| {
-                user.network_id == *network_id
-                    && user.person.telecom.iter().any(|telecom_entry| {
-                        telecom_entry.system == app_core::domain::fhir::ContactPointSystem::Email
-                            && telecom_entry.value == email
-                    })
-            })
-            .cloned();
-
-        Ok(matched_user)
-    }
-
-    async fn find_user_by_id(&self, user_id: &str) -> Result<User, ClickCareError> {
-        let users = self.saved_users.lock().await;
-        users
-            .iter()
-            .find(|user| user.id.to_string() == user_id)
-            .cloned()
-            .ok_or_else(|| {
-                ClickCareError::generic(format!(
-                    "User with ID {user_id} not found in mock repository"
-                ))
-            })
-    }
-
-    async fn save_user(&self, user: &User) -> Result<(), ClickCareError> {
-        let mut users = self.saved_users.lock().await;
-        users.push(user.clone());
-        Ok(())
-    }
-}
-
-/// Implementación mock de [`TokenService`] para pruebas unitarias y de integración.
-///
-/// Decodifica el payload JWT sin validar firma criptográfica contra Google,
-/// pero verificando estructura de 3 segmentos y expiración (`exp`).
-#[derive(Default)]
-pub struct MockTokenServiceImpl;
-
-#[async_trait]
-impl TokenService for MockTokenServiceImpl {
-    async fn validate_and_extract_email(
-        &self,
-        id_token: &str,
-    ) -> Result<String, crate::application::use_case::sign_in_usecase::model::SignInError> {
-        use crate::application::use_case::sign_in_usecase::model::SignInError;
-
-        let segments: Vec<&str> = id_token.trim().split('.').collect();
-        if segments.len() != 3 || segments.iter().any(|s| s.is_empty()) {
-            return Err(SignInError::InvalidToken(ClickCareError::generic(
-                "El id_token no tiene una estructura JWT válida de 3 segmentos".to_string(),
-            )));
-        }
-
-        #[derive(serde::Deserialize)]
-        struct Claims {
-            email: String,
-            exp: Option<i64>,
-        }
-
-        let token_data = jsonwebtoken::dangerous::insecure_decode::<Claims>(id_token.as_bytes())
-            .map_err(|err| {
-                SignInError::InvalidToken(ClickCareError::generic(format!("{:?}", err)))
-            })?;
-
-        if let Some(exp) = token_data.claims.exp {
-            let current_epoch = jiff::Timestamp::now().as_second();
-            if exp <= current_epoch {
-                return Err(SignInError::InvalidToken(ClickCareError::generic(
-                    "El id_token ha expirado".to_string(),
-                )));
-            }
-        }
-
-        Ok(token_data.claims.email)
-    }
 }

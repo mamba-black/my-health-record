@@ -53,6 +53,7 @@ apalis-board.workspace = true
 tonic-prost-build.workspace = true
 
 [dev-dependencies]
+user = { workspace = true, features = ["test-support"] }
 rstest.workspace = true
 rstest-bdd.workspace = true
 rstest-bdd-macros.workspace = true

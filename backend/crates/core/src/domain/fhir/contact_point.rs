@@ -1,10 +1,8 @@
 use bon::Builder;
 use derive_getters::Getters;
-use serde::{Deserialize, Serialize};
-use tracing::log::__private_api::Value;
 
 /// Sistema de telecomunicación utilizado según FHIR R4.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ContactPointSystem {
     /// Teléfono.
     Phone,
@@ -23,7 +21,7 @@ pub enum ContactPointSystem {
 }
 
 /// Contexto o propósito de uso del punto de contacto según FHIR R4.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ContactPointUse {
     /// Domicilio personal.
     Home,
@@ -40,7 +38,7 @@ pub enum ContactPointUse {
 /// Tipo de dato HL7 FHIR R4: `ContactPoint`.
 ///
 /// Ref: <https://hl7.org/fhir/R4/datatypes.html#ContactPoint>
-#[derive(Debug, Clone, PartialEq, Eq, Getters, Builder, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Getters, Builder)]
 pub struct ContactPoint {
     /// Canal o sistema empleado para el contacto.
     pub system: ContactPointSystem,

@@ -54,7 +54,7 @@ usando `apalis-postgres` sobre la cola `UserCreatedEvent::QUEUE` (`"user.created
   de aplicación pura con la firma `async fn(UserCreatedEvent, &AdministrationState)`: no
   conoce Apalis ni tipos de infraestructura. `AdministrationState`
   (`src/application/state.rs`) solo agrupa los tres puertos de repositorio.
-* **Worker**: `src/infrastructure/di.rs`. `di::new(DBType)` prepara el schema `apalis` y
+* **Worker**: `src/infrastructure/config/mod.rs`. `di::new(DBType)` prepara el schema `apalis` y
   devuelve un `DI`; `DI::run_worker()` construye y ejecuta el worker sin exponer los tipos
   genéricos de `WorkerBuilder` fuera del crate. El handler se registra envuelto en un cierre
   que extrae el estado del `Data<AdministrationState>` de Apalis, de modo que el extractor

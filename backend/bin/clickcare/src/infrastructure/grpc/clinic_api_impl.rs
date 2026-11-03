@@ -2,7 +2,7 @@ use crate::infrastructure::grpc;
 use crate::infrastructure::grpc::clinic_api_impl::mapper::to_status;
 use crate::infrastructure::grpc::clinic_api_server::ClinicApi;
 use administration::application::create_clinic_usecase::CreateClinicUseCase;
-use administration::application::create_clinic_usecase::model::CreateClinicCommand;
+use administration::application::dto::create_clinic::CreateClinicCommand;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use tracing::debug;
@@ -42,7 +42,7 @@ impl ClinicApi for ClinicApiImpl {
 
 mod mapper {
     use crate::infrastructure::grpc;
-    use administration::application::create_clinic_usecase::model::{
+    use administration::application::dto::create_clinic::{
         CreateClinicCommand, CreateClinicError, CreateClinicResponse,
     };
     use tonic::Status;

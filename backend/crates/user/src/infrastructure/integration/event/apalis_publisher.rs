@@ -1,19 +1,21 @@
 use apalis::prelude::TaskSink;
 use apalis_postgres::{Config, PgPool, PostgresStorage};
+use app_core::application::integration::event_publisher::IntegrationEventPublisher;
 use app_core::domain::error::ClickCareError;
-use app_core::domain::event::{EventPublisher, FounderRegistered, UserCreatedEvent};
+use app_core::domain::event::{FounderRegistered, UserCreatedEvent};
+use app_core::infrastructure::transport::{FounderRegisteredDto, UserCreatedEventDto};
 use async_trait::async_trait;
 use tracing::debug;
 
-/// Adaptador de salida del puerto [`EventPublisher`] respaldado por `apalis-postgres`.
+/// Adaptador de salida del puerto [`IntegrationEventPublisher`] respaldado por `apalis-postgres`.
 ///
 /// Encola eventos en colas dedicadas ([`UserCreatedEvent::QUEUE`], [`FounderRegistered::QUEUE`]).
-pub(crate) struct ApalisEventPublisher {
-    storage: PostgresStorage<UserCreatedEvent>,
-    founder_storage: PostgresStorage<FounderRegistered>,
+pub(crate) struct ApalisIntegrationEventPublisherImpl {
+    storage: PostgresStorage<UserCreatedEventDto>,
+    founder_storage: PostgresStorage<FounderRegisteredDto>,
 }
 
-impl ApalisEventPublisher {
+impl ApalisIntegrationEventPublisherImpl {
     /// Abre un pool propio, exclusivo de la cola.
     ///
     /// Deliberadamente **no** reutiliza la conexión de los repositorios de
@@ -32,7 +34,7 @@ impl ApalisEventPublisher {
         })?;
 
         debug!(
-            "ApalisEventPublisher listo sobre las colas '{}' y '{}'",
+            "ApalisIntegrationEventPublisherImpl listo sobre las colas '{}' y '{}'",
             UserCreatedEvent::QUEUE,
             FounderRegistered::QUEUE
         );
@@ -47,17 +49,21 @@ impl ApalisEventPublisher {
 }
 
 #[async_trait]
-impl EventPublisher for ApalisEventPublisher {
+impl IntegrationEventPublisher for ApalisIntegrationEventPublisherImpl {
     async fn publish_user_created(&self, event: UserCreatedEvent) -> Result<(), ClickCareError> {
         let user_id = event.user_id;
 
         // `push` requiere `&mut self`; `PostgresStorage` es `Clone` y su pool es un
         // `Arc` interno, así que clonar es barato y no abre conexiones nuevas.
-        self.storage.clone().push(event).await.map_err(|e| {
-            ClickCareError::generic(format!(
-                "Error al encolar UserCreatedEvent para user_id={user_id} ({e})"
-            ))
-        })?;
+        self.storage
+            .clone()
+            .push(UserCreatedEventDto::from(event))
+            .await
+            .map_err(|e| {
+                ClickCareError::generic(format!(
+                    "Error al encolar UserCreatedEvent para user_id={user_id} ({e})"
+                ))
+            })?;
 
         Ok(())
     }
@@ -70,7 +76,7 @@ impl EventPublisher for ApalisEventPublisher {
 
         self.founder_storage
             .clone()
-            .push(event)
+            .push(FounderRegisteredDto::from(event))
             .await
             .map_err(|e| {
                 ClickCareError::generic(format!(

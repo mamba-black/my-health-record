@@ -1,5 +1,5 @@
-use crate::domain::repository::user_repository::UserRepository;
 use crate::domain::user::User;
+use crate::domain::user::user_repository::UserRepository;
 use app_core::domain::error::ClickCareError;
 use app_core::domain::fhir::Identifier;
 use async_trait::async_trait;

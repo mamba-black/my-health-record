@@ -1,7 +1,7 @@
-use crate::domain::repository::clinical_network_repository::ClinicalNetworkRepository;
-use crate::domain::repository::organization_repository::OrganizationRepository;
-use crate::domain::repository::patient_repository::PatientRepository;
-use crate::domain::repository::practitioner_repository::PractitionerRepository;
+use crate::domain::clinical_network::clinical_network_repository::ClinicalNetworkRepository;
+use crate::domain::organization::organization_repository::OrganizationRepository;
+use crate::domain::patient::patient_repository::PatientRepository;
+use crate::domain::practitioner::practitioner_repository::PractitionerRepository;
 use std::sync::Arc;
 
 /// Dependencias que el worker inyecta en los handlers de eventos.

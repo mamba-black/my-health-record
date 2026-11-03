@@ -29,6 +29,10 @@ serde_json.workspace = true
 jsonwebtoken.workspace = true
 google-jwt-verify.workspace = true
 
+[features]
+# Expone `crate::testing` (dobles de prueba) a los tests de integración de otros crates.
+test-support = []
+
 [dev-dependencies]
 testcontainers.workspace = true
 testcontainers-modules.workspace = true

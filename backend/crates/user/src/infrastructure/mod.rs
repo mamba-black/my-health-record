@@ -1,4 +1,3 @@
-pub mod di;
-mod event;
+pub mod config;
 mod integration;
 mod repository;

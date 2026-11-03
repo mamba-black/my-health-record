@@ -1,7 +1,7 @@
 mod scenarios;
 mod steps;
 
-use administration::infrastructure::di as administration_di;
+use administration::infrastructure::config as administration_di;
 use clickcare::infrastructure::grpc::clinic_api_impl::ClinicApiImpl;
 use clickcare::infrastructure::grpc::clinic_api_server::ClinicApiServer;
 use clickcare::infrastructure::grpc::user_api_impl::UserApiImpl;
@@ -168,11 +168,11 @@ pub async fn test_env() -> &'static TestEnv {
                         ),
                     );
 
-                    let user_di = user::infrastructure::di::new_with_overrides(
-                        user::infrastructure::di::DBType::Postgres(Some(conn_str)),
-                        user::infrastructure::di::DIOverrides {
+                    let user_di = user::infrastructure::config::new_with_overrides(
+                        user::infrastructure::config::DBType::Postgres(Some(conn_str)),
+                        user::infrastructure::config::DIOverrides {
                             token_service: Some(std::sync::Arc::new(
-                                user::infrastructure::di::MockTokenServiceImpl,
+                                user::testing::MockTokenServiceImpl,
                             )),
                             ..Default::default()
                         },
@@ -295,7 +295,7 @@ mod sign_up {
 /// en Postgres y el worker de `crates/administration` lo consume.
 mod administration_worker {
     use crate::{TestEnv, test_env};
-    use administration::infrastructure::di as administration_di;
+    use administration::infrastructure::config as administration_di;
     use clickcare::infrastructure::grpc::SignUpRequest;
     use clickcare::infrastructure::grpc::user_api_client::UserApiClient;
     use rstest::*;

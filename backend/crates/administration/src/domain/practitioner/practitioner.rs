@@ -1,13 +1,12 @@
 use app_core::domain::fhir::Person;
 use bon::Builder;
 use derive_getters::Getters;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Recurso de dominio que representa la Ficha de Profesional de Salud / Médico (FHIR R4 Practitioner).
 ///
 /// Registra las credenciales profesionales (CMP/COP) y almacena el recurso FHIR `Person` con la demografía.
-#[derive(Debug, Clone, Getters, Builder, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Getters, Builder, PartialEq, Eq)]
 pub struct Practitioner {
     /// Identificador único del perfil profesional del médico (UUID v7).
     pub id: Uuid,

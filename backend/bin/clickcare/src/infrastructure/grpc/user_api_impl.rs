@@ -6,12 +6,12 @@ use app_core::domain::error::ClickCareError;
 use std::sync::Arc;
 use tonic::*;
 use tracing::{debug, error};
+use user::application::dto::create_user::{CreateUserCommand, CreateUserError};
+use user::application::dto::sign_in::{SignInCommand, SignInError};
 use user::application::use_case::create_user_usecase::CreateUserUseCase;
-use user::application::use_case::create_user_usecase::model::{CreateUserCommand, CreateUserError};
 use user::application::use_case::sign_in_usecase::SignInUseCase;
-use user::application::use_case::sign_in_usecase::model::{SignInCommand, SignInError};
-use user::infrastructure::di;
-use user::infrastructure::di::DBType;
+use user::infrastructure::config as di;
+use user::infrastructure::config::DBType;
 
 /// Implementación del servicio gRPC `UserApi` para gestión e identidad de usuarios.
 pub struct UserApiImpl {
@@ -151,8 +151,8 @@ mod mapper {
     use crate::infrastructure::grpc::identifier::IdentifierType;
     use crate::infrastructure::grpc::{SignInRequest, SignUpIntent, SignUpRequest};
     use app_core::domain::fhir::Identifier::DNI;
-    use user::application::use_case::create_user_usecase::model::CreateUserCommand;
-    use user::application::use_case::sign_in_usecase::model::SignInCommand;
+    use user::application::dto::create_user::CreateUserCommand;
+    use user::application::dto::sign_in::SignInCommand;
     use uuid::Uuid;
 
     impl From<SignInRequest> for SignInCommand {

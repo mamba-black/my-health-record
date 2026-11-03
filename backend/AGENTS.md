@@ -12,7 +12,7 @@
 >   (`[backend/crates/user/AGENTS.md](crates/user/AGENTS.md)`). GitHub resuelve los
 >   enlaces relativos desde la carpeta del archivo; prefijarlos los rompería. El texto
 >   visible sí lleva el prefijo.
-> * Las rutas **internas a un crate** (`src/domain/`, `src/infrastructure/di.rs`,
+> * Las rutas **internas a un crate** (`src/domain/`, `src/infrastructure/config/mod.rs`,
 >   `tests/steps/`) se miden desde la raíz de ese crate, y por eso no llevan prefijo.
 >
 > Los comandos de `cargo` se ejecutan dentro de `backend/`, que es la raíz del Cargo
@@ -239,7 +239,7 @@ bin/clickcare (Punto de entrada gRPC + orquestación de workers)
 
 Corolarios que se derivan de esta regla y se verifican en compilación:
 * La capa de aplicación **no** conoce tipos de infraestructura. Un handler de evento es una función pura (`async fn(Evento) -> Result<(), ClickCareError>`); es la infraestructura quien lo registra en Apalis.
-* Cada crate instancia **solo sus propias estructuras**, dentro de su `src/infrastructure/di.rs`. `backend/bin/clickcare` orquesta ciclos de vida, no construye tipos ajenos ni declara sus dependencias (p. ej. `apalis` no figura en `backend/bin/clickcare/Cargo.toml`).
+* Cada crate instancia **solo sus propias estructuras**, dentro de su `src/infrastructure/config/mod.rs`. `backend/bin/clickcare` orquesta ciclos de vida, no construye tipos ajenos ni declara sus dependencias (p. ej. `apalis` no figura en `backend/bin/clickcare/Cargo.toml`).
 
 #### Flujo de una Solicitud a través de las Capas
 
@@ -248,7 +248,7 @@ sequenceDiagram
     autonumber
     actor Client as Cliente / Frontend
     participant gRPC as Adaptador gRPC (bin/clickcare)
-    participant DI as Contenedor DI (infrastructure/di.rs)
+    participant DI as Contenedor DI (infrastructure/config/mod.rs)
     participant UseCase as Caso de Uso (Capa de aplicación)
     participant Domain as Entidad / Dominio (Capa de dominio)
     participant Repo as Impl Repositorio (Capa de infraestructura)
@@ -344,7 +344,7 @@ Leyenda de estado: ✅ implementado · 🚧 andamiaje (miembro del workspace, si
 
 1. **Inyección de Dependencias Estricta (DI)**
    * Inyectar dependencias como `Arc<dyn Trait + Send + Sync>`.
-   * Nunca instanciar tipos concretos fuera de `src/infrastructure/di.rs` **ni fuera del crate dueño del tipo**: cada contexto acotado construye únicamente sus propias estructuras. Es el compilador —y no la disciplina de quien cablea— el que debe garantizar el límite.
+   * Nunca instanciar tipos concretos fuera de `src/infrastructure/config/mod.rs` **ni fuera del crate dueño del tipo**: cada contexto acotado construye únicamente sus propias estructuras. Es el compilador —y no la disciplina de quien cablea— el que debe garantizar el límite.
    * El cableado de producción se resuelve **siempre** dentro de `di::new(DBType)`, decidiendo a partir del `DBType`. Está prohibido usar `DIOverrides` para seleccionar una implementación real.
    * `DIOverrides` (campos `Option<Arc<dyn Trait>>`) existe **exclusivamente** para sustituir dependencias por mocks en pruebas, vía `di::new_with_overrides`. Si una dependencia se resuelve por override en producción, la regla está rota.
    * Los tipos genéricos de una librería de infraestructura no cruzan la frontera del crate: se encapsulan detrás de un método del `DI` (p. ej. `DI::run_worker()`), nunca se devuelven al llamador.
@@ -438,7 +438,7 @@ cargo clippy --workspace -- -D warnings
 ## 5. Guía de Testing
 
 * **Frameworks**: `rstest` para pruebas parametrizadas, `rstest-bdd` (+ `rstest-bdd-macros`) para escenarios BDD en Gherkin, `fake` para generar datos de prueba, `testcontainers` / `testcontainers-modules` para integración contra una base de datos real.
-* **Mocks**: definir las implementaciones mock dentro de `infrastructure/di.rs` (p. ej. `MockUserRepositoryImpl`) e inyectarlas vía `DIOverrides` en `di::new_with_overrides`. Ver §3.1: los overrides son **solo** para pruebas.
+* **Mocks**: definir las implementaciones mock en `crates/<contexto>/src/testing/` (p. ej. `MockUserRepositoryImpl`, feature `test-support`) e inyectarlas vía `DIOverrides` en `config::new_with_overrides`. Ver §3.1: los overrides son **solo** para pruebas.
 * **Pruebas unitarias**: en un bloque `#[cfg(test)] mod test { ... }` al final del archivo fuente.
 * **Pruebas de integración**: en `tests/` de la crate correspondiente (p. ej. `backend/bin/clickcare/tests/`).
 * **Escenarios BDD**: los `.feature` en Gherkin viven en `backend/bin/clickcare/tests/features/`, los bindings en `tests/scenarios/` y las implementaciones de pasos en `tests/steps/`.

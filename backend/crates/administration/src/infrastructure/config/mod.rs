@@ -1,10 +1,10 @@
 use crate::application::create_clinic_usecase::{CreateClinicUseCase, CreateClinicUseCaseImpl};
-use crate::application::event_handlers::handle_user_created_event;
 use crate::application::state::AdministrationState;
-use crate::domain::repository::clinical_network_repository::ClinicalNetworkRepository;
-use crate::domain::repository::organization_repository::OrganizationRepository;
-use crate::domain::repository::patient_repository::PatientRepository;
-use crate::domain::repository::practitioner_repository::PractitionerRepository;
+use crate::domain::clinical_network::clinical_network_repository::ClinicalNetworkRepository;
+use crate::domain::organization::organization_repository::OrganizationRepository;
+use crate::domain::patient::patient_repository::PatientRepository;
+use crate::domain::practitioner::practitioner_repository::PractitionerRepository;
+use crate::infrastructure::entrypoint::subscriber::user_created_handler::handle_user_created_event;
 use crate::infrastructure::repository::clinical_network_repository_impl::{
     ClinicalNetworkRecord, ClinicalNetworkRepositoryImpl,
 };
@@ -23,6 +23,7 @@ use apalis::prelude::{Data, WorkerBuilder};
 use apalis_postgres::{Config, PgPool, PostgresStorage};
 use app_core::domain::error::ClickCareError;
 use app_core::domain::event::UserCreatedEvent;
+use app_core::infrastructure::transport::UserCreatedEventDto;
 use std::env::var;
 use std::sync::Arc;
 use toasty::{Db, models};
@@ -50,7 +51,7 @@ pub enum DBType {
 /// repositorios Toasty DB) y expone los casos de uso y puertos necesarios.
 pub struct DI {
     /// Almacenamiento PostgreSQL exclusivo para procesar tareas de la cola Apalis.
-    storage: PostgresStorage<UserCreatedEvent>,
+    storage: PostgresStorage<UserCreatedEventDto>,
     /// Estado con repositorios de dominio inyectados en los workers.
     pub state: AdministrationState,
     /// Caso de uso para crear y registrar una nueva clínica u hospital.
@@ -85,7 +86,7 @@ pub async fn new(database_type: DBType) -> Result<DI, ClickCareError> {
 
 impl DI {
     /// Devuelve un clon del almacenamiento de la cola Apalis para su monitoreo en `apalis-board`.
-    pub fn storage(&self) -> PostgresStorage<UserCreatedEvent> {
+    pub fn storage(&self) -> PostgresStorage<UserCreatedEventDto> {
         self.storage.clone()
     }
 
@@ -109,8 +110,8 @@ impl DI {
             .data(self.state)
             .retry(RetryPolicy::retries(MAX_RETRIES))
             .build(
-                |event: UserCreatedEvent, state: Data<AdministrationState>| async move {
-                    handle_user_created_event(event, &state).await
+                |message: UserCreatedEventDto, state: Data<AdministrationState>| async move {
+                    handle_user_created_event(message.into(), &state).await
                 },
             )
             .run()
@@ -136,7 +137,7 @@ fn resolve_db_url(database_type: DBType) -> String {
 /// Abre el pool exclusivo de la cola y prepara el schema `apalis`.
 async fn build_event_storage(
     database_url: &str,
-) -> Result<PostgresStorage<UserCreatedEvent>, ClickCareError> {
+) -> Result<PostgresStorage<UserCreatedEventDto>, ClickCareError> {
     let pool = PgPool::connect(database_url).await.map_err(|error| {
         ClickCareError::generic(format!(
             "Error en la conexion a la DB de la cola de eventos ({error})"

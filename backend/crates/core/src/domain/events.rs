@@ -1,11 +1,10 @@
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 pub use crate::domain::event::*;
 
 /// Evento de dominio emitido cuando un usuario se registra con intención de ser propietario/fundador de una clínica.
 /// Transporta el identificador de la organización clínica generado anticipadamente (UUIDv7).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FounderRegistered {
     /// Identificador del usuario creador (UUID v7).
     pub user_id: Uuid,

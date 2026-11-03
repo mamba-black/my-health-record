@@ -1,6 +1,7 @@
 use crate::domain::patient::Patient;
-use crate::domain::repository::patient_repository::PatientRepository;
+use crate::domain::patient::patient_repository::PatientRepository;
 use app_core::domain::error::ClickCareError;
+use app_core::infrastructure::transport::PersonDto;
 use async_trait::async_trait;
 use toasty::Db;
 use tracing::error;
@@ -59,16 +60,17 @@ impl PatientRepository for PatientRepositoryImpl {
     }
 
     async fn save(&self, patient: &Patient) -> Result<(), ClickCareError> {
-        let person = serde_json::to_string(&patient.person).map_err(|error| {
-            error!(
-                "Error al serializar la Person del expediente id={}: {error}",
-                patient.id
-            );
-            ClickCareError::generic(format!(
-                "Error al serializar la Person del expediente id={} ({error})",
-                patient.id
-            ))
-        })?;
+        let person =
+            serde_json::to_string(&PersonDto::from(patient.person.clone())).map_err(|error| {
+                error!(
+                    "Error al serializar la Person del expediente id={}: {error}",
+                    patient.id
+                );
+                ClickCareError::generic(format!(
+                    "Error al serializar la Person del expediente id={} ({error})",
+                    patient.id
+                ))
+            })?;
 
         toasty::create!(PatientRecord {
             id: patient.id,

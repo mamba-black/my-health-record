@@ -1,4 +1,4 @@
-use crate::application::use_case::sign_in_usecase::model::SignInError;
+use crate::application::dto::sign_in::SignInError;
 use async_trait::async_trait;
 
 #[async_trait]

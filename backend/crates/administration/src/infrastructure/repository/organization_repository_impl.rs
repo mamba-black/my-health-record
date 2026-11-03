@@ -1,5 +1,5 @@
 use crate::domain::organization::Organization;
-use crate::domain::repository::organization_repository::OrganizationRepository;
+use crate::domain::organization::organization_repository::OrganizationRepository;
 use crate::infrastructure::repository::first_uuid_column;
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;

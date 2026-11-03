@@ -1,14 +1,13 @@
 use app_core::domain::fhir::Person;
 use bon::Builder;
 use derive_getters::Getters;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Recurso de dominio que representa el Expediente Clínico del Paciente (FHIR R4 Patient).
 ///
 /// En una arquitectura de clínicas autónomas, almacena la referencia global (`user_id`)
 /// y el recurso FHIR `Person` con la demografía para atenciones autónomas.
-#[derive(Debug, Clone, Getters, Builder, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Getters, Builder, PartialEq, Eq)]
 pub struct Patient {
     /// Identificador único del expediente del paciente en esta clínica (UUID v7).
     pub id: Uuid,

@@ -24,8 +24,8 @@ const PENDING_MEDICAL_LICENSE: &str = "CMP-PENDIENTE";
 ///    `Practitioner` de su dueño y su expediente `Patient`, los tres colgados de
 ///    esa clínica.
 ///
-/// Es una función de aplicación pura: no conoce Apalis ni ningún tipo de
-/// infraestructura. Quien la registra en el worker es `infrastructure/di.rs`.
+/// Vive en `infrastructure/entrypoint/subscriber`: es el punto de entrada asíncrono que
+/// recibe el mensaje de la cola. Quien la registra en el worker es `infrastructure/config/mod.rs`.
 ///
 /// **Idempotente por diseño**: la entrega de la cola es *at-least-once*, así que
 /// el mismo evento puede llegar más de una vez. Cada entidad se crea solo si el
@@ -173,10 +173,10 @@ async fn create_patient_if_absent(
 mod test {
     use super::*;
     use crate::domain::clinical_network::ClinicalNetwork;
-    use crate::domain::repository::clinical_network_repository::ClinicalNetworkRepository;
-    use crate::domain::repository::organization_repository::OrganizationRepository;
-    use crate::domain::repository::patient_repository::PatientRepository;
-    use crate::domain::repository::practitioner_repository::PractitionerRepository;
+    use crate::domain::clinical_network::clinical_network_repository::ClinicalNetworkRepository;
+    use crate::domain::organization::organization_repository::OrganizationRepository;
+    use crate::domain::patient::patient_repository::PatientRepository;
+    use crate::domain::practitioner::practitioner_repository::PractitionerRepository;
     use app_core::domain::fhir::{HumanName, Person};
     use async_trait::async_trait;
     use std::sync::Arc;

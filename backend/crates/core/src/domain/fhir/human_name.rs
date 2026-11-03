@@ -1,11 +1,10 @@
 use bon::bon;
 use derive_getters::Getters;
-use serde::{Deserialize, Serialize};
 
 /// Tipo de dato HL7 FHIR R4: `HumanName`.
 ///
 /// Ref: <https://hl7.org/fhir/R4/datatypes.html#HumanName>
-#[derive(Debug, Clone, PartialEq, Eq, Getters, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Getters)]
 pub struct HumanName {
     /// Nombres de pila (`given`), ej. `["Juan", "Carlos"]`.
     given: Vec<String>,

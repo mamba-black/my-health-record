@@ -1,2 +1,3 @@
-pub mod di;
+pub mod config;
+mod entrypoint;
 mod repository;

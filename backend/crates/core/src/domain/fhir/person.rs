@@ -1,11 +1,10 @@
 use crate::domain::fhir::{ContactPoint, ContactPointSystem, HumanName, Identifier};
 use bon::Builder;
 use derive_getters::Getters;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Nivel de certeza del enlace según HL7 FHIR (`Person.link.assurance`).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LinkAssuranceLevel {
     /// Nivel 1: Certeza muy baja (declarativa).
     Level1,
@@ -18,7 +17,7 @@ pub enum LinkAssuranceLevel {
 }
 
 /// Recurso de destino al cual está vinculada la identidad de la persona física.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PersonLinkTarget {
     /// Vinculado a un expediente de Paciente (`Patient` ID).
     Patient(Uuid),
@@ -31,7 +30,7 @@ pub enum PersonLinkTarget {
 }
 
 /// Enlace entre la persona/usuario y recursos relacionados en FHIR (`Person.link`).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PersonLink {
     pub target: PersonLinkTarget,
     pub assurance: Option<LinkAssuranceLevel>,
@@ -39,7 +38,7 @@ pub struct PersonLink {
 
 /// Recurso Persona (Identidad Humana) según la especificación HL7 FHIR R4.
 /// Ref: <https://hl7.org/fhir/R4/person.html>
-#[derive(Debug, Clone, Getters, Builder, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Getters, Builder, PartialEq, Eq)]
 pub struct Person {
     /// Identificador único de la persona (UUID v7).
     pub id: Uuid,

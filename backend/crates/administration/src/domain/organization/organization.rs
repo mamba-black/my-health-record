@@ -1,10 +1,9 @@
 use bon::Builder;
 use derive_getters::Getters;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Recurso de dominio que representa la Clínica u Organización Sanitaria (FHIR R4 Organization).
-#[derive(Debug, Clone, Getters, Builder, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Getters, Builder, PartialEq, Eq)]
 pub struct Organization {
     /// Identificador único de la clínica u organización (UUID v7).
     pub id: Uuid,

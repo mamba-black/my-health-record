@@ -6,7 +6,7 @@ use crate::infrastructure::grpc::patient_api_server::PatientApiServer;
 use crate::infrastructure::grpc::subdomain_resolver::SubdomainResolver;
 use crate::infrastructure::grpc::user_api_impl::UserApiImpl;
 use crate::infrastructure::grpc::user_api_server::UserApiServer;
-use administration::infrastructure::di as administration_di;
+use administration::infrastructure::config as administration_di;
 use apalis_board::axum::framework::{ApiBuilder, RegisterRoute};
 use apalis_board::axum::ui::ServeUI;
 use app_core::domain::error::ClickCareError;

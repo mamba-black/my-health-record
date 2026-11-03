@@ -3,7 +3,7 @@
 //! Permite identificar la red médica (`network_id`) y la clínica (`organization_id`) a partir
 //! de los encabezados HTTP/2 (`Host`, `:authority`) o metadata gRPC (`x-subdomain`).
 
-use administration::domain::repository::organization_repository::OrganizationRepository;
+use administration::domain::organization::organization_repository::OrganizationRepository;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;

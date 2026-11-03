@@ -1,5 +1,5 @@
+use crate::application::dto::sign_in::SignInError;
 use crate::application::integration::service::token_service::TokenService;
-use crate::application::use_case::sign_in_usecase::model::SignInError;
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;
 use google_jwt_verify::Client;

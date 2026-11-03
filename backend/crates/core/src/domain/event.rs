@@ -1,7 +1,4 @@
-use crate::domain::error::ClickCareError;
 use crate::domain::fhir::Person;
-use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use uuid::Uuid;
 
@@ -15,7 +12,7 @@ pub trait DomainEvent: Send + Sync + Debug {
 ///
 /// Este evento es consumido por otros Bounded Contexts (ej. `crates/administration`) de forma asíncrona y reactiva
 /// para inicializar la réplica demográfica local de `Patient` o `Practitioner` / `Organization`.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserCreatedEvent {
     /// Identificador único de la cuenta de usuario (UUID v7).
     pub user_id: Uuid,
@@ -39,49 +36,3 @@ impl DomainEvent for UserCreatedEvent {
 }
 
 pub use crate::domain::events::FounderRegistered;
-
-/// Puerto de dominio para la publicación de eventos de dominio en el sistema.
-#[async_trait]
-pub trait EventPublisher: Send + Sync {
-    /// Publica el evento de creación de usuario hacia Apalis / Event Bus.
-    async fn publish_user_created(&self, event: UserCreatedEvent) -> Result<(), ClickCareError>;
-
-    /// Publica el evento de registro de fundador hacia Apalis / Event Bus.
-    async fn publish_founder_registered(
-        &self,
-        event: FounderRegistered,
-    ) -> Result<(), ClickCareError> {
-        let _ = event;
-        Ok(())
-    }
-}
-
-/// Implementación por defecto de infraestructura que registra la emisión de eventos en el sistema log/tracing.
-#[derive(Debug, Default)]
-pub struct LoggingEventPublisher;
-
-#[async_trait]
-impl EventPublisher for LoggingEventPublisher {
-    async fn publish_user_created(&self, event: UserCreatedEvent) -> Result<(), ClickCareError> {
-        tracing::info!(
-            "[LoggingEventPublisher] Publicando evento {}: user_id={}",
-            event.event_name(),
-            event.user_id
-        );
-        Ok(())
-    }
-
-    async fn publish_founder_registered(
-        &self,
-        event: FounderRegistered,
-    ) -> Result<(), ClickCareError> {
-        tracing::info!(
-            "[LoggingEventPublisher] Publicando evento {}: user_id={}, person_id={}, organization_id={}",
-            event.event_name(),
-            event.user_id,
-            event.person_id,
-            event.organization_id
-        );
-        Ok(())
-    }
-}

@@ -1,5 +1,5 @@
 use crate::domain::clinical_network::ClinicalNetwork;
-use crate::domain::repository::clinical_network_repository::ClinicalNetworkRepository;
+use crate::domain::clinical_network::clinical_network_repository::ClinicalNetworkRepository;
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;
 use toasty::Db;

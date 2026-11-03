@@ -1,7 +1,8 @@
 use crate::domain::practitioner::Practitioner;
-use crate::domain::repository::practitioner_repository::PractitionerRepository;
+use crate::domain::practitioner::practitioner_repository::PractitionerRepository;
 use crate::infrastructure::repository::first_uuid_column;
 use app_core::domain::error::ClickCareError;
+use app_core::infrastructure::transport::PersonDto;
 use async_trait::async_trait;
 use toasty::Db;
 use toasty::stmt::Type;
@@ -68,16 +69,18 @@ impl PractitionerRepository for PractitionerRepositoryImpl {
     }
 
     async fn save(&self, practitioner: &Practitioner) -> Result<(), ClickCareError> {
-        let person = serde_json::to_string(&practitioner.person).map_err(|error| {
-            error!(
-                "Error al serializar la Person de la ficha id={}: {error}",
-                practitioner.id
-            );
-            ClickCareError::generic(format!(
-                "Error al serializar la Person de la ficha id={} ({error})",
-                practitioner.id
-            ))
-        })?;
+        let person = serde_json::to_string(&PersonDto::from(practitioner.person.clone())).map_err(
+            |error| {
+                error!(
+                    "Error al serializar la Person de la ficha id={}: {error}",
+                    practitioner.id
+                );
+                ClickCareError::generic(format!(
+                    "Error al serializar la Person de la ficha id={} ({error})",
+                    practitioner.id
+                ))
+            },
+        )?;
 
         toasty::create!(PractitionerRecord {
             id: practitioner.id,
