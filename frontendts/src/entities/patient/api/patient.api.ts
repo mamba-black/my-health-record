@@ -1,5 +1,5 @@
-import { patientApiClient } from "$shared/api/grpc";
-import { log } from "$shared/lib/logger";
+import { patientApiClient } from "$shared/api";
+import { log } from "$shared/lib";
 import { mapGrpcPatientToDomain } from "../model/patient.mapper";
 import type Patient from "../model/Patient";
 

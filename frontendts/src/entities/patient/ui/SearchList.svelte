@@ -1,6 +1,6 @@
 <script lang="ts">
 import { goto } from "$app/navigation";
-import { HISTORY } from "$shared/config/routes";
+import { HISTORY } from "$shared/config";
 import type Patient from "../model/Patient";
 
 let { patients = $bindable() }: { patients: Patient[] } = $props();

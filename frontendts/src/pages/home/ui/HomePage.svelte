@@ -1,6 +1,6 @@
 <script lang="ts">
 import { base } from "$app/paths";
-import svelteLogo from "$shared/assets/svelte.svg";
+import { svelteLogo } from "$shared/assets";
 </script>
 
 <hr/>

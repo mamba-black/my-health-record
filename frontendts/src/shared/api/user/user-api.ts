@@ -7,7 +7,7 @@ import {
   type SignUpResponse,
   SignUpStatus,
   userApiClient,
-} from "$shared/api/grpc";
+} from "../grpc";
 
 export type GrpcStatusName =
   | "OK"

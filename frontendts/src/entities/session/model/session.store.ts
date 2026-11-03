@@ -3,8 +3,8 @@ import { browser } from "$app/environment";
 import { goto } from "$app/navigation";
 import { base } from "$app/paths";
 import { page } from "$app/state";
-import { LOGIN, type Page } from "$shared/config/routes";
-import { log } from "$shared/lib/logger";
+import { LOGIN, type Page } from "$shared/config";
+import { log } from "$shared/lib";
 
 export interface PendingRegistration {
   idToken: string;

@@ -2,8 +2,8 @@
 import { goto } from "$app/navigation";
 import type { EncounterEntity } from "$entities/encounter";
 import { MedicalConditionsCard, type Patient } from "$entities/patient";
-import { HISTORY } from "$shared/config/routes";
-import { log } from "$shared/lib/logger";
+import { HISTORY } from "$shared/config";
+import { log } from "$shared/lib";
 import { STitle } from "$shared/ui";
 
 let {

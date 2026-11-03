@@ -1,5 +1,5 @@
 <script lang="ts">
-import { log } from "$shared/lib/logger";
+import { log } from "$shared/lib";
 import { Checkbox, Input, STitle } from "$shared/ui";
 import type MedicalConditionsClass from "../model/MedicalConditions";
 

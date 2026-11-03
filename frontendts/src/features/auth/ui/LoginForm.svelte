@@ -2,10 +2,10 @@
 import { onMount } from "svelte";
 import { goto } from "$app/navigation";
 import { setAuthToken, setPendingRegistration } from "$entities/session";
-import { UserApiError, userApi } from "$shared/api/user";
+import { UserApiError } from "$shared/api";
+import { signInWithGoogle } from "../api/auth.api";
 import { GOOGLE_CLIENT_ID, SIGNUP } from "$shared/config";
-import { decodeGoogleJwt } from "$shared/lib/jwt";
-import { log } from "$shared/lib/logger";
+import { decodeGoogleJwt, log } from "$shared/lib";
 
 interface GoogleCredentialResponse {
   credential?: string;
@@ -67,10 +67,7 @@ const handleGoogleCredentialResponse = async (
   isSubmitting = true;
 
   try {
-    const result = await userApi.signIn({
-      idToken,
-      providerId: "google.com",
-    });
+    const result = await signInWithGoogle(idToken);
 
     const displayName =
       result.givenName || claims?.given_name || claims?.name || result.email;

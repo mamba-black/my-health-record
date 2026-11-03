@@ -5,8 +5,8 @@ import {
   MedicalConditionsCard,
   type Patient,
 } from "$entities/patient";
-import { HISTORY } from "$shared/config/routes";
-import { log } from "$shared/lib/logger";
+import { HISTORY } from "$shared/config";
+import { log } from "$shared/lib";
 import { Input, ResetButton, STitle, SubmitButton } from "$shared/ui";
 
 type Props = {

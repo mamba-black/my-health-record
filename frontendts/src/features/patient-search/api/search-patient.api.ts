@@ -1,6 +1,6 @@
 import { mapGrpcPatientToDomain, type Patient } from "$entities/patient";
-import { patientApiClient } from "$shared/api/grpc";
-import { log } from "$shared/lib/logger";
+import { patientApiClient } from "$shared/api";
+import { log } from "$shared/lib";
 
 export async function searchPatients(name: string): Promise<Patient[]> {
   const trimmed = name.trim();

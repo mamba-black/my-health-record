@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import { page } from "$app/state";
 import { EncounterEntity, State } from "$entities/encounter";
 import { getPatientById, type Patient } from "$entities/patient";
-import { log } from "$shared/lib/logger";
+import { log } from "$shared/lib";
 import { ConfirmModal } from "$shared/ui";
 import { EncounterList } from "$widgets/encounter-list";
 import { PatientDetail } from "$widgets/patient-detail";

@@ -4,8 +4,8 @@ import { onMount, type Snippet } from "svelte";
 import { goto } from "$app/navigation";
 import { page } from "$app/state";
 import { authStore } from "$entities/session";
-import { CALLBACK, LOGIN, Page, ROOT, SIGNUP } from "$shared/config/routes";
-import { log } from "$shared/lib/logger";
+import { CALLBACK, LOGIN, Page, ROOT, SIGNUP } from "$shared/config";
+import { log } from "$shared/lib";
 import { Navbar } from "$widgets/navbar";
 
 let { children }: { children: Snippet } = $props();

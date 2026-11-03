@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import {
   ContactPoint_System,
   type Patient as GrpcPatient,
-} from "$shared/api/grpc";
+} from "$shared/api";
 import Address from "./Address";
 import MedicalConditions from "./MedicalConditions";
 import Patient from "./Patient";

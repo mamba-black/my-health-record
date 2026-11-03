@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { Patient } from "$entities/patient";
-import { log } from "$shared/lib/logger";
+import { log } from "$shared/lib";
 import { SubmitButton } from "$shared/ui";
 import { searchPatients } from "../api/search-patient.api";
 

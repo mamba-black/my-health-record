@@ -1,7 +1,7 @@
 <script lang="ts">
 import { authStore } from "$entities/session";
 import { LogoutButton } from "$features/auth";
-import { LOGIN, ROOT, SEARCH } from "$shared/config/routes";
+import { LOGIN, ROOT, SEARCH } from "$shared/config";
 
 let isMenuOpen = $state(false);
 </script>

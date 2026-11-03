@@ -2,7 +2,7 @@
 import { page } from "$app/state";
 import type { EncounterEntity } from "$entities/encounter";
 import type { Patient } from "$entities/patient";
-import { log } from "$shared/lib/logger";
+import { log } from "$shared/lib";
 import { EncounterDetail } from "$widgets/encounter-detail";
 
 let {

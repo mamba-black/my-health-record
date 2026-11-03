@@ -5,10 +5,10 @@ import {
   clearPendingRegistration,
   setAuthToken,
 } from "$entities/session";
-import { SignUpIntent, UserApiError, userApi } from "$shared/api/user";
-import { LOGIN } from "$shared/config/routes";
-import { generateUuidV7 } from "$shared/lib/jwt";
-import { log } from "$shared/lib/logger";
+import { SignUpIntent, UserApiError } from "$shared/api";
+import { signUpAccount } from "../api/auth.api";
+import { LOGIN } from "$shared/config";
+import { generateUuidV7, log } from "$shared/lib";
 
 const pending = $derived($authStore.pendingRegistration);
 
@@ -59,7 +59,7 @@ const handleSignUpSubmit = async (event: Event) => {
   const userId = generateUuidV7();
 
   try {
-    const response = await userApi.signUp({
+    const response = await signUpAccount({
       idToken,
       userId,
       providerId,

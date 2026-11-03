@@ -1,6 +1,6 @@
 <script lang="ts">
 import { clearAuth } from "$entities/session";
-import { log } from "$shared/lib/logger";
+import { log } from "$shared/lib";
 
 let {
   label = "Cerrar sesión",
