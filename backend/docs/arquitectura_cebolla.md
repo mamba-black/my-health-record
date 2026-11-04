@@ -135,6 +135,15 @@ No se declara una interfaz de entrada porque no va a cambiar.
 Qué se ejecuta al iniciar (servidor, CLI, aplicación de escritorio) y qué implementación
 se pasa a cada caso de uso se decide en `infrastructure/config`.
 
+### Regla 6: la cola de eventos no comparte transacción con la persistencia
+
+La cola de eventos y los repositorios de entidades abren **pools de conexión independientes**.
+Encolar un evento nunca comparte conexión ni transacción con la persistencia del agregado.
+Si la cola cae, el agregado ya guardado sigue válido: el error se registra y no se convierte en
+un fallo del caso de uso. Un único pool compartido acopla la disponibilidad de la cola con la
+del repositorio, y una transacción compartida impide publicar un evento sin haber guardado el
+agregado, o hace que el evento se pierda si la transacción se revierte.
+
 ---
 
 ## 3. Repository o servicio externo: la regla de propiedad
@@ -240,6 +249,10 @@ Reglas de apoyo:
 - Un campo que guarda una dependencia se nombra por su rol (`accounts`, `mailer`), nunca
   por el patrón.
 - Sin lenguaje técnico en las capas internas: se usa el lenguaje ubicuo del negocio.
+- Nombres completos y descriptivos. Están prohibidas las variables de una sola letra (`e`,
+  `f`, `u`, `r`) y las abreviaturas crípticas. Esto aplica también a los bindings efímeros:
+  `|error|`, `|user|`, `|row|` en cierres y `match`, nunca `|e|` ni `|u|`. Cada variable debe
+  comunicar su propósito.
 
 ---
 
@@ -620,3 +633,25 @@ fn application_knows_only_domain() {
     assert!(bad.is_empty(), "{}", bad.join("\n"));
 }
 ```
+
+---
+
+## 13. Calidad antes de terminar un cambio
+
+Un cambio no se da por terminado hasta que pasen estas verificaciones, en este orden:
+
+1. **Formato:** el código está formateado con la herramienta del lenguaje.
+2. **Linter en modo estricto:** cualquier advertencia cuenta como error.
+3. **Pruebas:** la suite completa, incluido el guardián de la sección 12, pasa sin fallos.
+
+### Rust
+
+```bash
+cargo fmt --all
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+```
+
+### Java
+
+_Pendiente: ejemplo con las herramientas del ecosistema Java (formateador, linter y Maven o Gradle)._

@@ -29,7 +29,7 @@
 ### 1.1. Diseño Guiado por el Dominio (DDD) y Alineación con HL7 FHIR
 * **Protección y Límites del Dominio**: Adherencia estricta a DDD para proteger el dominio y mantener los contextos acotados aislados. Las entidades del dominio se modelan siguiendo **HL7 FHIR R4**.
 * **Arquitectura de Crates por Bounded Contexts (C4 Nivel 2)**:
-  Estructurado en un **Cargo Workspace por Contextos Acotados** (`members = ["crates/*"]`), donde cada Bounded Context es una Crate de Rust (`backend/crates/<dominio>`) que agrupa sus Entidades y Agregados (`src/domain/`).
+  Estructurado en un **Cargo Workspace por Contextos Acotados** (miembros declarados uno a uno en `backend/Cargo.toml`), donde cada Bounded Context es una Crate de Rust (`backend/crates/<dominio>`) que agrupa sus Entidades y Agregados (`src/domain/`).
 
 ```mermaid
 flowchart TB
@@ -221,9 +221,9 @@ flowchart TB
 
 | Capa | Ruta | Responsabilidad | Dependencias permitidas |
 |---|---|---|---|
-| **Core** | `backend/crates/core/` | Traits base (`UseCase`), error transversal (`ClickCareError`), eventos de dominio y Value Objects FHIR compartidos | Ninguna |
+| **Core** | `backend/crates/core/` | Error transversal (`ClickCareError`), eventos de dominio y Value Objects FHIR compartidos (el trait `UseCase` es legado, ver §10) | Ninguna |
 | **Domain** | `backend/crates/*/src/domain/` | Entidades, agregados y traits de repositorio | `backend/crates/core` |
-| **Application** | `backend/crates/*/src/application/` | Casos de uso implementando `app_core::application::UseCase` | `domain`, `backend/crates/core` |
+| **Application** | `backend/crates/*/src/application/` | Casos de uso como structs concretos con `execute` (§10); traits solo para puertos de salida | `domain`, `backend/crates/core` |
 | **Infrastructure** | `backend/crates/*/src/infrastructure/` | Repositorios, contenedor DI (`di.rs`), adaptadores externos (Apalis, gRPC clients) | `application`, `domain`, `backend/crates/core` |
 | **Entrypoint** | `backend/bin/clickcare/` | Controladores gRPC, orquestación de workers y arranque del proceso | `backend/crates/*` |
 
@@ -239,7 +239,7 @@ bin/clickcare (Punto de entrada gRPC + orquestación de workers)
 
 Corolarios que se derivan de esta regla y se verifican en compilación:
 * La capa de aplicación **no** conoce tipos de infraestructura. Un handler de evento es una función pura (`async fn(Evento) -> Result<(), ClickCareError>`); es la infraestructura quien lo registra en Apalis.
-* Cada crate instancia **solo sus propias estructuras**, dentro de su `src/infrastructure/config/mod.rs`. `backend/bin/clickcare` orquesta ciclos de vida, no construye tipos ajenos ni declara sus dependencias (p. ej. `apalis` no figura en `backend/bin/clickcare/Cargo.toml`).
+* Cada crate instancia **solo sus propias estructuras**, dentro de su `src/infrastructure/config/mod.rs`. `backend/bin/clickcare` orquesta ciclos de vida, no construye tipos ajenos ni declara sus dependencias (p. ej. `apalis` no figura en `backend/bin/clickcare/Cargo.toml`; la única excepción es `apalis-board`, el tablero de administración).
 
 #### Flujo de una Solicitud a través de las Capas
 
@@ -256,7 +256,7 @@ sequenceDiagram
 
     Client->>gRPC: Solicitud gRPC (ej. CreateUserRequest)
     gRPC->>DI: Resolver dependencias del Caso de Uso
-    DI-->>gRPC: Instancia del UseCase (Arc<dyn Trait>)
+    DI-->>gRPC: Instancia del UseCase (Arc<CreateUserUseCase>)
     gRPC->>UseCase: execute(Command)
     UseCase->>Domain: User::new(UUID v7, parámetros...)
     Domain-->>UseCase: Ok(Entidad User)
@@ -281,28 +281,15 @@ backend/
 ├── Cargo.toml                      # Workspace: members declarados uno a uno
 ├── proto/api.proto                 # Contrato público de la API (única fuente de verdad)
 ├── ddl/table.sql                   # Esquema SQL (PK por defecto uuidv7())
-├── docs/use_cases.md               # Casos de uso del ciclo de vida de identidad
+├── docs/
+│   ├── arquitectura_cebolla.md     # Reglas innegociables de la arquitectura cebolla
+│   └── use_cases.md                # Casos de uso del ciclo de vida de identidad
 ├── bin/
 │   └── clickcare/                  # Servidor ejecutable (gRPC + gRPC-Web, orquestador)
 │       ├── build.rs                # Compilación de proto vía tonic-prost-build
 │       ├── src/infrastructure/grpc/
 │       └── tests/                  # Pruebas de integración (testcontainers)
-└── crates/
-    ├── core/                       # app_core — UseCase, ClickCareError, eventos, VOs FHIR
-    ├── user/                       # ✅ Implementado — Identity & Security
-    ├── administration/             # ✅ Implementado — Gestión Administrativa
-    ├── patient/                    # 🚧 Andamiaje — Expediente de Pacientes
-    ├── clinic/                     # 🚧 Andamiaje — Clínica
-    ├── clinic_admin/               # 🚧 Andamiaje — Administración de Clínica
-    │
-    ├── scheduling/                 # 📄 Solo diseño — Reserva de Citas
-    ├── clinical/                   # 📄 Solo diseño — Historia Clínica
-    ├── diagnostics/                # 📄 Solo diseño — Laboratorio e Imágenes
-    ├── pharmacy/                   # 📄 Solo diseño — Farmacia e Insumos
-    ├── coverage/                   # 📄 Solo diseño — Aseguradoras y Coberturas
-    ├── billing/                    # 📄 Solo diseño — Facturación
-    ├── legal_archive/              # 📄 Solo diseño — Archivo Legal y Auditoría
-    └── communication/              # 📄 Solo diseño — Notificaciones y Alertas
+└── crates/                         # Un crate por contexto acotado; estado de cada uno en §2
 ```
 
 Cada crate implementado sigue la misma estructura interna: `src/domain/`, `src/application/`,
@@ -320,23 +307,23 @@ este archivo (§1.3 y §3); las reglas funcionales de cada dominio viven en su c
 
 Leyenda de estado: ✅ implementado · 🚧 andamiaje (miembro del workspace, sin dominio) · 📄 solo diseño (sin `Cargo.toml` ni código).
 
-| Bounded Context | Crate | Estado | Recurso FHIR Mapeado | Documentación dedicada |
-| :--- | :--- | :--- | :--- | :--- |
-| **Casos de Uso e Identidad** | N/A | — | Flujos de Identidad y Registro | [backend/docs/use_cases.md](docs/use_cases.md) |
-| **Núcleo Compartido** | `backend/crates/core` | ✅ | Value Objects FHIR, `UseCase`, `ClickCareError`, eventos | [backend/crates/core/AGENTS.md](crates/core/AGENTS.md) |
-| **Identity & Security** | `backend/crates/user` | ✅ | `Person` + `User` | [backend/crates/user/AGENTS.md](crates/user/AGENTS.md) |
-| **Gestión Administrativa** | `backend/crates/administration` | ✅ | `Patient`, `Practitioner`, `Organization` | [backend/crates/administration/AGENTS.md](crates/administration/AGENTS.md) |
-| **Expediente de Pacientes** | `backend/crates/patient` | 🚧 | `Patient` (solapa con `administration`) | [backend/crates/patient/AGENTS.md](crates/patient/AGENTS.md) |
-| **Clínica** | `backend/crates/clinic` | 🚧 | `Organization` (solapa con `administration`) | [backend/crates/clinic/AGENTS.md](crates/clinic/AGENTS.md) |
-| **Administración de Clínica** | `backend/crates/clinic_admin` | 🚧 | Rol de administrador (solapa con `user.is_owner`) | [backend/crates/clinic_admin/AGENTS.md](crates/clinic_admin/AGENTS.md) |
-| **Reserva de Citas** | `backend/crates/scheduling` | 📄 | `Schedule`, `Slot`, `Appointment` | [backend/crates/scheduling/AGENTS.md](crates/scheduling/AGENTS.md) |
-| **Historia Clínica** | `backend/crates/clinical` | 📄 | `Encounter`, `Condition`, `AllergyIntolerance`, `CarePlan`, `MedicationRequest`, `Questionnaire` | [backend/crates/clinical/AGENTS.md](crates/clinical/AGENTS.md) |
-| **Laboratorio e Imágenes** | `backend/crates/diagnostics` | 📄 | `ServiceRequest`, `Observation`, `DiagnosticReport`, `ImagingStudy`, `Specimen` | [backend/crates/diagnostics/AGENTS.md](crates/diagnostics/AGENTS.md) |
-| **Farmacia e Insumos** | `backend/crates/pharmacy` | 📄 | `Medication`, `MedicationDispense`, `MedicationAdministration`, `SupplyRequest` / `SupplyDelivery` | [backend/crates/pharmacy/AGENTS.md](crates/pharmacy/AGENTS.md) |
-| **Aseguradoras y Coberturas** | `backend/crates/coverage` | 📄 | `Coverage`, `Claim`, `ClaimResponse`, `CoverageEligibilityRequest` | [backend/crates/coverage/AGENTS.md](crates/coverage/AGENTS.md) |
-| **Facturación** | `backend/crates/billing` | 📄 | `Account`, `Invoice`, `ChargeItem` | [backend/crates/billing/AGENTS.md](crates/billing/AGENTS.md) |
-| **Archivo Legal y Auditoría** | `backend/crates/legal_archive` | 📄 | `Composition`, `DocumentReference`, `AuditEvent`, `Provenance` | [backend/crates/legal_archive/AGENTS.md](crates/legal_archive/AGENTS.md) |
-| **Notificaciones y Alertas** | `backend/crates/communication` | 📄 | `Communication`, `CommunicationRequest`, `Flag` | [backend/crates/communication/AGENTS.md](crates/communication/AGENTS.md) |
+| Bounded Context               | Crate                           | Estado | Recurso FHIR Mapeado                                                                               | Documentación dedicada                                                     |
+|:------------------------------|:--------------------------------|:-------|:---------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------|
+| **Casos de Uso e Identidad**  | N/A                             | —      | Flujos de Identidad y Registro                                                                     | [backend/docs/use_cases.md](docs/use_cases.md)                             |
+| **Núcleo Compartido**         | `backend/crates/core`           | ✅     | Value Objects FHIR, `ClickCareError`, eventos                                                      | [backend/crates/core/AGENTS.md](crates/core/AGENTS.md)                     |
+| **Identity & Security**       | `backend/crates/user`           | ✅     | `Person` + `User`                                                                                  | [backend/crates/user/AGENTS.md](crates/user/AGENTS.md)                     |
+| **Gestión Administrativa**    | `backend/crates/administration` | ✅     | `Patient`, `Practitioner`, `Organization`                                                          | [backend/crates/administration/AGENTS.md](crates/administration/AGENTS.md) |
+| **Expediente de Pacientes**   | `backend/crates/patient`        | 🚧     | `Patient` (solapa con `administration`)                                                            | [backend/crates/patient/AGENTS.md](crates/patient/AGENTS.md)               |
+| **Clínica**                   | `backend/crates/clinic`         | 🚧     | `Organization` (solapa con `administration`)                                                       | [backend/crates/clinic/AGENTS.md](crates/clinic/AGENTS.md)                 |
+| **Administración de Clínica** | `backend/crates/clinic_admin`   | 🚧     | Rol de administrador (solapa con `user.is_owner`)                                                  | [backend/crates/clinic_admin/AGENTS.md](crates/clinic_admin/AGENTS.md)     |
+| **Reserva de Citas**          | `backend/crates/scheduling`     | 📄     | `Schedule`, `Slot`, `Appointment`                                                                  | [backend/crates/scheduling/AGENTS.md](crates/scheduling/AGENTS.md)         |
+| **Historia Clínica**          | `backend/crates/clinical`       | 📄     | `Encounter`, `Condition`, `AllergyIntolerance`, `CarePlan`, `MedicationRequest`, `Questionnaire`   | [backend/crates/clinical/AGENTS.md](crates/clinical/AGENTS.md)             |
+| **Laboratorio e Imágenes**    | `backend/crates/diagnostics`    | 📄     | `ServiceRequest`, `Observation`, `DiagnosticReport`, `ImagingStudy`, `Specimen`                    | [backend/crates/diagnostics/AGENTS.md](crates/diagnostics/AGENTS.md)       |
+| **Farmacia e Insumos**        | `backend/crates/pharmacy`       | 📄     | `Medication`, `MedicationDispense`, `MedicationAdministration`, `SupplyRequest` / `SupplyDelivery` | [backend/crates/pharmacy/AGENTS.md](crates/pharmacy/AGENTS.md)             |
+| **Aseguradoras y Coberturas** | `backend/crates/coverage`       | 📄     | `Coverage`, `Claim`, `ClaimResponse`, `CoverageEligibilityRequest`                                 | [backend/crates/coverage/AGENTS.md](crates/coverage/AGENTS.md)             |
+| **Facturación**               | `backend/crates/billing`        | 📄     | `Account`, `Invoice`, `ChargeItem`                                                                 | [backend/crates/billing/AGENTS.md](crates/billing/AGENTS.md)               |
+| **Archivo Legal y Auditoría** | `backend/crates/legal_archive`  | 📄     | `Composition`, `DocumentReference`, `AuditEvent`, `Provenance`                                     | [backend/crates/legal_archive/AGENTS.md](crates/legal_archive/AGENTS.md)   |
+| **Notificaciones y Alertas**  | `backend/crates/communication`  | 📄     | `Communication`, `CommunicationRequest`, `Flag`                                                    | [backend/crates/communication/AGENTS.md](crates/communication/AGENTS.md)   |
 
 ---
 
@@ -384,22 +371,28 @@ Leyenda de estado: ✅ implementado · 🚧 andamiaje (miembro del workspace, si
    * Los Casos de Uso **deben** mapear explícitamente esos campos planos a Value Objects ricos del dominio FHIR (`Person`, `HumanName`, `ContactPoint`) al entrar a la capa de dominio.
    * **Nunca filtrar estructuras planas de DTOs dentro de entidades de dominio**, ni al revés: una entidad de dominio no se serializa tal cual hacia la API.
 
-10. **Estructura y Contratos de Casos de Uso (`model::*` y `dyn UseCase`)**
-    * **Contrato tipado con Type Alias**: Cada caso de uso define su contrato público como un alias de tipo sobre el trait base `app_core::application::UseCase`:
+10. **Estructura y Contratos de Casos de Uso (`model::*` y struct concreto)**
+    * **Sin trait ni alias para casos de uso**: Cada caso de uso es un struct concreto con un método `execute` inherente. No definir `dyn UseCase`, aliases de tipo ni traits por caso de uso. Un trait solo existe para **puertos de salida** (repositorios, publicadores de eventos, servicios externos), que sí tienen implementaciones reales y mocks.
      ```rust
-     pub type CreateUserUseCase = dyn UseCase<
-         Command = CreateUserCommand,
-         Response = CreateUserResponse,
-         Error = CreateUserError,
-     >;
+     pub struct CreateUserUseCase {
+         pub(crate) user_repository: Arc<dyn UserRepository>,
+         pub(crate) event_publisher: Arc<dyn IntegrationEventPublisher>,
+     }
+
+     impl CreateUserUseCase {
+         pub async fn execute(
+             &self,
+             command: CreateUserCommand,
+         ) -> Result<CreateUserResponse, CreateUserError> { /* ... */ }
+     }
      ```
-     No crear traits intermedios vacíos (`trait Foo: UseCase {}`) salvo que requieran métodos de dominio adicionales.
+    * **Motivo**: el trait por caso de uso añadía indirección (el IDE no puede saltar a la implementación real desde `di.rs`) sin beneficio, porque ningún caso de uso tiene más de una implementación. Si un adaptador necesita sustituir un caso de uso, se extrae un trait en ese momento.
     * **Agrupación en submódulo `pub mod model`**: Las tres estructuras que definen el contrato de datos del caso de uso deben residir juntas dentro de un submódulo `pub mod model`:
      * `Command`: Struct plano con los parámetros de entrada requeridos para la acción.
      * `Response`: Struct plano con los resultados producidos tras una ejecución exitosa.
      * `Error`: Enum específico del caso de uso derivando `thiserror::Error` (o implementando `From<ClickCareError>`), que modela de forma exhaustiva las fallas esperadas y técnicas.
-    * **Implementación desacoplada (`Impl`)**: El struct ejecutor (`pub(crate) struct <Nombre>UseCaseImpl`) implementa directamente `#[async_trait] impl UseCase for <Nombre>UseCaseImpl`.
-    * **Inyección en `di.rs`**: El contenedor `DI` expone el caso de uso como `pub <nombre>_use_case: Arc<<Nombre>UseCase>`.
+    * **Inyección en `di.rs`**: El contenedor `DI` expone el caso de uso con su tipo concreto: `pub <nombre>_use_case: Arc<<Nombre>UseCase>`.
+    * **Legado**: `crates/administration` (`CreateClinicUseCaseImpl`) aún usa el trait `UseCase` de `core`. Migrarlo a esta convención cuando se toque ese caso de uso.
     * **Consumo e importación limpia**: Los adaptadores externos (controladores gRPC en `bin/clickcare`, workers o tests) consumen el contrato importándolo limpiamente:
      ```rust
      use <crate>::application::<nombre>_usecase::{
@@ -469,12 +462,12 @@ cargo clippy --workspace -- -D warnings
 
 ## 7. Entorno e Infraestructura Local
 
-* **Variable requerida**: `PG_URL` (URL de conexión a PostgreSQL), cargada desde `.env` vía `dotenvy`. Si no está definida, el DI cae al valor por defecto `postgres://user:password@localhost:5432`.
+* **Variable requerida**: `DATABASE_URL` (URL de conexión a PostgreSQL), cargada desde `.env` vía `dotenvy`. `PG_URL` se acepta como respaldo. Si ninguna está definida, el DI cae al valor por defecto `postgres://user:password@localhost:5432`.
 * **Secretos**: **no commitear credenciales**. Usar un `.env.example` como plantilla y mantener `.env` fuera del control de versiones.
 * **Servicios locales**: `backend/devops/postgres.yaml` y `backend/devops/tempo.yaml` levantan los servicios; `backend/devops/simulate_telemetry.nu` genera telemetría de prueba.
 * **Esquema SQL**: `backend/ddl/table.sql` (modelo en `backend/ddl/schema.dbml`). Las columnas de clave primaria usan `uuidv7()` como valor por defecto.
 * **Cola de eventos**: el esquema `apalis` lo crean las migraciones embebidas de `apalis-postgres` al construir el DI (`PostgresStorage::setup`). No se versiona en `backend/ddl/`.
-* **Servidor**: escucha en `[::1]:50051` con soporte gRPC-Web y reflexión habilitada.
+* **Servidor**: escucha en `0.0.0.0:50051` con soporte gRPC-Web y reflexión habilitada.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:970c3bf2 -->
 ## Beads Issue Tracker
