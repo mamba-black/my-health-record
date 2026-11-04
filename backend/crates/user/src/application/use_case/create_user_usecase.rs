@@ -3,7 +3,6 @@ use crate::application::dto::create_user::*;
 use crate::domain::user::Identifier::DNI;
 use crate::domain::user::user_repository::UserRepository;
 use crate::domain::user::{SignUpIntent, User};
-use app_core::application::UseCase;
 use app_core::application::integration::event_publisher::IntegrationEventPublisher;
 use app_core::domain::error::ClickCareError;
 use app_core::domain::event::{FounderRegistered, UserCreatedEvent};
@@ -16,20 +15,16 @@ use uuid::Uuid;
 ///
 /// Valida la no existencia previa del documento de identidad y del correo electrónico
 /// en el ámbito de la red médica (`network_id`), persiste la cuenta y emite el evento `UserCreatedEvent`.
-pub type CreateUserUseCase = dyn UseCase<Command = CreateUserCommand, Response = CreateUserResponse, Error = CreateUserError>;
-
-pub(crate) struct CreateUserUseCaseImpl {
+pub struct CreateUserUseCase {
     pub(crate) user_repository: Arc<dyn UserRepository>,
     pub(crate) event_publisher: Arc<dyn IntegrationEventPublisher>,
 }
 
-#[async_trait]
-impl UseCase for CreateUserUseCaseImpl {
-    type Command = CreateUserCommand;
-    type Response = CreateUserResponse;
-    type Error = CreateUserError;
-
-    async fn execute(&self, command: Self::Command) -> Result<Self::Response, Self::Error> {
+impl CreateUserUseCase {
+    pub async fn execute(
+        &self,
+        command: CreateUserCommand,
+    ) -> Result<CreateUserResponse, CreateUserError> {
         let user_exists_by_document = match &command.identifier {
             Some(DNI(value)) => self
                 .user_repository
@@ -205,7 +200,7 @@ mod tests {
             saved_users: Mutex::new(Vec::new()),
         });
         let publisher = Arc::new(RecordingEventPublisher::default());
-        let use_case = CreateUserUseCaseImpl {
+        let use_case = CreateUserUseCase {
             user_repository: repo.clone(),
             event_publisher: publisher.clone(),
         };
@@ -244,7 +239,7 @@ mod tests {
             saved_users: Mutex::new(Vec::new()),
         });
         let publisher = Arc::new(RecordingEventPublisher::default());
-        let use_case = CreateUserUseCaseImpl {
+        let use_case = CreateUserUseCase {
             user_repository: repo.clone(),
             event_publisher: publisher.clone(),
         };
@@ -275,7 +270,7 @@ mod tests {
             saved_users: Mutex::new(Vec::new()),
         });
         let publisher = Arc::new(RecordingEventPublisher::default());
-        let use_case = CreateUserUseCaseImpl {
+        let use_case = CreateUserUseCase {
             user_repository: repo.clone(),
             event_publisher: publisher.clone(),
         };
@@ -306,7 +301,7 @@ mod tests {
             saved_users: Mutex::new(Vec::new()),
         });
         let publisher = Arc::new(RecordingEventPublisher::default());
-        let use_case = CreateUserUseCaseImpl {
+        let use_case = CreateUserUseCase {
             user_repository: repo.clone(),
             event_publisher: publisher.clone(),
         };
@@ -332,7 +327,7 @@ mod tests {
             saved_users: Mutex::new(Vec::new()),
         });
         let publisher = Arc::new(RecordingEventPublisher::default());
-        let use_case = CreateUserUseCaseImpl {
+        let use_case = CreateUserUseCase {
             user_repository: repo.clone(),
             event_publisher: publisher.clone(),
         };
@@ -364,7 +359,7 @@ mod tests {
             saved_users: Mutex::new(Vec::new()),
         });
         let publisher = Arc::new(RecordingEventPublisher::default());
-        let use_case = CreateUserUseCaseImpl {
+        let use_case = CreateUserUseCase {
             user_repository: repo.clone(),
             event_publisher: publisher.clone(),
         };
@@ -392,7 +387,7 @@ mod tests {
             saved_users: Mutex::new(Vec::new()),
         });
         let publisher = Arc::new(RecordingEventPublisher::default());
-        let use_case = CreateUserUseCaseImpl {
+        let use_case = CreateUserUseCase {
             user_repository: repo.clone(),
             event_publisher: publisher.clone(),
         };
@@ -418,7 +413,7 @@ mod tests {
             saved_users: Mutex::new(Vec::new()),
         });
         let publisher = Arc::new(RecordingEventPublisher::default());
-        let use_case = CreateUserUseCaseImpl {
+        let use_case = CreateUserUseCase {
             user_repository: repo.clone(),
             event_publisher: publisher.clone(),
         };

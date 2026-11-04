@@ -1,6 +1,6 @@
 use crate::application::integration::service::token_service::TokenService;
-use crate::application::use_case::create_user_usecase::{CreateUserUseCase, CreateUserUseCaseImpl};
-use crate::application::use_case::sign_in_usecase::{SignInUseCase, SignInUseCaseImpl};
+use crate::application::use_case::create_user_usecase::CreateUserUseCase;
+use crate::application::use_case::sign_in_usecase::SignInUseCase;
 use crate::domain::user::user_repository::UserRepository;
 use crate::infrastructure::integration::event::apalis_publisher::ApalisIntegrationEventPublisherImpl;
 use crate::infrastructure::integration::event::logging_publisher::LoggingIntegrationEventPublisherImpl;
@@ -98,11 +98,11 @@ pub async fn new_with_overrides(
         };
 
     // ── use cases ────────────────────────────────────────────────────────────
-    let create_user_use_case = Arc::new(CreateUserUseCaseImpl {
+    let create_user_use_case = Arc::new(CreateUserUseCase {
         user_repository: Arc::clone(&user_repository),
         event_publisher: Arc::clone(&event_publisher),
     });
-    let sign_in_use_case = Arc::new(SignInUseCaseImpl {
+    let sign_in_use_case = Arc::new(SignInUseCase {
         user_repository: Arc::clone(&user_repository),
         token_service: Arc::clone(&token_service),
     });

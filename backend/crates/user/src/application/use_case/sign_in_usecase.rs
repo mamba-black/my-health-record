@@ -1,29 +1,19 @@
 use crate::application::dto::sign_in::{SignInCommand, SignInError, SignInResponse};
 use crate::application::integration::service::token_service::TokenService;
 use crate::domain::user::user_repository::UserRepository;
-use app_core::application::UseCase;
 use app_core::domain::error::ClickCareError;
-use async_trait::async_trait;
 use std::sync::Arc;
 use tracing::{debug, warn};
 
 /// Caso de uso para autenticar un usuario existente en una red médica (`network_id`)
 /// mediante un token de identidad OAuth/OIDC (`id_token`).
-pub type SignInUseCase =
-    dyn UseCase<Command = SignInCommand, Response = SignInResponse, Error = SignInError>;
-
-pub(crate) struct SignInUseCaseImpl {
+pub struct SignInUseCase {
     pub(crate) user_repository: Arc<dyn UserRepository>,
     pub(crate) token_service: Arc<dyn TokenService>,
 }
 
-#[async_trait]
-impl UseCase for SignInUseCaseImpl {
-    type Command = SignInCommand;
-    type Response = SignInResponse;
-    type Error = SignInError;
-
-    async fn execute(&self, command: Self::Command) -> Result<Self::Response, Self::Error> {
+impl SignInUseCase {
+    pub async fn execute(&self, command: SignInCommand) -> Result<SignInResponse, SignInError> {
         if command.id_token.trim().is_empty() {
             return Err(SignInError::InvalidToken(ClickCareError::generic(
                 "El id_token es obligatorio para iniciar sesión".to_string(),
@@ -145,7 +135,7 @@ mod tests {
         });
 
         let token_service = Arc::new(MockTokenServiceImpl);
-        let use_case = SignInUseCaseImpl {
+        let use_case = SignInUseCase {
             user_repository,
             token_service,
         };
@@ -189,7 +179,7 @@ mod tests {
             saved_users: Mutex::new(vec![user_in_network_a]),
         });
         let token_service = Arc::new(MockTokenServiceImpl);
-        let use_case = SignInUseCaseImpl {
+        let use_case = SignInUseCase {
             user_repository,
             token_service,
         };
@@ -210,7 +200,7 @@ mod tests {
             saved_users: Mutex::new(Vec::new()),
         });
         let token_service = Arc::new(MockTokenServiceImpl);
-        let use_case = SignInUseCaseImpl {
+        let use_case = SignInUseCase {
             user_repository,
             token_service,
         };
