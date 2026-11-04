@@ -99,7 +99,6 @@ bun run check           # Verificación de tipos con svelte-check
    * Se prefieren scripts escritos en **Nushell (`.nu`)** para automatización de tareas y DevOps.
 2. **Commits y Pull Requests**:
    * Formato Conventional Commits (`feat:`, `fix:`, `refactor:`, `chore:`, etc.).
-   * **Obligatorio**: Todo commit generado o asistido por IA debe incluir la marca **`[antigravity]`** (ejemplo: `feat(user): [antigravity] add user domain model`).
 3. **Seguimiento de Tareas**:
    * Usar **`bd` (Beads)** para gestión de tareas e issues. No usar TODOs informales en markdown.
 

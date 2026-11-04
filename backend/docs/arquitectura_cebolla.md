@@ -94,7 +94,8 @@ Lista de My Health Record (backend):
 | :--------------- | :--------------------------- | :------------------------- | :---------------------------------------------------------- |
 | `log`            | Fachada de logging           | casos de uso               | Avisos y trazas                                             |
 | `tracing`        | Fachada de logging con spans | casos de uso               | Trazas estructuradas; se permite como alternativa a `log`   |
-| `uuid`           | Estándar (RFC 4122)          | entidades, identificadores | Identidad de entidades. Con la feature `v7` la generación depende del reloj y de la aleatoriedad: inyectarla o generarla en `infrastructure` |
+| `uuid`           | Estándar (RFC 4122)          | entidades, identificadores | Identidad de entidades                                      |
+| `uuid_v7`        | Estándar (RFC 9562 / UUIDv7) | entidades, casos de uso    | Identidad y generación de UUIDv7 (`Uuid::now_v7()`) para claves primarias ordenables temporalmente |
 | `derive_getters` | Quita código repetitivo      | entidades                  | Equivalente a `@Getter` de Lombok                           |
 | `bon`            | Quita código repetitivo      | entidades                  | Equivalente a `@Builder` de Lombok. El builder debe pasar por las validaciones de invariantes                                                |
 | `strum_macros`   | Quita código repetitivo      | enums de dominio           | `Display` para enums, sin cambiar el significado del modelo |

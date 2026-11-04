@@ -13,6 +13,7 @@ const ALLOWED_EXTERNAL: &[&str] = &[
     "log",
     "tracing",
     "uuid",
+    "uuid_v7",
     "derive_getters",
     "bon",
     "strum_macros",
