@@ -211,3 +211,11 @@ backend/docs/fhir_json
 
 # Beads / Dolt files (added by bd init)
 *.gate.lock*
+
+
+.idea
+.agents
+.claude
+.codex
+.cursor
+.gemini
