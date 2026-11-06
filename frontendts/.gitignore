@@ -25,5 +25,7 @@ build
 *.sw?
 
 .svelte-kit
+test-results
+playwright-report
 frontendrs
 123

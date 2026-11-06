@@ -8,10 +8,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test:e2e": "playwright test",
     "proto": "mkdir -p ./src/shared/api/grpc/generated && protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --ts_out=./src/shared/api/grpc/generated --ts_opt=long_type_string --proto_path=../proto ../proto/api.proto"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.6",
+    "@playwright/test": "1.64.1",
     "@protobuf-ts/plugin": "^2.11.1",
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.46.5",

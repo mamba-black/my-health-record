@@ -80,4 +80,7 @@ bun install      # Instalar dependencias
 bun run dev      # Servidor de desarrollo Vite
 bun run check    # Tipos de SvelteKit y svelte-check
 bun run build    # Build estático de producción
+bun run test:e2e # Pruebas e2e con Playwright (e2e/); levanta Vite si no está corriendo
 ```
+
+Las pruebas e2e de búsqueda requieren el backend en `:50051`. La primera vez instala el navegador con `bun x playwright install chromium`.
