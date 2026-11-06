@@ -27,7 +27,7 @@ use app_core::infrastructure::transport::UserCreatedEventDto;
 use std::env::var;
 use std::sync::Arc;
 use toasty::{Db, models};
-use tracing::{debug, info};
+use tracing::{info, trace};
 
 /// Número de reintentos ante un fallo del handler antes de marcar la tarea como fallida.
 const MAX_RETRIES: usize = 3;
@@ -68,7 +68,7 @@ pub struct DI {
 /// agregado.
 pub async fn new(database_type: DBType) -> Result<DI, ClickCareError> {
     let database_url = resolve_db_url(database_type);
-    debug!("URL de la base de datos: {database_url}");
+    trace!("URL de la base de datos: {database_url}");
 
     let storage = build_event_storage(&database_url).await?;
     let state = build_state(&database_url).await?;

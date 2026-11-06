@@ -11,8 +11,8 @@ use app_core::domain::error::ClickCareError;
 use std::env::var;
 use std::sync::Arc;
 use toasty::{Db, models};
-use tracing::debug;
 use tracing::error;
+use tracing::trace;
 
 // ─── DI container ───────────────────────────────────────────────────────────
 
@@ -142,7 +142,7 @@ async fn build_user_repository(
         ));
     };
 
-    debug!("URL de la base de datos: {database_url_str}");
+    trace!("URL de la base de datos: {database_url_str}");
     let db: Db = toasty::Db::builder()
         .models(models!(UserAccount))
         .connect(database_url_str)
