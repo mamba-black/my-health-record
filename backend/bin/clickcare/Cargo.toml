@@ -7,6 +7,10 @@ authors.workspace = true
 [lints]
 workspace = true
 
+[features]
+# Permite a las pruebas e2e usar claves de prueba en lugar de las de Google.
+test-support = ["user/test-support"]
+
 [dependencies]
 app_core.workspace = true
 administration.workspace = true

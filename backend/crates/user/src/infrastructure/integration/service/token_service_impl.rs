@@ -44,10 +44,22 @@ impl TokenService for TokenServiceImpl {
             .map_err(|err| SignInError::UnknownError(ClickCareError::generic(err.to_string())))?;
         let parser = self
             .parser
-            .get_or_init(|| Parser::new(google_client_id.as_str()));
+            .get_or_init(|| build_parser(google_client_id.as_str()));
 
         verify_id_token(parser, id_token).await
     }
+}
+
+/// Crea el verificador de tokens de Google.
+///
+/// `GOOGLE_JWKS_URL` permite confiar en otras claves, por eso solo se compila para las pruebas e2e.
+fn build_parser(google_client_id: &str) -> Parser {
+    #[cfg(feature = "test-support")]
+    if let Ok(jwks_url) = std::env::var("GOOGLE_JWKS_URL") {
+        return Parser::new_with_custom_cert_url(google_client_id, jwks_url.as_str());
+    }
+
+    Parser::new(google_client_id)
 }
 
 /// Verifica firma, audiencia, emisor y expiración del token, y devuelve su `email`.

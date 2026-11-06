@@ -70,7 +70,8 @@ pub async fn start_server(
         .layer(axum::middleware::from_fn(grpc_web_cors_middleware));
 
     let listener = {
-        let addr: std::net::SocketAddr = "0.0.0.0:50051".parse().map_err(|e| {
+        let port = std::env::var("CLICKCARE_PORT").unwrap_or_else(|_| "50051".to_string());
+        let addr: std::net::SocketAddr = format!("0.0.0.0:{port}").parse().map_err(|e| {
             ClickCareError::generic(format!("Error al parsear la direccion del servidor: {}", e))
         })?;
 
