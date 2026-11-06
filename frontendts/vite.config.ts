@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
+  cacheDir: process.env.VITE_CACHE_DIR,
   plugins: [
     sveltekit(),
     tailwindcss(),
