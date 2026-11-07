@@ -32,6 +32,52 @@ pub fn test_session_service() -> JwtSessionServiceImpl {
     JwtSessionServiceImpl::new(TEST_SESSION_SECRET.to_vec(), 300, 3600)
 }
 
+/// Nombre fijo del contenedor de Postgres de las pruebas de integración.
+const TEST_CONTAINER_NAME: &str = "clickcare-test";
+
+/// Borra el contenedor de pruebas anterior, si existe. Prueba con podman y, si no está
+/// instalado, con docker; que no exista el contenedor no es un error.
+fn remove_test_container() {
+    for engine in ["podman", "docker"] {
+        let removed = std::process::Command::new(engine)
+            .args(["rm", "-f", TEST_CONTAINER_NAME])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status();
+        if removed.is_ok() {
+            return;
+        }
+    }
+}
+
+/// Programa el borrado del contenedor para cuando termine el último proceso de
+/// prueba que lo usa.
+///
+/// Cada proceso de prueba toma un lock compartido sobre `users_lock` mientras vive.
+/// El vigilante, un proceso aparte, pide ese mismo lock en exclusiva: lo obtiene
+/// solo cuando ya no queda ningún proceso de prueba, y entonces borra el contenedor
+/// y la caché. Se puede conservar el contenedor para revisarlo a mano con
+/// `CLICKCARE_KEEP_TEST_DB=1`.
+fn schedule_test_container_cleanup(users_lock: &std::path::Path, pg_cache: &std::path::Path) {
+    if std::env::var_os("CLICKCARE_KEEP_TEST_DB").is_some() {
+        info!("CLICKCARE_KEEP_TEST_DB definido: el contenedor {TEST_CONTAINER_NAME} se conserva");
+        return;
+    }
+    let cleanup = format!(
+        "flock -x '{users}' sh -c '(podman rm -f {name} || docker rm -f {name}); rm -f \"{cache}\"'",
+        users = users_lock.display(),
+        name = TEST_CONTAINER_NAME,
+        cache = pg_cache.display(),
+    );
+    let _ = std::process::Command::new("sh")
+        .arg("-c")
+        .arg(format!("({cleanup}) >/dev/null 2>&1 &"))
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn();
+}
+
 #[fixture]
 pub async fn test_env() -> &'static TestEnv {
     debug!("llamando a test_env()");
@@ -42,6 +88,24 @@ pub async fn test_env() -> &'static TestEnv {
 
             let pg_cache_path = std::env::temp_dir().join("clickcare_pg_env.txt");
             let pg_lock_path = std::env::temp_dir().join("clickcare_pg.lock");
+            let users_lock_path = std::env::temp_dir().join("clickcare_pg_users.lock");
+
+            // Este proceso usa el contenedor hasta que termina: el lock compartido se
+            // suelta solo al salir, porque el archivo no se cierra nunca. Se toma antes
+            // de mirar la caché, así un borrado en curso termina antes de reutilizarla.
+            let users_lock = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .truncate(false)
+                .open(&users_lock_path)
+                .expect("Fallo al abrir el lock de usuarios de Postgres");
+            #[cfg(unix)]
+            unsafe {
+                use std::os::unix::io::AsRawFd;
+                libc::flock(users_lock.as_raw_fd(), libc::LOCK_SH);
+            }
+            std::mem::forget(users_lock);
 
             async fn check_pg_active(pg_conn: &str) -> bool {
                 let clean = pg_conn.trim();
@@ -58,97 +122,73 @@ pub async fn test_env() -> &'static TestEnv {
                 false
             }
 
-            // 1. Compartir una única instancia de Postgres entre todos los procesos
-            let pg_connection_string: String = 'init_db: {
-                if let Ok(cached_pg) = std::fs::read_to_string(&pg_cache_path) {
-                    let pg_conn = cached_pg.trim().to_string();
-                    if check_pg_active(&pg_conn).await {
-                        info!("Reutilizando contenedor de Postgres activo en {pg_conn}");
-                        break 'init_db pg_conn;
-                    }
+            // 1. Compartir una única instancia de Postgres entre los procesos de prueba.
+            //    El contenedor tiene nombre fijo y testcontainers no lo borra al salir
+            //    (`mem::forget`), porque otro proceso puede estar usándolo. Lo borra el
+            //    vigilante de `schedule_test_container_cleanup` cuando termina el último
+            //    proceso. Si queda uno anterior que no responde, se reemplaza.
+            let lock_file = std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .truncate(false)
+                .open(&pg_lock_path)
+                .expect("Fallo al abrir lock de Postgres");
+
+            #[cfg(unix)]
+            unsafe {
+                use std::os::unix::io::AsRawFd;
+                libc::flock(lock_file.as_raw_fd(), libc::LOCK_EX);
+            }
+
+            let cached = std::fs::read_to_string(&pg_cache_path)
+                .ok()
+                .map(|cached| cached.trim().to_string());
+            let pg_connection_string = match cached {
+                Some(pg_conn) if check_pg_active(&pg_conn).await => {
+                    info!("Reutilizando el contenedor de Postgres {TEST_CONTAINER_NAME}");
+                    pg_conn
                 }
+                _ => {
+                    remove_test_container();
 
-                let lock_file = std::fs::OpenOptions::new()
-                    .read(true)
-                    .write(true)
-                    .create(true)
-                    .truncate(false)
-                    .open(&pg_lock_path)
-                    .expect("Fallo al abrir lock de Postgres");
+                    tracing::debug!("== INICIANDO CONTENEDOR POSTGRES COMPARTIDO ==");
+                    let user = "admin";
+                    let password = "admin123";
+                    let pg_container = postgres::Postgres::default()
+                        .with_user(user)
+                        .with_password(password)
+                        .with_tag("18")
+                        .with_container_name(TEST_CONTAINER_NAME)
+                        .start()
+                        .await
+                        .unwrap();
+                    info!("Container INICIADO");
 
-                #[cfg(unix)]
-                unsafe {
-                    use std::os::unix::io::AsRawFd;
-                    libc::flock(lock_file.as_raw_fd(), libc::LOCK_EX);
+                    let host_port = pg_container.get_host_port_ipv4(5432).await.unwrap();
+                    std::mem::forget(pg_container);
+                    format!(
+                        "postgres://{}:{}@127.0.0.1:{host_port}/postgres?options=-c%20search_path%3Didentity%2Cpublic",
+                        user, password
+                    )
                 }
-
-                if let Ok(cached_pg) = std::fs::read_to_string(&pg_cache_path) {
-                    let pg_conn = cached_pg.trim().to_string();
-                    if check_pg_active(&pg_conn).await {
-                        #[cfg(unix)]
-                        unsafe {
-                            use std::os::unix::io::AsRawFd;
-                            libc::flock(lock_file.as_raw_fd(), libc::LOCK_UN);
-                        }
-                        break 'init_db pg_conn;
-                    }
-                }
-
-                tracing::debug!("== INICIANDO CONTENEDOR POSTGRES COMPARTIDO ==");
-                let user = "admin";
-                let password = "admin123";
-                let timestamp = jiff::Timestamp::now()
-                    .strftime("%Y%m%d%H%M%S%f")
-                    .to_string();
-                let container_name = format!("clickcare-test-{}", timestamp);
-
-                let pg_container = postgres::Postgres::default()
-                    .with_user(user)
-                    .with_password(password)
-                    .with_tag("18")
-                    .with_container_name(container_name.clone())
-                    .start()
-                    .await
-                    .unwrap();
-                info!("Container INICIADO");
-
-                let host_port = pg_container.get_host_port_ipv4(5432).await.unwrap();
-                let pg_conn = format!(
-                    "postgres://{}:{}@127.0.0.1:{host_port}/postgres?options=-c%20search_path%3Didentity%2Cpublic",
-                    user, password
-                );
-
-                // El esquema sale de las mismas migraciones que aplica el servidor al
-                // arrancar. Se migra antes de publicar la URL en la caché para que los
-                // otros procesos de prueba nunca vean una base a medio crear.
-                clickcare::infrastructure::migration::run(&pg_conn)
-                    .await
-                    .expect("Fallo al aplicar las migraciones en el contenedor de pruebas");
-
-                let _ = std::fs::write(&pg_cache_path, &pg_conn);
-
-                #[cfg(unix)]
-                unsafe {
-                    use std::os::unix::io::AsRawFd;
-                    libc::flock(lock_file.as_raw_fd(), libc::LOCK_UN);
-                }
-
-                // Programar la autodestrucción del contenedor y archivos en /tmp tras 10 segundos
-                let cleanup_cmd = format!(
-                    "#sleep 10 && podman rm -f {} && rm -f {} {}",
-                    container_name,
-                    pg_cache_path.display(),
-                    pg_lock_path.display()
-                );
-                let _ = std::process::Command::new("sh")
-                    .arg("-c")
-                    .arg(format!("({}) >/dev/null 2>&1 &", cleanup_cmd))
-                    .spawn();
-
-                std::mem::forget(pg_container);
-
-                pg_conn
             };
+
+            // El esquema sale de las mismas migraciones que aplica el servidor al
+            // arrancar. Se migra siempre, también al reutilizar el contenedor, para que
+            // una migración nueva llegue a la base de pruebas. Va dentro del lock y antes
+            // de publicar la URL, así ningún proceso ve una base a medio migrar.
+            clickcare::infrastructure::migration::run(&pg_connection_string)
+                .await
+                .expect("Fallo al aplicar las migraciones en el contenedor de pruebas");
+            let _ = std::fs::write(&pg_cache_path, &pg_connection_string);
+
+            #[cfg(unix)]
+            unsafe {
+                use std::os::unix::io::AsRawFd;
+                libc::flock(lock_file.as_raw_fd(), libc::LOCK_UN);
+            }
+            schedule_test_container_cleanup(&users_lock_path, &pg_cache_path);
 
             // 2. Cada proceso de test inicia su propio servidor gRPC local (<1ms) conectado a la misma DB
             let server_rt = tokio::runtime::Builder::new_multi_thread()
@@ -521,13 +561,26 @@ mod administration_worker {
         let organization_id =
             organization_id_owned_by(&test_env.pg_connection_string, user_id).await;
 
-        for table in ["practitioner", "patient"] {
+        for table in ["practitioner", "patient", "membership"] {
             assert_eq!(
                 organization_id_of(&test_env.pg_connection_string, table, user_id).await,
                 organization_id,
                 "administration.{table} de user_id={user_id} no apunta a su clínica"
             );
         }
+
+        // Los permisos salen de la membresía: el dueño debe quedar activo en su clínica.
+        assert_eq!(
+            count_rows(
+                &test_env.pg_connection_string,
+                "membership",
+                "role = 'OWNER' AND status = 'ACTIVE' AND user_id",
+                user_id
+            )
+            .await,
+            1,
+            "El worker no dio al usuario user_id={user_id} la membresía de dueño activa"
+        );
     }
 }
 

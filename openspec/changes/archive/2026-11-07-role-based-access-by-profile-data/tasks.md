@@ -50,7 +50,7 @@
 ## 7. Verificación integral y documentación oficial
 
 - [x] 7.1 Ejecutar `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `bun run check` y la suite e2e completa; verificar que todo pasa, salvo los fallos previos documentados en Beads
-- [ ] 7.2 Revisar que cada escenario de las tres especificaciones nuevas y del delta tiene al menos una prueba que lo cubre; verificar con una tabla escenario → prueba en el PR
+- [ ] 7.2 Revisar que cada escenario de las tres especificaciones nuevas y del delta tiene al menos una prueba que lo cubre; verificar con una tabla escenario → prueba en el PR — Pendiente en beads: my-health-record-c2p (escenarios sin API todavía)
 - [x] 7.3 Enlazar las especificaciones desde los `AGENTS.md` de `user`, `administration` y `scheduling`, y quitar las reglas duplicadas; verificar que la tabla de registro progresivo de `crates/user/AGENTS.md` apunta a `identity/progressive-profiling`
 
 ## Workflow follow-up

@@ -451,7 +451,7 @@ cargo clippy --workspace -- -D warnings
 * **Casos parametrizados**: `#[rstest]` con anotaciones `#[case::<etiqueta>]` para que cada escenario quede identificado en la salida.
 * **Pruebas asíncronas**: anotar con `#[rstest]` **y** `#[tokio::test]`; usar `#[future(awt)]` para fixtures asíncronos.
 * **Estado compartido**: `tokio::sync::OnceCell` para singletons asíncronos en módulos de prueba.
-* **Contenedor de Postgres**: se levanta **una sola vez por suite** vía `testcontainers` sobre Podman, y el esquema se crea aplicando las mismas migraciones de `backend/migrations/` que usa el servidor (`clickcare::infrastructure::migration::run`). La exclusión mutua entre procesos de prueba se resuelve con `flock`, y el desmontaje se registra con `#[dtor]`.
+* **Contenedor de Postgres**: hay **uno solo**, `clickcare-test`, levantado vía `testcontainers` sobre Podman y compartido por los procesos de prueba (su URL queda en `$TMPDIR/clickcare_pg_env.txt`). En cada arranque se aplican las mismas migraciones de `backend/migrations/` que usa el servidor (`clickcare::infrastructure::migration::run`). La exclusión mutua al crearlo se resuelve con `flock`. Cada proceso de prueba toma un lock compartido mientras vive, y un vigilante borra el contenedor y la caché cuando termina el último. Para conservarlo y revisarlo a mano: `CLICKCARE_KEEP_TEST_DB=1 cargo test …`; luego se borra con `podman rm -f clickcare-test`.
 * **Antes de dar por terminado un cambio**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings` y `cargo test --workspace` deben pasar.
 
 ---

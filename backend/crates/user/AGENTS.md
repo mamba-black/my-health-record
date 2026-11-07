@@ -33,9 +33,7 @@
 
 ### Registro Progresivo (Progressive Profiling)
 
-La fuente oficial es la especificación [`identity/progressive-profiling`](../../../openspec/specs/identity/progressive-profiling/spec.md)
-(mientras el cambio `role-based-access-by-profile-data` no se archive, está en
-`openspec/changes/role-based-access-by-profile-data/specs/`). Resumen:
+La fuente oficial es la especificación [`identity/progressive-profiling`](../../../openspec/specs/identity/progressive-profiling/spec.md). Resumen:
 
 * Cada rol **ve** todos los datos que llegará a necesitar, pero **ninguno es obligatorio al guardar**: se exigen solo al intentar una acción que los requiere (confirmar cita, activar perfil médico, activar clínica…).
 * El catálogo único dato → roles → acciones vive en `app_core::domain::access::CATALOG`; `User::present_fields()` y `User::missing_for(acción)` lo evalúan para una cuenta.

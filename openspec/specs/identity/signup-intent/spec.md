@@ -7,7 +7,7 @@ Permite a los nuevos usuarios declarar su intención inicial (dueño de clínica
 ## Requirements
 
 ### Requirement: Captura de intención de registro (SignUpIntent) y generación anticipada de organization_id
-El sistema SHALL permitir que un usuario especifique su intención inicial mediante el campo `intent` en `SignUpRequest`. Cuando la intención es `INTENT_CLINIC_OWNER`, el sistema SHALL generar deterministamente un identificador `organization_id` de tipo UUIDv7 de antemano.
+El sistema SHALL permitir que un usuario especifique su intención inicial mediante el campo `intent` en `SignUpRequest`. Cuando la intención es `INTENT_CLINIC_OWNER`, el sistema SHALL generar deterministamente un identificador `organization_id` de tipo UUIDv7 de antemano. El sistema SHALL persistir la intención como rol preferido de la cuenta (ver `identity/role-membership`); la intención no SHALL conceder por sí misma permisos sobre ninguna clínica.
 
 #### Scenario: Registro como Dueño de Clínica con organization_id anticipado
 - **WHEN** un usuario envía `SignUpRequest` con `intent = INTENT_CLINIC_OWNER`
@@ -28,3 +28,7 @@ El sistema SHALL permitir que un usuario especifique su intención inicial media
 #### Scenario: Retrocompatibilidad con create_clinic
 - **WHEN** un cliente legacy envía `SignUpRequest` con `intent = INTENT_UNSPECIFIED` y `create_clinic = true`
 - **THEN** el sistema interpreta la intención como `INTENT_CLINIC_OWNER`, genera el `organization_id` y emite `FounderRegistered`
+
+#### Scenario: La intención se conserva como rol preferido
+- **WHEN** un usuario se registra con `intent = INTENT_PRACTITIONER` y luego inicia sesión
+- **THEN** la respuesta del inicio de sesión indica rol preferido «médico» y el perfil muestra los datos profesionales del catálogo, sin que tenga acceso a pacientes

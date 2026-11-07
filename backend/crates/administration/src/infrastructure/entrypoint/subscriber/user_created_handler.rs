@@ -1,8 +1,10 @@
 use crate::application::state::AdministrationState;
 use crate::domain::clinical_network::ClinicalNetwork;
+use crate::domain::membership::Membership;
 use crate::domain::organization::Organization;
 use crate::domain::patient::Patient;
 use crate::domain::practitioner::Practitioner;
+use app_core::domain::access::{MembershipRole, MembershipStatus};
 use app_core::domain::error::ClickCareError;
 use app_core::domain::event::UserCreatedEvent;
 use tracing::info;
@@ -20,9 +22,9 @@ const PENDING_MEDICAL_LICENSE: &str = "CMP-PENDIENTE";
 /// 1. Si `create_clinic == false`, **no materializa nada**. Toda entidad local de
 ///    este contexto pertenece a una clínica, y un usuario que no crea ninguna no
 ///    tiene todavía a cuál pertenecer.
-/// 2. Si `create_clinic == true`, inicializa la `Organization`, la ficha
-///    `Practitioner` de su dueño y su expediente `Patient`, los tres colgados de
-///    esa clínica.
+/// 2. Si `create_clinic == true`, inicializa la `Organization`, la membresía de
+///    dueño activa (de ella salen sus permisos), la ficha `Practitioner` de su dueño
+///    y su expediente `Patient`, todos colgados de esa clínica.
 ///
 /// Vive en `infrastructure/entrypoint/subscriber`: es el punto de entrada asíncrono que
 /// recibe el mensaje de la cola. Quien la registra en el worker es `infrastructure/config/mod.rs`.
@@ -45,6 +47,7 @@ pub async fn handle_user_created_event(
     }
 
     let organization_id = ensure_organization(&event, state).await?;
+    ensure_owner_membership(&event, state, organization_id).await?;
     create_practitioner_if_absent(&event, state, organization_id).await?;
     create_patient_if_absent(&event, state, organization_id).await?;
 
@@ -97,6 +100,44 @@ async fn ensure_organization(
     );
 
     Ok(organization.id)
+}
+
+/// Da al usuario la membresía de dueño activa de su clínica, salvo que ya la tenga.
+///
+/// Sin ella no tendría permisos sobre la clínica: el acceso sale de las membresías
+/// (`openspec/specs/access-control/role-membership`), no de `owner_user_id`.
+async fn ensure_owner_membership(
+    event: &UserCreatedEvent,
+    state: &AdministrationState,
+    organization_id: Uuid,
+) -> Result<(), ClickCareError> {
+    if state
+        .membership_repository
+        .find(&organization_id, &event.user_id, MembershipRole::Owner)
+        .await?
+        .is_some()
+    {
+        info!(
+            "El usuario user_id={} ya es dueño de la clínica {organization_id}; se omite su membresía",
+            event.user_id
+        );
+        return Ok(());
+    }
+
+    state
+        .membership_repository
+        .insert(&Membership::new(
+            organization_id,
+            event.user_id,
+            MembershipRole::Owner,
+            MembershipStatus::Active,
+        ))
+        .await?;
+    info!(
+        "Membresía de dueño creada en la clínica {organization_id} para user_id={}",
+        event.user_id
+    );
+    Ok(())
 }
 
 /// Crea la ficha del profesional en esa clínica, salvo que ya exista.
@@ -174,9 +215,11 @@ mod test {
     use super::*;
     use crate::domain::clinical_network::ClinicalNetwork;
     use crate::domain::clinical_network::clinical_network_repository::ClinicalNetworkRepository;
+    use crate::domain::membership::membership_repository::MembershipRepository;
     use crate::domain::organization::organization_repository::OrganizationRepository;
     use crate::domain::patient::patient_repository::PatientRepository;
     use crate::domain::practitioner::practitioner_repository::PractitionerRepository;
+    use crate::testing::InMemoryMembershipRepository;
     use app_core::domain::fhir::{HumanName, Person};
     use async_trait::async_trait;
     use std::sync::Arc;
@@ -315,13 +358,14 @@ mod test {
         organization: Arc<SpyRepository>,
         patient: Arc<SpyRepository>,
         practitioner: Arc<SpyRepository>,
+        membership: Arc<InMemoryMembershipRepository>,
     ) -> AdministrationState {
         AdministrationState {
             clinical_network_repository: network,
             organization_repository: organization,
             patient_repository: patient,
             practitioner_repository: practitioner,
-            membership_repository: Arc::new(crate::testing::InMemoryMembershipRepository::default()),
+            membership_repository: membership,
         }
     }
 
@@ -349,6 +393,7 @@ mod test {
         let organization = SpyRepository::empty();
         let patient = SpyRepository::empty();
         let practitioner = SpyRepository::empty();
+        let membership = Arc::new(InMemoryMembershipRepository::default());
 
         handle_user_created_event(
             event_for(false),
@@ -357,6 +402,7 @@ mod test {
                 Arc::clone(&organization),
                 Arc::clone(&patient),
                 Arc::clone(&practitioner),
+                Arc::clone(&membership),
             ),
         )
         .await
@@ -386,14 +432,19 @@ mod test {
         let organization = SpyRepository::empty();
         let patient = SpyRepository::empty();
         let practitioner = SpyRepository::empty();
+        let membership = Arc::new(InMemoryMembershipRepository::default());
+
+        let event = event_for(true);
+        let user_id = event.user_id;
 
         handle_user_created_event(
-            event_for(true),
+            event,
             &state_with(
                 Arc::clone(&network),
                 Arc::clone(&organization),
                 Arc::clone(&patient),
                 Arc::clone(&practitioner),
+                Arc::clone(&membership),
             ),
         )
         .await
@@ -407,6 +458,14 @@ mod test {
             "Debió crear la ficha de profesional"
         );
         assert_eq!(patient.saved_count(), 1, "Debió crear el expediente");
+
+        let memberships = membership
+            .find_by_user(&user_id)
+            .await
+            .expect("Lectura en memoria");
+        assert_eq!(memberships.len(), 1, "Debió crear la membresía de dueño");
+        assert_eq!(memberships[0].role, MembershipRole::Owner);
+        assert_eq!(memberships[0].status, MembershipStatus::Active);
     }
 
     /// La entrega de la cola es at-least-once: reprocesar el mismo evento no debe duplicar nada.
@@ -416,6 +475,7 @@ mod test {
         let organization = SpyRepository::existing();
         let patient = SpyRepository::existing();
         let practitioner = SpyRepository::existing();
+        let membership = Arc::new(InMemoryMembershipRepository::default());
 
         handle_user_created_event(
             event_for(true),
@@ -424,6 +484,7 @@ mod test {
                 Arc::clone(&organization),
                 Arc::clone(&patient),
                 Arc::clone(&practitioner),
+                Arc::clone(&membership),
             ),
         )
         .await
