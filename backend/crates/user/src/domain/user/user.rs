@@ -10,6 +10,14 @@ use std::str::FromStr;
 use tracing::{debug, error};
 use uuid::{Uuid, Version};
 
+/// Dato sin el cual una cuenta se considera incompleta.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RequiredProfileField {
+    GivenName,
+    Phone,
+    BirthDate,
+}
+
 /// Entidad de dominio que representa la **Cuenta de Usuario** del sistema.
 ///
 /// Separa los metadatos de autenticación/cuenta (`User`) de la identidad física
@@ -30,6 +38,8 @@ pub struct User {
     pub provider_info: IdentityProvider,
     /// Indica si el usuario es propietario o administrador de clínica.
     pub is_owner: bool,
+    /// Dirección domiciliaria.
+    pub address: Option<String>,
 }
 
 /// Proveedor de Identidad OAuth2/OIDC.
@@ -105,6 +115,7 @@ impl User {
                     person,
                     provider_info: IdentityProvider::Google,
                     is_owner,
+                    address: None,
                 })
             }
             Ok(id) => Err(ClickCareError::generic(format!(
@@ -128,6 +139,30 @@ impl User {
             .find(|telecom_entry| telecom_entry.system == ContactPointSystem::Email)
             .map(|telecom_entry| telecom_entry.value.clone())
             .unwrap_or_default()
+    }
+
+    /// Retorna el teléfono de contacto, si la cuenta tiene uno.
+    pub fn phone(&self) -> Option<String> {
+        self.person
+            .telecom()
+            .iter()
+            .find(|telecom_entry| telecom_entry.system == ContactPointSystem::Phone)
+            .map(|telecom_entry| telecom_entry.value.clone())
+    }
+
+    /// Retorna los datos obligatorios que le faltan a la cuenta.
+    pub fn missing_required_fields(&self) -> Vec<RequiredProfileField> {
+        let mut missing = Vec::new();
+        if self.person.name().given().join("").trim().is_empty() {
+            missing.push(RequiredProfileField::GivenName);
+        }
+        if self.phone().is_none_or(|phone| phone.trim().is_empty()) {
+            missing.push(RequiredProfileField::Phone);
+        }
+        if self.birth_date().trim().is_empty() {
+            missing.push(RequiredProfileField::BirthDate);
+        }
+        missing
     }
 
     /// Retorna la fecha de nacimiento formateada en texto.

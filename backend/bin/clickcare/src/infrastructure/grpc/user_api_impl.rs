@@ -3,13 +3,17 @@ use crate::infrastructure::grpc::subdomain_resolver::SubdomainResolver;
 use crate::infrastructure::grpc::user_api_server::UserApi;
 use crate::infrastructure::grpc::*;
 use app_core::domain::error::ClickCareError;
+use app_core::domain::fhir::Identifier::DNI;
 use std::sync::Arc;
 use tonic::*;
 use tracing::{debug, error};
+use user::application::dto::complete_profile::{CompleteProfileCommand, CompleteProfileError};
 use user::application::dto::create_user::{CreateUserCommand, CreateUserError};
 use user::application::dto::sign_in::{SignInCommand, SignInError};
+use user::application::use_case::complete_profile_usecase::CompleteProfileUseCase;
 use user::application::use_case::create_user_usecase::CreateUserUseCase;
 use user::application::use_case::sign_in_usecase::SignInUseCase;
+use user::domain::user::{RequiredProfileField, User};
 use user::infrastructure::config as di;
 use user::infrastructure::config::DBType;
 
@@ -17,6 +21,7 @@ use user::infrastructure::config::DBType;
 pub struct UserApiImpl {
     create_user_use_case: Arc<CreateUserUseCase>,
     sign_in_use_case: Arc<SignInUseCase>,
+    complete_profile_use_case: Arc<CompleteProfileUseCase>,
     /// Resolvedor de subdominio utilizado para determinar `network_id` de cada solicitud.
     pub subdomain_resolver: Arc<SubdomainResolver>,
 }
@@ -26,11 +31,13 @@ impl UserApiImpl {
     pub fn from_use_cases(
         create_user_use_case: Arc<CreateUserUseCase>,
         sign_in_use_case: Arc<SignInUseCase>,
+        complete_profile_use_case: Arc<CompleteProfileUseCase>,
         subdomain_resolver: Arc<SubdomainResolver>,
     ) -> Self {
         Self {
             create_user_use_case,
             sign_in_use_case,
+            complete_profile_use_case,
             subdomain_resolver,
         }
     }
@@ -62,6 +69,7 @@ impl UserApiImpl {
         Ok(Self::from_use_cases(
             di.create_user_use_case,
             di.sign_in_use_case,
+            di.complete_profile_use_case,
             subdomain_resolver,
         ))
     }
@@ -122,20 +130,7 @@ impl UserApi for UserApiImpl {
         self.sign_in_use_case
             .execute(sign_in_command)
             .await
-            .map(|sign_in_response| {
-                let user = sign_in_response.user;
-                let email = user.email();
-                let given_name = user.person.name().given().join(" ");
-                let family_name = user.person.name().family().clone();
-
-                Response::new(SignInResponse {
-                    user_id: user.id.to_string(),
-                    email,
-                    given_name,
-                    family_name,
-                    is_owner: user.is_owner,
-                })
-            })
+            .map(|sign_in_response| Response::new(to_sign_in_response(sign_in_response.user)))
             .map_err(|sign_in_error| {
                 error!("sign_in_error: {:?}", sign_in_error);
                 match sign_in_error {
@@ -145,6 +140,84 @@ impl UserApi for UserApiImpl {
                 }
             })
     }
+
+    /// Completa los datos obligatorios de la cuenta identificada por el `id_token`.
+    #[tracing::instrument(skip(self, request))]
+    async fn complete_profile(
+        &self,
+        request: Request<CompleteProfileRequest>,
+    ) -> Result<Response<SignInResponse>, Status> {
+        let (network_id, _organization_id) = self.subdomain_resolver.resolve(&request).await?;
+        let request = request.into_inner();
+
+        self.complete_profile_use_case
+            .execute(CompleteProfileCommand {
+                network_id,
+                id_token: request.id_token,
+                given_name: request.given_name,
+                family_name: request.family_name,
+                second_family_name: request.second_family_name,
+                identifier: request.identifier.and_then(|identifier| {
+                    identifier
+                        .identifier_type
+                        .map(|identifier::IdentifierType::Dni(dni)| DNI(dni))
+                }),
+                phone: request.phone,
+                birth_date: request.birth_date,
+                address: request.address,
+            })
+            .await
+            .map(|user| Response::new(to_sign_in_response(user)))
+            .map_err(|complete_profile_error| {
+                error!("complete_profile_error: {:?}", complete_profile_error);
+                match complete_profile_error {
+                    CompleteProfileError::InvalidInput(message) => {
+                        Status::invalid_argument(message)
+                    }
+                    CompleteProfileError::DocumentAlreadyRegistered(error) => {
+                        Status::already_exists(error.to_string())
+                    }
+                    CompleteProfileError::InvalidToken(error) => {
+                        Status::unauthenticated(error.to_string())
+                    }
+                    CompleteProfileError::UserNotFound(error) => {
+                        Status::not_found(error.to_string())
+                    }
+                    CompleteProfileError::UnknownError(error) => {
+                        Status::internal(error.to_string())
+                    }
+                }
+            })
+    }
+}
+
+fn to_sign_in_response(user: User) -> SignInResponse {
+    let mut response = SignInResponse {
+        user_id: user.id.to_string(),
+        email: user.email(),
+        given_name: user.person.name().given().join(" "),
+        family_name: user.person.name().family().clone(),
+        is_owner: user.is_owner,
+        phone: user.phone(),
+        missing_fields: Vec::new(),
+        second_family_name: user.person.name().second_family().clone(),
+        birth_date: Some(user.birth_date()).filter(|birth_date| !birth_date.is_empty()),
+        identifier: user.person.identifier().as_ref().map(|identifier| {
+            let DNI(dni) = identifier;
+            Identifier {
+                identifier_type: Some(identifier::IdentifierType::Dni(dni.clone())),
+            }
+        }),
+        address: user.address.clone(),
+    };
+    for field in user.missing_required_fields() {
+        response.push_missing_fields(match field {
+            RequiredProfileField::GivenName => ProfileField::GivenName,
+            RequiredProfileField::Phone => ProfileField::Phone,
+            RequiredProfileField::BirthDate => ProfileField::BirthDate,
+        });
+    }
+    response
 }
 
 mod mapper {

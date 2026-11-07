@@ -183,6 +183,7 @@ pub async fn test_env() -> &'static TestEnv {
                     let user_api = UserApiImpl::from_use_cases(
                         std::sync::Arc::clone(&user_di.create_user_use_case),
                         std::sync::Arc::clone(&user_di.sign_in_use_case),
+                        std::sync::Arc::clone(&user_di.complete_profile_use_case),
                         std::sync::Arc::clone(&subdomain_resolver),
                     );
                     let clinic_api = ClinicApiImpl::new(std::sync::Arc::clone(

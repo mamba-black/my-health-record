@@ -80,6 +80,10 @@ impl From<CreateUserCommand> for Result<User, ClickCareError> {
             Some(command.phone),
             Some(command.birthdate),
         )
+        .map(|mut user| {
+            user.address = Some(command.address).filter(|address| !address.trim().is_empty());
+            user
+        })
     }
 }
 

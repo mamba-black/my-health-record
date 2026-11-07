@@ -25,6 +25,9 @@ service UserApi {
 
     /// Inicio de sesión de un usuario registrado utilizando token de ID.
     rpc SignIn (SignInRequest) returns (SignInResponse) {}
+
+    /// Completa los datos obligatorios de la cuenta del titular del token de ID.
+    rpc CompleteProfile (CompleteProfileRequest) returns (SignInResponse) {}
 }
 
 /// Servicio de gestión de clínicas (FHIR R4 Organization).
@@ -133,6 +136,32 @@ message SignInResponse {
     string given_name = 3;            // Nombres de pila
     optional string family_name = 4;  // Primer apellido
     bool is_owner = 5;                // Indica si es propietario/administrador de clínica
+    optional string phone = 6;        // Teléfono de contacto
+    repeated ProfileField missing_fields = 7; // Datos obligatorios que faltan en la cuenta
+    optional string second_family_name = 8;   // Segundo apellido
+    optional string birth_date = 9;           // Fecha de nacimiento (Formato YYYY-MM-DD)
+    optional string address = 10;             // Dirección domiciliaria
+    optional Identifier identifier = 11;      // Documento de identidad
+}
+
+/// Dato obligatorio del perfil de un usuario.
+enum ProfileField {
+    PROFILE_FIELD_UNSPECIFIED = 0;
+    PROFILE_FIELD_GIVEN_NAME = 1;
+    PROFILE_FIELD_PHONE = 2;
+    PROFILE_FIELD_BIRTH_DATE = 3;
+}
+
+/// Solicitud para completar los datos de la cuenta. Un dato opcional omitido conserva su valor.
+message CompleteProfileRequest {
+    string id_token = 1;             // Token JWT que identifica al titular de la cuenta
+    string given_name = 2;           // Nombres de pila
+    optional string family_name = 3; // Primer apellido
+    string phone = 4;                // Teléfono de contacto
+    optional string second_family_name = 5; // Segundo apellido
+    string birth_date = 6;                  // Fecha de nacimiento (Formato YYYY-MM-DD)
+    optional string address = 7;            // Dirección domiciliaria
+    optional Identifier identifier = 8;     // Documento de identidad
 }
 
 

@@ -1,5 +1,5 @@
 use crate::domain::user::User;
-use crate::domain::user::user_repository::UserRepository;
+use crate::domain::user::user_repository::{ProfileUpdate, UserRepository};
 use app_core::domain::error::ClickCareError;
 use app_core::domain::fhir::Identifier;
 use async_trait::async_trait;
@@ -24,6 +24,8 @@ pub struct UserAccount {
     pub document_value: Option<String>,
     pub email: Option<String>,
     pub phone: Option<String>,
+    pub birth_date: Option<jiff::civil::Date>,
+    pub address: Option<String>,
     #[auto]
     pub created_at: jiff::Timestamp,
     #[auto]
@@ -98,7 +100,8 @@ impl UserRepository for UserRepositoryImpl {
             "select id, active, is_owner, given_name, \
              coalesce(family_name, ''), coalesce(second_family_name, ''), \
              coalesce(document_type, ''), coalesce(document_value, ''), \
-             coalesce(email, ''), coalesce(phone, '') \
+             coalesce(email, ''), coalesce(phone, ''), \
+             coalesce(birth_date::text, ''), coalesce(address, '') \
              from identity.user_account where network_id = $1 and email = $2 limit 1",
         )
         .bind(*network_id)
@@ -107,6 +110,8 @@ impl UserRepository for UserRepositoryImpl {
             Type::Uuid,
             Type::Bool,
             Type::Bool,
+            Type::String,
+            Type::String,
             Type::String,
             Type::String,
             Type::String,
@@ -141,6 +146,50 @@ impl UserRepository for UserRepositoryImpl {
         todo!();
     }
 
+    async fn update_profile(
+        &self,
+        user_id: &Uuid,
+        profile: &ProfileUpdate,
+    ) -> Result<(), ClickCareError> {
+        let dni = profile.identifier.as_ref().map(|identifier| {
+            let Identifier::DNI(dni) = identifier;
+            dni.clone()
+        });
+        let updated = toasty::sql::query(
+            "update identity.user_account set given_name = $1, \
+             family_name = coalesce(nullif($2::text, ''), family_name), \
+             second_family_name = coalesce(nullif($3::text, ''), second_family_name), \
+             document_type = case when $4::text <> '' then 'DNI' else document_type end, \
+             document_value = coalesce(nullif($4::text, ''), document_value), \
+             phone = $5, birth_date = ($6::text)::date, \
+             address = coalesce(nullif($7::text, ''), address), \
+             updated_at = current_timestamp \
+             where id = $8 returning id",
+        )
+        .bind(profile.given_name.clone())
+        .bind(profile.family_name.clone().unwrap_or_default())
+        .bind(profile.second_family_name.clone().unwrap_or_default())
+        .bind(dni.unwrap_or_default())
+        .bind(profile.phone.clone())
+        .bind(profile.birth_date.clone())
+        .bind(profile.address.clone().unwrap_or_default())
+        .bind(*user_id)
+        .column_types([Type::Uuid])
+        .exec(&mut self.db.clone())
+        .await
+        .map_err(|e| {
+            error!("Error al actualizar user_account con id {user_id}: {e}");
+            ClickCareError::generic(e.to_string())
+        })?;
+
+        if updated.is_empty() {
+            return Err(ClickCareError::generic(format!(
+                "No existe user_account con id {user_id}"
+            )));
+        }
+        Ok(())
+    }
+
     async fn save_user(&self, user: &User) -> Result<(), ClickCareError> {
         let given_name = user.person.name().given().join(" ");
         let family_name = user.person.name().family().clone();
@@ -167,6 +216,15 @@ impl UserRepository for UserRepositoryImpl {
             .find(|c| matches!(c.system, crate::domain::user::ContactPointSystem::Phone))
             .map(|c| c.value.clone());
 
+        let birth_date = user
+            .person
+            .birth_date()
+            .as_deref()
+            .filter(|birth_date| !birth_date.trim().is_empty())
+            .map(str::parse::<jiff::civil::Date>)
+            .transpose()
+            .map_err(|e| ClickCareError::generic(format!("Fecha de nacimiento inválida: {e}")))?;
+
         let _user_account = toasty::create!(UserAccount {
             id: user.id,
             network_id: user.network_id,
@@ -180,6 +238,8 @@ impl UserRepository for UserRepositoryImpl {
             document_value,
             email,
             phone,
+            birth_date,
+            address: user.address.clone(),
         })
         .exec(&mut self.db.clone())
         .await
@@ -247,6 +307,8 @@ fn map_row_to_user(row: toasty::stmt::Value, network_id: Uuid) -> Result<User, C
     let document_value_raw = next_string_column(&mut fields, "document_value")?;
     let email_string = next_string_column(&mut fields, "email")?;
     let phone_raw = next_string_column(&mut fields, "phone")?;
+    let birth_date_raw = next_string_column(&mut fields, "birth_date")?;
+    let address_raw = next_string_column(&mut fields, "address")?;
 
     let family_name = (!family_name_raw.is_empty()).then_some(family_name_raw);
     let second_family_name = (!second_family_name_raw.is_empty()).then_some(second_family_name_raw);
@@ -267,9 +329,10 @@ fn map_row_to_user(row: toasty::stmt::Value, network_id: Uuid) -> Result<User, C
         is_owner,
         email_string,
         phone,
-        None,
+        (!birth_date_raw.is_empty()).then_some(birth_date_raw),
     )?;
     user.active = active;
+    user.address = (!address_raw.is_empty()).then_some(address_raw);
 
     Ok(user)
 }

@@ -6,9 +6,9 @@
 use crate::application::dto::sign_in::SignInError;
 use crate::application::integration::service::token_service::TokenService;
 use crate::domain::user::User;
-use crate::domain::user::user_repository::UserRepository;
+use crate::domain::user::user_repository::{ProfileUpdate, UserRepository};
 use app_core::domain::error::ClickCareError;
-use app_core::domain::fhir::{ContactPointSystem, Identifier};
+use app_core::domain::fhir::{ContactPoint, ContactPointSystem, HumanName, Identifier};
 use async_trait::async_trait;
 use tokio::sync::Mutex;
 
@@ -84,6 +84,45 @@ impl UserRepository for MockUserRepositoryImpl {
                     "User with ID {user_id} not found in mock repository"
                 ))
             })
+    }
+
+    async fn update_profile(
+        &self,
+        user_id: &uuid::Uuid,
+        profile: &ProfileUpdate,
+    ) -> Result<(), ClickCareError> {
+        let mut users = self.saved_users.lock().await;
+        let user = users
+            .iter_mut()
+            .find(|user| user.id == *user_id)
+            .ok_or_else(|| ClickCareError::generic(format!("User {user_id} not found")))?;
+
+        let current_name = user.person.name.clone();
+        user.person.name = HumanName::new(
+            vec![profile.given_name.clone()],
+            profile
+                .family_name
+                .clone()
+                .or_else(|| current_name.family().clone()),
+            profile
+                .second_family_name
+                .clone()
+                .or_else(|| current_name.second_family().clone()),
+        );
+        user.person
+            .telecom
+            .retain(|telecom_entry| telecom_entry.system != ContactPointSystem::Phone);
+        user.person
+            .telecom
+            .push(ContactPoint::phone(profile.phone.clone(), None));
+        user.person.birth_date = Some(profile.birth_date.clone());
+        if profile.identifier.is_some() {
+            user.person.identifier = profile.identifier.clone();
+        }
+        if profile.address.is_some() {
+            user.address = profile.address.clone();
+        }
+        Ok(())
     }
 
     async fn save_user(&self, user: &User) -> Result<(), ClickCareError> {

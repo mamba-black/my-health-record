@@ -1,4 +1,5 @@
 use crate::application::integration::service::token_service::TokenService;
+use crate::application::use_case::complete_profile_usecase::CompleteProfileUseCase;
 use crate::application::use_case::create_user_usecase::CreateUserUseCase;
 use crate::application::use_case::sign_in_usecase::SignInUseCase;
 use crate::domain::user::user_repository::UserRepository;
@@ -25,6 +26,8 @@ pub struct DI {
     pub create_user_use_case: Arc<CreateUserUseCase>,
     /// Caso de uso para autenticar usuarios existentes mediante su token OAuth/OIDC.
     pub sign_in_use_case: Arc<SignInUseCase>,
+    /// Caso de uso para completar los datos obligatorios de una cuenta existente.
+    pub complete_profile_use_case: Arc<CompleteProfileUseCase>,
     #[allow(dead_code)]
     /// Puerto de repositorio para persistencia de cuentas de usuario.
     pub user_repository: Arc<dyn UserRepository>,
@@ -106,10 +109,15 @@ pub async fn new_with_overrides(
         user_repository: Arc::clone(&user_repository),
         token_service: Arc::clone(&token_service),
     });
+    let complete_profile_use_case = Arc::new(CompleteProfileUseCase {
+        user_repository: Arc::clone(&user_repository),
+        token_service: Arc::clone(&token_service),
+    });
 
     Ok(DI {
         create_user_use_case,
         sign_in_use_case,
+        complete_profile_use_case,
         user_repository,
         event_publisher,
         token_service,

@@ -49,6 +49,8 @@ CREATE TABLE identity.user_account (
     -- Person / ContactPoint & Audit
     email           VARCHAR(100) NOT NULL,
     phone           VARCHAR(20),
+    birth_date      DATE,
+    address         VARCHAR(255),
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
