@@ -1,5 +1,7 @@
 export {
+  type CompleteProfileRequest,
   type GrpcStatusName,
+  ProfileField,
   type SignInRequest,
   type SignInResponse,
   SignUpIntent,

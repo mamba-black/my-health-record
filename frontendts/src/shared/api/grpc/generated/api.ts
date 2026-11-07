@@ -233,6 +233,69 @@ export interface SignInResponse {
      * @generated from protobuf field: bool is_owner = 5
      */
     isOwner: boolean; // Indica si es propietario/administrador de clínica
+    /**
+     * @generated from protobuf field: optional string phone = 6
+     */
+    phone?: string; // Teléfono de contacto
+    /**
+     * @generated from protobuf field: repeated grpc.ProfileField missing_fields = 7
+     */
+    missingFields: ProfileField[]; // Datos obligatorios que faltan en la cuenta
+    /**
+     * @generated from protobuf field: optional string second_family_name = 8
+     */
+    secondFamilyName?: string; // Segundo apellido
+    /**
+     * @generated from protobuf field: optional string birth_date = 9
+     */
+    birthDate?: string; // Fecha de nacimiento (Formato YYYY-MM-DD)
+    /**
+     * @generated from protobuf field: optional string address = 10
+     */
+    address?: string; // Dirección domiciliaria
+    /**
+     * @generated from protobuf field: optional grpc.Identifier identifier = 11
+     */
+    identifier?: Identifier; // Documento de identidad
+}
+/**
+ * / Solicitud para completar los datos de la cuenta. Un dato opcional omitido conserva su valor.
+ *
+ * @generated from protobuf message grpc.CompleteProfileRequest
+ */
+export interface CompleteProfileRequest {
+    /**
+     * @generated from protobuf field: string id_token = 1
+     */
+    idToken: string; // Token JWT que identifica al titular de la cuenta
+    /**
+     * @generated from protobuf field: string given_name = 2
+     */
+    givenName: string; // Nombres de pila
+    /**
+     * @generated from protobuf field: optional string family_name = 3
+     */
+    familyName?: string; // Primer apellido
+    /**
+     * @generated from protobuf field: string phone = 4
+     */
+    phone: string; // Teléfono de contacto
+    /**
+     * @generated from protobuf field: optional string second_family_name = 5
+     */
+    secondFamilyName?: string; // Segundo apellido
+    /**
+     * @generated from protobuf field: string birth_date = 6
+     */
+    birthDate: string; // Fecha de nacimiento (Formato YYYY-MM-DD)
+    /**
+     * @generated from protobuf field: optional string address = 7
+     */
+    address?: string; // Dirección domiciliaria
+    /**
+     * @generated from protobuf field: optional grpc.Identifier identifier = 8
+     */
+    identifier?: Identifier; // Documento de identidad
 }
 // ============================================================================
 // TIPOS DE DATOS CLAVE (DATA TYPES - HL7 FHIR R4)
@@ -750,6 +813,29 @@ export enum SignUpStatus {
      * @generated from protobuf enum value: LINK_PENDING_PRESENCIAL_VERIFICATION = 2;
      */
     LINK_PENDING_PRESENCIAL_VERIFICATION = 2
+}
+/**
+ * / Dato obligatorio del perfil de un usuario.
+ *
+ * @generated from protobuf enum grpc.ProfileField
+ */
+export enum ProfileField {
+    /**
+     * @generated from protobuf enum value: PROFILE_FIELD_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: PROFILE_FIELD_GIVEN_NAME = 1;
+     */
+    GIVEN_NAME = 1,
+    /**
+     * @generated from protobuf enum value: PROFILE_FIELD_PHONE = 2;
+     */
+    PHONE = 2,
+    /**
+     * @generated from protobuf enum value: PROFILE_FIELD_BIRTH_DATE = 3;
+     */
+    BIRTH_DATE = 3
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class SearchPatientRequest$Type extends MessageType<SearchPatientRequest> {
@@ -1276,7 +1362,13 @@ class SignInResponse$Type extends MessageType<SignInResponse> {
             { no: 2, name: "email", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "given_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "family_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "is_owner", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 5, name: "is_owner", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "phone", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "missing_fields", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["grpc.ProfileField", ProfileField, "PROFILE_FIELD_"] },
+            { no: 8, name: "second_family_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "birth_date", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "address", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "identifier", kind: "message", T: () => Identifier }
         ]);
     }
     create(value?: PartialMessage<SignInResponse>): SignInResponse {
@@ -1285,6 +1377,7 @@ class SignInResponse$Type extends MessageType<SignInResponse> {
         message.email = "";
         message.givenName = "";
         message.isOwner = false;
+        message.missingFields = [];
         if (value !== undefined)
             reflectionMergePartial<SignInResponse>(this, message, value);
         return message;
@@ -1308,6 +1401,28 @@ class SignInResponse$Type extends MessageType<SignInResponse> {
                     break;
                 case /* bool is_owner */ 5:
                     message.isOwner = reader.bool();
+                    break;
+                case /* optional string phone */ 6:
+                    message.phone = reader.string();
+                    break;
+                case /* repeated grpc.ProfileField missing_fields */ 7:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.missingFields.push(reader.int32());
+                    else
+                        message.missingFields.push(reader.int32());
+                    break;
+                case /* optional string second_family_name */ 8:
+                    message.secondFamilyName = reader.string();
+                    break;
+                case /* optional string birth_date */ 9:
+                    message.birthDate = reader.string();
+                    break;
+                case /* optional string address */ 10:
+                    message.address = reader.string();
+                    break;
+                case /* optional grpc.Identifier identifier */ 11:
+                    message.identifier = Identifier.internalBinaryRead(reader, reader.uint32(), options, message.identifier);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1336,6 +1451,28 @@ class SignInResponse$Type extends MessageType<SignInResponse> {
         /* bool is_owner = 5; */
         if (message.isOwner !== false)
             writer.tag(5, WireType.Varint).bool(message.isOwner);
+        /* optional string phone = 6; */
+        if (message.phone !== undefined)
+            writer.tag(6, WireType.LengthDelimited).string(message.phone);
+        /* repeated grpc.ProfileField missing_fields = 7; */
+        if (message.missingFields.length) {
+            writer.tag(7, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.missingFields.length; i++)
+                writer.int32(message.missingFields[i]);
+            writer.join();
+        }
+        /* optional string second_family_name = 8; */
+        if (message.secondFamilyName !== undefined)
+            writer.tag(8, WireType.LengthDelimited).string(message.secondFamilyName);
+        /* optional string birth_date = 9; */
+        if (message.birthDate !== undefined)
+            writer.tag(9, WireType.LengthDelimited).string(message.birthDate);
+        /* optional string address = 10; */
+        if (message.address !== undefined)
+            writer.tag(10, WireType.LengthDelimited).string(message.address);
+        /* optional grpc.Identifier identifier = 11; */
+        if (message.identifier)
+            Identifier.internalBinaryWrite(message.identifier, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1346,6 +1483,105 @@ class SignInResponse$Type extends MessageType<SignInResponse> {
  * @generated MessageType for protobuf message grpc.SignInResponse
  */
 export const SignInResponse = new SignInResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CompleteProfileRequest$Type extends MessageType<CompleteProfileRequest> {
+    constructor() {
+        super("grpc.CompleteProfileRequest", [
+            { no: 1, name: "id_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "given_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "family_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "phone", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "second_family_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "birth_date", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "address", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "identifier", kind: "message", T: () => Identifier }
+        ]);
+    }
+    create(value?: PartialMessage<CompleteProfileRequest>): CompleteProfileRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.idToken = "";
+        message.givenName = "";
+        message.phone = "";
+        message.birthDate = "";
+        if (value !== undefined)
+            reflectionMergePartial<CompleteProfileRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CompleteProfileRequest): CompleteProfileRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string id_token */ 1:
+                    message.idToken = reader.string();
+                    break;
+                case /* string given_name */ 2:
+                    message.givenName = reader.string();
+                    break;
+                case /* optional string family_name */ 3:
+                    message.familyName = reader.string();
+                    break;
+                case /* string phone */ 4:
+                    message.phone = reader.string();
+                    break;
+                case /* optional string second_family_name */ 5:
+                    message.secondFamilyName = reader.string();
+                    break;
+                case /* string birth_date */ 6:
+                    message.birthDate = reader.string();
+                    break;
+                case /* optional string address */ 7:
+                    message.address = reader.string();
+                    break;
+                case /* optional grpc.Identifier identifier */ 8:
+                    message.identifier = Identifier.internalBinaryRead(reader, reader.uint32(), options, message.identifier);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CompleteProfileRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string id_token = 1; */
+        if (message.idToken !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.idToken);
+        /* string given_name = 2; */
+        if (message.givenName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.givenName);
+        /* optional string family_name = 3; */
+        if (message.familyName !== undefined)
+            writer.tag(3, WireType.LengthDelimited).string(message.familyName);
+        /* string phone = 4; */
+        if (message.phone !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.phone);
+        /* optional string second_family_name = 5; */
+        if (message.secondFamilyName !== undefined)
+            writer.tag(5, WireType.LengthDelimited).string(message.secondFamilyName);
+        /* string birth_date = 6; */
+        if (message.birthDate !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.birthDate);
+        /* optional string address = 7; */
+        if (message.address !== undefined)
+            writer.tag(7, WireType.LengthDelimited).string(message.address);
+        /* optional grpc.Identifier identifier = 8; */
+        if (message.identifier)
+            Identifier.internalBinaryWrite(message.identifier, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.CompleteProfileRequest
+ */
+export const CompleteProfileRequest = new CompleteProfileRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class HumanName$Type extends MessageType<HumanName> {
     constructor() {
@@ -2086,7 +2322,8 @@ export const PatientApi = new ServiceType("grpc.PatientApi", [
  */
 export const UserApi = new ServiceType("grpc.UserApi", [
     { name: "SignUp", options: {}, I: SignUpRequest, O: SignUpResponse },
-    { name: "SignIn", options: {}, I: SignInRequest, O: SignInResponse }
+    { name: "SignIn", options: {}, I: SignInRequest, O: SignInResponse },
+    { name: "CompleteProfile", options: {}, I: CompleteProfileRequest, O: SignInResponse }
 ]);
 /**
  * @generated ServiceType for protobuf service grpc.ClinicApi

@@ -1,4 +1,5 @@
 import {
+  type CompleteProfileRequest,
   type SignInResponse,
   type SignUpRequest,
   type SignUpResponse,
@@ -7,6 +8,12 @@ import {
 
 export function signInWithGoogle(idToken: string): Promise<SignInResponse> {
   return userApi.signIn({ idToken, providerId: "google.com" });
+}
+
+export function completeProfile(
+  request: CompleteProfileRequest,
+): Promise<SignInResponse> {
+  return userApi.completeProfile(request);
 }
 
 export function signUpAccount(request: SignUpRequest): Promise<SignUpResponse> {

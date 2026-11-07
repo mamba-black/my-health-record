@@ -1,5 +1,6 @@
 export {
   CALLBACK,
+  COMPLETE_PROFILE,
   HISTORY,
   LOGIN,
   Page,

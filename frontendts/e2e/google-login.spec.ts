@@ -103,4 +103,5 @@ test("un usuario registrado entra directo sin campos opcionales de Google", asyn
   await expect(logoutButton(page)).toBeVisible();
   await expect(page).toHaveURL("/");
   await expect(page.getByText("Usuario", { exact: true })).toBeVisible();
+  await expect(page.getByRole("alertdialog")).toBeHidden();
 });

@@ -5,6 +5,7 @@ import { ClinicApi } from "./api";
 import type { CreateClinicResponse } from "./api";
 import type { CreateClinicRequest } from "./api";
 import { UserApi } from "./api";
+import type { CompleteProfileRequest } from "./api";
 import type { SignInResponse } from "./api";
 import type { SignInRequest } from "./api";
 import type { SignUpResponse } from "./api";
@@ -111,6 +112,12 @@ export interface IUserApiClient {
      * @generated from protobuf rpc: SignIn
      */
     signIn(input: SignInRequest, options?: RpcOptions): UnaryCall<SignInRequest, SignInResponse>;
+    /**
+     * / Completa los datos obligatorios de la cuenta del titular del token de ID.
+     *
+     * @generated from protobuf rpc: CompleteProfile
+     */
+    completeProfile(input: CompleteProfileRequest, options?: RpcOptions): UnaryCall<CompleteProfileRequest, SignInResponse>;
 }
 /**
  * / Servicio de gestión de usuarios, autenticación y registro inicial.
@@ -140,6 +147,15 @@ export class UserApiClient implements IUserApiClient, ServiceInfo {
     signIn(input: SignInRequest, options?: RpcOptions): UnaryCall<SignInRequest, SignInResponse> {
         const method = this.methods[1], opt = this._transport.mergeOptions(options);
         return stackIntercept<SignInRequest, SignInResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * / Completa los datos obligatorios de la cuenta del titular del token de ID.
+     *
+     * @generated from protobuf rpc: CompleteProfile
+     */
+    completeProfile(input: CompleteProfileRequest, options?: RpcOptions): UnaryCall<CompleteProfileRequest, SignInResponse> {
+        const method = this.methods[2], opt = this._transport.mergeOptions(options);
+        return stackIntercept<CompleteProfileRequest, SignInResponse>("unary", this._transport, method, opt, input);
     }
 }
 /**

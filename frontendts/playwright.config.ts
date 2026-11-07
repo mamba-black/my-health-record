@@ -8,6 +8,7 @@ import {
 const baseURL = "http://localhost:5174";
 const backendURL = `http://localhost:${BACKEND_PORT}`;
 
+// Los servidores nunca se reutilizan: uno que quedó vivo correría código viejo sin avisar.
 export default defineConfig({
   testDir: "./e2e",
   testIgnore: ["**/test.spec.ts"],
@@ -26,13 +27,13 @@ export default defineConfig({
     {
       command: "bun e2e/support/fake-google.ts",
       url: `${FAKE_GOOGLE_URL}/certs`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
     },
     {
       command: "cargo run -p clickcare --features test-support",
       cwd: "../backend",
       url: `${backendURL}/api/v1/queues`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 300_000,
       env: {
         CLICKCARE_PORT: String(BACKEND_PORT),
@@ -43,10 +44,9 @@ export default defineConfig({
       },
     },
     {
-      // Vite normal: `rolldown-vite` carga dos veces el cliente de SvelteKit y rompe `goto`.
-      command: "node node_modules/vite/bin/vite.js --port 5174 --strictPort",
+      command: "bun run dev --port 5174 --strictPort",
       url: baseURL,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       env: {
         VITE_CACHE_DIR: "node_modules/.vite-e2e",
         VITE_GRPC_API_URL: backendURL,

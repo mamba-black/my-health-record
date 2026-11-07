@@ -1,5 +1,7 @@
 import { RpcError } from "@protobuf-ts/runtime-rpc";
 import {
+  type CompleteProfileRequest,
+  ProfileField,
   type SignInRequest,
   type SignInResponse,
   SignUpIntent,
@@ -80,6 +82,15 @@ export const userApi = {
     }
   },
 
+  async completeProfile(request: CompleteProfileRequest): Promise<SignInResponse> {
+    try {
+      const { response } = await userApiClient.completeProfile(request);
+      return response;
+    } catch (error) {
+      throw toUserApiError(error);
+    }
+  },
+
   async signUp(request: SignUpRequest): Promise<SignUpResponse> {
     try {
       const { response } = await userApiClient.signUp(request);
@@ -91,6 +102,8 @@ export const userApi = {
 };
 
 export {
+  type CompleteProfileRequest,
+  ProfileField,
   type SignInRequest,
   type SignInResponse,
   SignUpIntent,

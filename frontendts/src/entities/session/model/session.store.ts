@@ -11,6 +11,11 @@ export interface PendingRegistration {
   email: string;
   givenName: string;
   familyName?: string;
+  secondFamilyName?: string;
+  dni?: string;
+  phone?: string;
+  birthDate?: string;
+  address?: string;
   picture?: string;
   providerId: string;
 }
@@ -79,7 +84,11 @@ export const clearPendingRegistration = () => {
   }));
 };
 
-export const setAuthToken = (token: string, user: string | null = null) => {
+export const setAuthToken = (
+  token: string,
+  user: string | null = null,
+  redirectTo?: string,
+) => {
   if (browser) {
     localStorage.setItem("auth_token", token);
     if (user) {
@@ -106,8 +115,8 @@ export const setAuthToken = (token: string, user: string | null = null) => {
       : `${base}${targetPath}`
     : `${base}/`;
 
-  log.debug(`AuthService: redirecting to ${url}`);
-  goto(url);
+  log.debug(`AuthService: redirecting to ${redirectTo ?? url}`);
+  goto(redirectTo ?? url);
 };
 
 export const clearAuth = () => {

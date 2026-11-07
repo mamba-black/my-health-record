@@ -2,9 +2,9 @@
 import { onMount } from "svelte";
 import { goto } from "$app/navigation";
 import { setAuthToken, setPendingRegistration } from "$entities/session";
-import { UserApiError } from "$shared/api";
+import { ProfileField, type SignInResponse, UserApiError } from "$shared/api";
 import { signInWithGoogle } from "../api/auth.api";
-import { GOOGLE_CLIENT_ID, SIGNUP } from "$shared/config";
+import { COMPLETE_PROFILE, GOOGLE_CLIENT_ID, SIGNUP } from "$shared/config";
 import { decodeGoogleJwt, log } from "$shared/lib";
 
 interface GoogleCredentialResponse {
@@ -40,6 +40,19 @@ type WindowWithGoogle = Window & {
   };
 };
 
+interface IncompleteAccount {
+  idToken: string;
+  displayName: string;
+  account: SignInResponse;
+  claims: ReturnType<typeof decodeGoogleJwt>;
+}
+
+const PROFILE_FIELD_LABELS: Partial<Record<ProfileField, string>> = {
+  [ProfileField.GIVEN_NAME]: "nombres",
+  [ProfileField.PHONE]: "teléfono",
+  [ProfileField.BIRTH_DATE]: "fecha de nacimiento",
+};
+
 const getGoogleId = (): GoogleAccountsId | undefined =>
   (window as WindowWithGoogle).google?.accounts?.id;
 
@@ -49,6 +62,13 @@ let googleButtonContainer: HTMLDivElement | undefined = $state();
 let gisLoaded = $state(false);
 let isSubmitting = $state(false);
 let errorMessage = $state<string | null>(null);
+let incompleteAccount = $state<IncompleteAccount | null>(null);
+
+const missingLabels = $derived(
+  (incompleteAccount?.account.missingFields ?? []).map(
+    (field) => PROFILE_FIELD_LABELS[field] ?? "otros datos",
+  ),
+);
 
 const handleGoogleCredentialResponse = async (
   response: GoogleCredentialResponse,
@@ -71,6 +91,12 @@ const handleGoogleCredentialResponse = async (
 
     const displayName =
       result.givenName || claims?.given_name || claims?.name || result.email;
+
+    if (result.missingFields.length > 0) {
+      incompleteAccount = { idToken, displayName, account: result, claims };
+      return;
+    }
+
     setAuthToken(idToken, displayName);
   } catch (error) {
     if (error instanceof UserApiError && error.code === "NOT_FOUND") {
@@ -137,6 +163,34 @@ onMount(() => {
   };
   document.head.appendChild(script);
 });
+
+const ignoreMissingData = () => {
+  if (!incompleteAccount) return;
+  setAuthToken(incompleteAccount.idToken, incompleteAccount.displayName);
+};
+
+const registerMissingData = () => {
+  if (!incompleteAccount) return;
+  const { idToken, displayName, account, claims } = incompleteAccount;
+
+  setAuthToken(idToken, displayName, COMPLETE_PROFILE);
+  setPendingRegistration({
+    idToken,
+    email: account.email,
+    givenName: account.givenName || claims?.given_name || claims?.name || "",
+    familyName: account.familyName || claims?.family_name,
+    secondFamilyName: account.secondFamilyName,
+    dni:
+      account.identifier?.identifierType.oneofKind === "dni"
+        ? account.identifier.identifierType.dni
+        : undefined,
+    phone: account.phone,
+    birthDate: account.birthDate,
+    address: account.address,
+    picture: claims?.picture,
+    providerId: "google.com",
+  });
+};
 
 const handleGooglePromptFallback = () => {
   const googleId = getGoogleId();
@@ -232,3 +286,37 @@ const loginHandler = (event: Event) => {
     </button>
   {/if}
 </div>
+
+{#if incompleteAccount}
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+    <div
+      aria-labelledby="missing-data-title"
+      aria-modal="true"
+      class="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg"
+      role="alertdialog"
+    >
+      <h2 class="text-lg font-semibold text-gray-900" id="missing-data-title">
+        Faltan datos obligatorios en tu cuenta
+      </h2>
+      <p class="mt-3 p-3 rounded-md bg-amber-50 border border-amber-200 text-sm text-amber-800">
+        Te falta registrar: {missingLabels.join(", ")}.
+      </p>
+      <div class="pt-5 flex items-center justify-end gap-3">
+        <button
+          class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          onclick={ignoreMissingData}
+          type="button"
+        >
+          Ignorar
+        </button>
+        <button
+          class="rounded-md bg-cyan-600 px-5 py-2 text-sm font-medium text-white hover:bg-cyan-700"
+          onclick={registerMissingData}
+          type="button"
+        >
+          Registrar
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
