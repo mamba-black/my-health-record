@@ -1,12 +1,12 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./support/fixtures";
+import { expect, seed, test } from "./support/fixtures";
 import {
   googleToken,
   signInWithGoogle,
   stubGoogleIdentity,
 } from "./support/google";
 
-// Correo fijo: la cuenta se crea una sola vez en la base compartida y se reutiliza.
+// Correo fijo: la prueba deja la cuenta en un estado conocido antes de usarla.
 const REGISTERED_EMAIL = "e2e.usuario@clickcare.test";
 
 const logoutButton = (page: Page) =>
@@ -76,23 +76,9 @@ test("un usuario desconocido pasa al registro con su correo", async ({
 
 test("un usuario registrado entra directo sin campos opcionales de Google", async ({
   page,
-  browser,
 }) => {
-  const seedContext = await browser.newContext();
-  const seedPage = await seedContext.newPage();
-  await stubGoogleIdentity(seedPage);
-  await signInWithGoogle(
-    seedPage,
-    await googleToken({ email: REGISTERED_EMAIL }),
-  );
-  await expect(seedPage.locator("#signup-email").or(logoutButton(seedPage))).toBeVisible();
-  if (await seedPage.locator("#signup-email").isVisible()) {
-    await seedPage.locator("#signup-phone").fill("+51999888777");
-    await seedPage.locator("#signup-birth-date").fill("1990-01-01");
-    await seedPage.getByRole("button", { name: "Crear cuenta" }).click();
-    await expect(logoutButton(seedPage)).toBeVisible();
-  }
-  await seedContext.close();
+  // Cuenta de paciente con los datos que pide su acción habitual: entra sin aviso.
+  seed("patient-complete", REGISTERED_EMAIL);
 
   // Google no garantiza `locale`, `name` ni `picture`: `googleToken` no los incluye.
   await signInWithGoogle(

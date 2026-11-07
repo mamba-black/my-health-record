@@ -1,8 +1,13 @@
-DROP SCHEMA IF EXISTS identity CASCADE;
-CREATE SCHEMA identity;
+-- Esquema inicial de ClickCare (línea base).
+--
+-- Es idempotente (`IF NOT EXISTS`) para que pueda registrarse sobre una base que ya
+-- tenía el esquema creado a mano con el antiguo `ddl/table.sql`, sin borrar datos.
+-- No modifiques esta migración: refinery valida su checksum. Los cambios van en una
+-- migración nueva (`V{n}__descripcion.sql`).
 
-DROP SCHEMA IF EXISTS administration CASCADE;
-CREATE SCHEMA administration;
+CREATE SCHEMA IF NOT EXISTS identity;
+
+CREATE SCHEMA IF NOT EXISTS administration;
 
 -- Toasty no admite nombres de tabla calificados por esquema (`#[table = "..."]` se
 -- serializa como un único identificador entrecomillado), así que los esquemas de los
@@ -25,12 +30,7 @@ BEGIN
 END
 $$;
 
-DROP TABLE IF EXISTS patient_search;
-DROP TABLE IF EXISTS patient;
-DROP TABLE IF EXISTS clinic;
-DROP TABLE IF EXISTS identity.user_account;
-
-CREATE TABLE identity.user_account (
+CREATE TABLE IF NOT EXISTS identity.user_account (
     id              uuid PRIMARY KEY,
     network_id      uuid NOT NULL,
     active          BOOLEAN NOT NULL DEFAULT TRUE,
@@ -49,16 +49,13 @@ CREATE TABLE identity.user_account (
     -- Person / ContactPoint & Audit
     email           VARCHAR(100) NOT NULL,
     phone           VARCHAR(20),
-    birth_date      DATE,
-    address         VARCHAR(255),
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT uq_user_network_email UNIQUE (network_id, email)
 );
 
-CREATE INDEX idx_user_account_network_id ON identity.user_account (network_id);
-
+CREATE INDEX IF NOT EXISTS idx_user_account_network_id ON identity.user_account (network_id);
 
 -- ========================================================================
 -- Bounded Context: administration (crates/administration)
@@ -82,7 +79,7 @@ CREATE INDEX idx_user_account_network_id ON identity.user_account (network_id);
 -- porque la entrega de la cola es at-least-once y el mismo evento puede repetirse.
 -- ========================================================================
 
-CREATE TABLE administration.clinical_network
+CREATE TABLE IF NOT EXISTS administration.clinical_network
 (
     id          uuid PRIMARY KEY,
     name        VARCHAR(200) NOT NULL,
@@ -93,7 +90,7 @@ CREATE TABLE administration.clinical_network
     updated_at  TIMESTAMP             DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE administration.organization
+CREATE TABLE IF NOT EXISTS administration.organization
 (
     id            uuid PRIMARY KEY,
     network_id    uuid         NOT NULL,
@@ -110,10 +107,10 @@ CREATE TABLE administration.organization
         FOREIGN KEY (network_id) REFERENCES administration.clinical_network (id) ON DELETE RESTRICT
 );
 
-CREATE INDEX idx_organization_subdomain ON administration.organization (subdomain);
-CREATE INDEX idx_organization_network_id ON administration.organization (network_id);
+CREATE INDEX IF NOT EXISTS idx_organization_subdomain ON administration.organization (subdomain);
+CREATE INDEX IF NOT EXISTS idx_organization_network_id ON administration.organization (network_id);
 
-CREATE TABLE administration.practitioner
+CREATE TABLE IF NOT EXISTS administration.practitioner
 (
     id                     uuid PRIMARY KEY,
     organization_id        uuid        NOT NULL,
@@ -134,9 +131,9 @@ CREATE TABLE administration.practitioner
 );
 
 -- Índice compuesto B-Tree: toda consulta de este contexto entra acotada por clínica.
-CREATE INDEX idx_practitioner_org_id ON administration.practitioner (organization_id, id);
+CREATE INDEX IF NOT EXISTS idx_practitioner_org_id ON administration.practitioner (organization_id, id);
 
-CREATE TABLE administration.patient
+CREATE TABLE IF NOT EXISTS administration.patient
 (
     id                     uuid PRIMARY KEY,
     organization_id        uuid    NOT NULL,
@@ -157,11 +154,10 @@ CREATE TABLE administration.patient
         FOREIGN KEY (organization_id) REFERENCES administration.organization (id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_patient_org_id ON administration.patient (organization_id, id);
-CREATE INDEX idx_patient_referenced_ids ON administration.patient USING GIN (referenced_patient_ids);
+CREATE INDEX IF NOT EXISTS idx_patient_org_id ON administration.patient (organization_id, id);
+CREATE INDEX IF NOT EXISTS idx_patient_referenced_ids ON administration.patient USING GIN (referenced_patient_ids);
 
-
-CREATE TABLE clinic
+CREATE TABLE IF NOT EXISTS public.clinic
 (
     clinic_id    uuid PRIMARY KEY DEFAULT uuidv7(),
     name         VARCHAR(100) NOT NULL,
@@ -174,8 +170,7 @@ CREATE TABLE clinic
     updated_at   TIMESTAMP        DEFAULT CURRENT_TIMESTAMP
 );
 
-
-CREATE TABLE patient
+CREATE TABLE IF NOT EXISTS public.patient
 (
     patient_id       uuid        NOT NULL DEFAULT uuidv7(),
     clinic_id        uuid        NOT NULL,
@@ -195,11 +190,11 @@ CREATE TABLE patient
     PRIMARY KEY (clinic_id, patient_id),
 
     CONSTRAINT fk_patient_clinic
-        FOREIGN KEY (clinic_id) REFERENCES clinic (clinic_id) ON DELETE CASCADE
+        FOREIGN KEY (clinic_id) REFERENCES public.clinic (clinic_id) ON DELETE CASCADE
 )
     PARTITION BY LIST (clinic_id);
 
-CREATE TABLE "patient_search"
+CREATE TABLE IF NOT EXISTS public.patient_search
 (
     clinic_id  uuid         NOT NULL,
     patient_id uuid         NOT NULL,
@@ -208,35 +203,13 @@ CREATE TABLE "patient_search"
     PRIMARY KEY (clinic_id, patient_id),
 
     CONSTRAINT fk_patient_search_clinic_id
-        FOREIGN KEY (clinic_id) REFERENCES clinic (clinic_id) ON DELETE CASCADE,
+        FOREIGN KEY (clinic_id) REFERENCES public.clinic (clinic_id) ON DELETE CASCADE,
     CONSTRAINT fk_patient_search_patient_id
-        FOREIGN KEY (clinic_id, patient_id) REFERENCES patient (clinic_id, patient_id) ON DELETE CASCADE
+        FOREIGN KEY (clinic_id, patient_id) REFERENCES public.patient (clinic_id, patient_id) ON DELETE CASCADE
 )
     PARTITION BY LIST (clinic_id);
 
-
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-CREATE INDEX idx_patient_search_full_name
-    ON patient_search
+CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA public;
+CREATE INDEX IF NOT EXISTS idx_patient_search_full_name
+    ON public.patient_search
         USING GIN (full_name gin_trgm_ops);
-
-
-
-
-
--- ========================================================================
--- USAR LA ZONA HORARIA 'America/Lima' PARA EXTRAER LA FECHA Y HORA DEL UUIDv7
-SELECT uuid_extract_timestamp(patient_id) AT TIME ZONE 'America/Lima', *
-FROM patient;
-
--- OTRA FORMA DE ESTABLECER LA ZONA HORARIA
-SET TIMEZONE = 'America/Lima';
-SELECT uuid_extract_timestamp(patient_id), *
-FROM patient;
--- ========================================================================
-
-
--- INSERT INTO patient(first_name, last_name, date_of_birth)
--- VALUES ('John',
---         'Doe',
---         '1980-05-15');

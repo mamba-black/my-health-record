@@ -1,6 +1,8 @@
 import { RpcError } from "@protobuf-ts/runtime-rpc";
+import { toMissingDataError, withSession } from "../session";
 import {
   type CompleteProfileRequest,
+  type ProfileRequirements,
   ProfileField,
   type SignInRequest,
   type SignInResponse,
@@ -17,6 +19,8 @@ export type GrpcStatusName =
   | "UNAUTHENTICATED"
   | "ALREADY_EXISTS"
   | "INVALID_ARGUMENT"
+  | "FAILED_PRECONDITION"
+  | "PERMISSION_DENIED"
   | "INTERNAL"
   | "UNKNOWN";
 
@@ -48,6 +52,12 @@ function normalizeGrpcCode(rawCode: string | number | undefined): GrpcStatusName
     case "3":
     case "INVALID_ARGUMENT":
       return "INVALID_ARGUMENT";
+    case "9":
+    case "FAILED_PRECONDITION":
+      return "FAILED_PRECONDITION";
+    case "7":
+    case "PERMISSION_DENIED":
+      return "PERMISSION_DENIED";
     case "13":
     case "INTERNAL":
       return "INTERNAL";
@@ -56,7 +66,15 @@ function normalizeGrpcCode(rawCode: string | number | undefined): GrpcStatusName
   }
 }
 
-function toUserApiError(error: unknown): UserApiError {
+export function toUserApiError(error: unknown): Error {
+  const missingData = toMissingDataError(error);
+  if (missingData) {
+    return missingData;
+  }
+  return toPlainUserApiError(error);
+}
+
+function toPlainUserApiError(error: unknown): UserApiError {
   if (error instanceof UserApiError) {
     return error;
   }
@@ -84,7 +102,20 @@ export const userApi = {
 
   async completeProfile(request: CompleteProfileRequest): Promise<SignInResponse> {
     try {
-      const { response } = await userApiClient.completeProfile(request);
+      const { response } = await withSession(() =>
+        userApiClient.completeProfile(request),
+      );
+      return response;
+    } catch (error) {
+      throw toUserApiError(error);
+    }
+  },
+
+  async getProfileRequirements(): Promise<ProfileRequirements> {
+    try {
+      const { response } = await withSession(() =>
+        userApiClient.getProfileRequirements({}),
+      );
       return response;
     } catch (error) {
       throw toUserApiError(error);
@@ -103,6 +134,7 @@ export const userApi = {
 
 export {
   type CompleteProfileRequest,
+  type ProfileRequirements,
   ProfileField,
   type SignInRequest,
   type SignInResponse,

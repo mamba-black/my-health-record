@@ -33,4 +33,10 @@ pub trait OrganizationRepository: Send + Sync {
 
     /// Persiste la organización.
     async fn save(&self, organization: &Organization) -> Result<(), ClickCareError>;
+
+    /// Busca una organización por su identificador.
+    async fn find_by_id(&self, id: &Uuid) -> Result<Option<Organization>, ClickCareError>;
+
+    /// Guarda el estado y los datos legales de la organización.
+    async fn update_setup(&self, organization: &Organization) -> Result<(), ClickCareError>;
 }

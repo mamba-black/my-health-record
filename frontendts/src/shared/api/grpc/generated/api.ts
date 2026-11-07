@@ -78,7 +78,19 @@ export interface Identifier {
         /**
          * @generated from protobuf field: string dni = 1
          */
-        dni: string; // Documento Nacional de Identidad
+        dni: string; // Documento Nacional de Identidad (8 dígitos)
+    } | {
+        oneofKind: "ce";
+        /**
+         * @generated from protobuf field: string ce = 2
+         */
+        ce: string; // Carné de extranjería
+    } | {
+        oneofKind: "passport";
+        /**
+         * @generated from protobuf field: string passport = 3
+         */
+        passport: string; // Pasaporte
     } | {
         oneofKind: undefined;
     };
@@ -191,6 +203,10 @@ export interface SignUpResponse {
      * @generated from protobuf field: optional string organization_id = 5
      */
     organizationId?: string; // UUID v7 de la organización/clínica pre-asignada (cuando intent = INTENT_CLINIC_OWNER)
+    /**
+     * @generated from protobuf field: optional grpc.SessionTokens session = 6
+     */
+    session?: SessionTokens; // Sesión abierta para la cuenta recién creada
 }
 /**
  * / Solicitud de autenticación de usuario (Sign In).
@@ -257,6 +273,279 @@ export interface SignInResponse {
      * @generated from protobuf field: optional grpc.Identifier identifier = 11
      */
     identifier?: Identifier; // Documento de identidad
+    /**
+     * @generated from protobuf field: optional grpc.SessionTokens session = 12
+     */
+    session?: SessionTokens; // Sesión emitida por el backend (solo en SignIn)
+    /**
+     * @generated from protobuf field: grpc.Role preferred_role = 13
+     */
+    preferredRole: Role; // Rol preferido: orienta la interfaz, no autoriza
+    /**
+     * @generated from protobuf field: grpc.Sex sex = 14
+     */
+    sex: Sex; // Sexo registrado
+    /**
+     * @generated from protobuf field: optional string professional_body = 15
+     */
+    professionalBody?: string; // Colegio profesional (CMP, COP, CEP, CPsP…)
+    /**
+     * @generated from protobuf field: optional string license_number = 16
+     */
+    licenseNumber?: string; // Número de colegiatura
+    /**
+     * @generated from protobuf field: optional string specialty = 17
+     */
+    specialty?: string; // Especialidad
+    /**
+     * @generated from protobuf field: optional string rne = 18
+     */
+    rne?: string; // Registro Nacional de Especialista
+    /**
+     * @generated from protobuf field: bool document_verified = 19
+     */
+    documentVerified: boolean; // El documento fue verificado (no editable)
+    /**
+     * @generated from protobuf field: bool license_verified = 20
+     */
+    licenseVerified: boolean; // La colegiatura fue confirmada (no editable)
+}
+/**
+ * / Detalle de un error FAILED_PRECONDITION: la acción y los datos que le faltan.
+ * / Viaja en `grpc-status-details-bin`.
+ *
+ * @generated from protobuf message grpc.ActionRequirements
+ */
+export interface ActionRequirements {
+    /**
+     * @generated from protobuf field: grpc.ProtectedAction action = 1
+     */
+    action: ProtectedAction;
+    /**
+     * @generated from protobuf field: repeated grpc.ProfileField missing = 2
+     */
+    missing: ProfileField[];
+    /**
+     * @generated from protobuf field: optional string organization_id = 3
+     */
+    organizationId?: string;
+}
+/**
+ * / Tokens de sesión emitidos por el backend.
+ *
+ * @generated from protobuf message grpc.SessionTokens
+ */
+export interface SessionTokens {
+    /**
+     * @generated from protobuf field: string access_token = 1
+     */
+    accessToken: string; // Se envía como `authorization: Bearer <token>`
+    /**
+     * @generated from protobuf field: int64 access_expires_at = 2
+     */
+    accessExpiresAt: string; // Vencimiento del token de acceso (segundos Unix)
+    /**
+     * @generated from protobuf field: string refresh_token = 3
+     */
+    refreshToken: string; // Se canjea en `RefreshSession`
+}
+/**
+ * @generated from protobuf message grpc.RefreshSessionRequest
+ */
+export interface RefreshSessionRequest {
+    /**
+     * @generated from protobuf field: string refresh_token = 1
+     */
+    refreshToken: string;
+}
+/**
+ * @generated from protobuf message grpc.GetProfileRequirementsRequest
+ */
+export interface GetProfileRequirementsRequest {
+}
+/**
+ * / Requisito de un dato del perfil para el usuario de la sesión.
+ *
+ * @generated from protobuf message grpc.FieldRequirement
+ */
+export interface FieldRequirement {
+    /**
+     * @generated from protobuf field: grpc.ProfileField field = 1
+     */
+    field: ProfileField;
+    /**
+     * @generated from protobuf field: repeated grpc.ProtectedAction required_for = 2
+     */
+    requiredFor: ProtectedAction[]; // Acciones que lo vuelven obligatorio (vacío: siempre opcional)
+    /**
+     * @generated from protobuf field: bool missing = 3
+     */
+    missing: boolean; // El usuario aún no lo registró
+    /**
+     * @generated from protobuf field: bool read_only = 4
+     */
+    readOnly: boolean; // Verificado o proveniente del proveedor de identidad
+    /**
+     * @generated from protobuf field: repeated grpc.Role roles = 5
+     */
+    roles: Role[]; // Roles del usuario a los que aplica
+}
+/**
+ * @generated from protobuf message grpc.ProfileRequirements
+ */
+export interface ProfileRequirements {
+    /**
+     * @generated from protobuf field: repeated grpc.FieldRequirement fields = 1
+     */
+    fields: FieldRequirement[];
+    /**
+     * @generated from protobuf field: repeated grpc.Membership memberships = 2
+     */
+    memberships: Membership[];
+    /**
+     * @generated from protobuf field: grpc.Role preferred_role = 3
+     */
+    preferredRole: Role;
+    /**
+     * @generated from protobuf field: repeated grpc.ProfileField missing_for_habitual = 4
+     */
+    missingForHabitual: ProfileField[]; // Lo que falta para las acciones habituales del rol
+    /**
+     * @generated from protobuf field: grpc.SignInResponse account = 5
+     */
+    account?: SignInResponse; // Valores actuales de la cuenta (sin sesión)
+}
+/**
+ * / Relación de un usuario con una clínica.
+ *
+ * @generated from protobuf message grpc.Membership
+ */
+export interface Membership {
+    /**
+     * @generated from protobuf field: string id = 1
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: string organization_id = 2
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: string organization_name = 3
+     */
+    organizationName: string;
+    /**
+     * @generated from protobuf field: grpc.ClinicStatus organization_status = 4
+     */
+    organizationStatus: ClinicStatus;
+    /**
+     * @generated from protobuf field: string user_id = 5
+     */
+    userId: string;
+    /**
+     * @generated from protobuf field: grpc.MembershipRole role = 6
+     */
+    role: MembershipRole;
+    /**
+     * @generated from protobuf field: grpc.MembershipStatus status = 7
+     */
+    status: MembershipStatus;
+    /**
+     * @generated from protobuf field: bool license_confirmed = 8
+     */
+    licenseConfirmed: boolean;
+}
+/**
+ * @generated from protobuf message grpc.MembershipIdRequest
+ */
+export interface MembershipIdRequest {
+    /**
+     * @generated from protobuf field: string membership_id = 1
+     */
+    membershipId: string;
+}
+/**
+ * @generated from protobuf message grpc.ClinicIdRequest
+ */
+export interface ClinicIdRequest {
+    /**
+     * @generated from protobuf field: string organization_id = 1
+     */
+    organizationId: string;
+}
+/**
+ * @generated from protobuf message grpc.InviteMemberRequest
+ */
+export interface InviteMemberRequest {
+    /**
+     * @generated from protobuf field: string organization_id = 1
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: string email = 2
+     */
+    email: string;
+    /**
+     * @generated from protobuf field: grpc.MembershipRole role = 3
+     */
+    role: MembershipRole;
+}
+/**
+ * @generated from protobuf message grpc.UpdateClinicSetupRequest
+ */
+export interface UpdateClinicSetupRequest {
+    /**
+     * @generated from protobuf field: string organization_id = 1
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: optional string tax_id = 2
+     */
+    taxId?: string; // RUC (11 dígitos, módulo 11)
+    /**
+     * @generated from protobuf field: optional string legal_name = 3
+     */
+    legalName?: string; // Razón social
+    /**
+     * @generated from protobuf field: optional string trade_name = 4
+     */
+    tradeName?: string; // Nombre comercial
+    /**
+     * @generated from protobuf field: optional string ipress_code = 5
+     */
+    ipressCode?: string; // Código IPRESS
+}
+/**
+ * @generated from protobuf message grpc.ClinicSummary
+ */
+export interface ClinicSummary {
+    /**
+     * @generated from protobuf field: string organization_id = 1
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: string name = 2
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: grpc.ClinicStatus status = 3
+     */
+    status: ClinicStatus;
+    /**
+     * @generated from protobuf field: optional string tax_id = 4
+     */
+    taxId?: string;
+    /**
+     * @generated from protobuf field: optional string legal_name = 5
+     */
+    legalName?: string;
+    /**
+     * @generated from protobuf field: optional string trade_name = 6
+     */
+    tradeName?: string;
+    /**
+     * @generated from protobuf field: optional string ipress_code = 7
+     */
+    ipressCode?: string;
 }
 /**
  * / Solicitud para completar los datos de la cuenta. Un dato opcional omitido conserva su valor.
@@ -265,13 +554,16 @@ export interface SignInResponse {
  */
 export interface CompleteProfileRequest {
     /**
-     * @generated from protobuf field: string id_token = 1
+     * DEPRECADO: la cuenta sale de la sesión (`authorization: Bearer`). Se ignora.
+     *
+     * @deprecated
+     * @generated from protobuf field: string id_token = 1 [deprecated = true]
      */
-    idToken: string; // Token JWT que identifica al titular de la cuenta
+    idToken: string;
     /**
      * @generated from protobuf field: string given_name = 2
      */
-    givenName: string; // Nombres de pila
+    givenName: string; // Nombres de pila (vacío: conserva el valor)
     /**
      * @generated from protobuf field: optional string family_name = 3
      */
@@ -279,7 +571,7 @@ export interface CompleteProfileRequest {
     /**
      * @generated from protobuf field: string phone = 4
      */
-    phone: string; // Teléfono de contacto
+    phone: string; // Teléfono de contacto (vacío: conserva el valor)
     /**
      * @generated from protobuf field: optional string second_family_name = 5
      */
@@ -287,7 +579,7 @@ export interface CompleteProfileRequest {
     /**
      * @generated from protobuf field: string birth_date = 6
      */
-    birthDate: string; // Fecha de nacimiento (Formato YYYY-MM-DD)
+    birthDate: string; // Fecha de nacimiento YYYY-MM-DD (vacío: conserva el valor)
     /**
      * @generated from protobuf field: optional string address = 7
      */
@@ -296,6 +588,30 @@ export interface CompleteProfileRequest {
      * @generated from protobuf field: optional grpc.Identifier identifier = 8
      */
     identifier?: Identifier; // Documento de identidad
+    /**
+     * @generated from protobuf field: grpc.Sex sex = 9
+     */
+    sex: Sex; // SEX_UNSPECIFIED conserva el valor
+    /**
+     * @generated from protobuf field: optional string professional_body = 10
+     */
+    professionalBody?: string; // Colegio profesional
+    /**
+     * @generated from protobuf field: optional string license_number = 11
+     */
+    licenseNumber?: string; // Número de colegiatura
+    /**
+     * @generated from protobuf field: optional string specialty = 12
+     */
+    specialty?: string; // Especialidad
+    /**
+     * @generated from protobuf field: optional string rne = 13
+     */
+    rne?: string; // Registro Nacional de Especialista
+    /**
+     * @generated from protobuf field: grpc.Role preferred_role = 14
+     */
+    preferredRole: Role; // ROLE_UNSPECIFIED conserva el valor
 }
 // ============================================================================
 // TIPOS DE DATOS CLAVE (DATA TYPES - HL7 FHIR R4)
@@ -835,7 +1151,253 @@ export enum ProfileField {
     /**
      * @generated from protobuf enum value: PROFILE_FIELD_BIRTH_DATE = 3;
      */
-    BIRTH_DATE = 3
+    BIRTH_DATE = 3,
+    /**
+     * @generated from protobuf enum value: PROFILE_FIELD_FAMILY_NAME = 4;
+     */
+    FAMILY_NAME = 4,
+    /**
+     * @generated from protobuf enum value: PROFILE_FIELD_DOCUMENT = 5;
+     */
+    DOCUMENT = 5,
+    /**
+     * @generated from protobuf enum value: PROFILE_FIELD_SEX = 6;
+     */
+    SEX = 6,
+    /**
+     * @generated from protobuf enum value: PROFILE_FIELD_ADDRESS = 7;
+     */
+    ADDRESS = 7,
+    /**
+     * Colegio profesional y número de colegiatura
+     *
+     * @generated from protobuf enum value: PROFILE_FIELD_PROFESSIONAL_LICENSE = 8;
+     */
+    PROFESSIONAL_LICENSE = 8,
+    /**
+     * Especialidad y RNE
+     *
+     * @generated from protobuf enum value: PROFILE_FIELD_SPECIALTY = 9;
+     */
+    SPECIALTY = 9,
+    /**
+     * RUC de la clínica
+     *
+     * @generated from protobuf enum value: PROFILE_FIELD_CLINIC_TAX_ID = 10;
+     */
+    CLINIC_TAX_ID = 10,
+    /**
+     * Razón social de la clínica
+     *
+     * @generated from protobuf enum value: PROFILE_FIELD_CLINIC_LEGAL_NAME = 11;
+     */
+    CLINIC_LEGAL_NAME = 11,
+    /**
+     * Código IPRESS (RENIPRESS)
+     *
+     * @generated from protobuf enum value: PROFILE_FIELD_IPRESS_CODE = 12;
+     */
+    IPRESS_CODE = 12,
+    /**
+     * @generated from protobuf enum value: PROFILE_FIELD_SECOND_FAMILY_NAME = 13;
+     */
+    SECOND_FAMILY_NAME = 13,
+    /**
+     * @generated from protobuf enum value: PROFILE_FIELD_EMAIL = 14;
+     */
+    EMAIL = 14,
+    /**
+     * Colegiatura confirmada por la clínica (no se llena)
+     *
+     * @generated from protobuf enum value: PROFILE_FIELD_LICENSE_CONFIRMED = 15;
+     */
+    LICENSE_CONFIRMED = 15,
+    /**
+     * Nombre comercial de la clínica
+     *
+     * @generated from protobuf enum value: PROFILE_FIELD_CLINIC_TRADE_NAME = 16;
+     */
+    CLINIC_TRADE_NAME = 16
+}
+/**
+ * / Rol preferido de la cuenta. Solo orienta la interfaz; los permisos salen de las membresías.
+ *
+ * @generated from protobuf enum grpc.Role
+ */
+export enum Role {
+    /**
+     * @generated from protobuf enum value: ROLE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: ROLE_PATIENT = 1;
+     */
+    PATIENT = 1,
+    /**
+     * @generated from protobuf enum value: ROLE_PRACTITIONER = 2;
+     */
+    PRACTITIONER = 2,
+    /**
+     * @generated from protobuf enum value: ROLE_CLINIC_OWNER = 3;
+     */
+    CLINIC_OWNER = 3
+}
+/**
+ * / Sexo registrado (FHIR AdministrativeGender).
+ *
+ * @generated from protobuf enum grpc.Sex
+ */
+export enum Sex {
+    /**
+     * @generated from protobuf enum value: SEX_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: SEX_FEMALE = 1;
+     */
+    FEMALE = 1,
+    /**
+     * @generated from protobuf enum value: SEX_MALE = 2;
+     */
+    MALE = 2,
+    /**
+     * @generated from protobuf enum value: SEX_OTHER = 3;
+     */
+    OTHER = 3
+}
+/**
+ * / Acción protegida. Cada una exige un rol, una membresía, unos datos y un estado de clínica.
+ *
+ * @generated from protobuf enum grpc.ProtectedAction
+ */
+export enum ProtectedAction {
+    /**
+     * @generated from protobuf enum value: ACTION_UNSPECIFIED = 0;
+     */
+    ACTION_UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: ACTION_CONFIRM_APPOINTMENT = 1;
+     */
+    ACTION_CONFIRM_APPOINTMENT = 1,
+    /**
+     * @generated from protobuf enum value: ACTION_JOIN_CLINIC = 2;
+     */
+    ACTION_JOIN_CLINIC = 2,
+    /**
+     * @generated from protobuf enum value: ACTION_ACTIVATE_PRACTITIONER = 3;
+     */
+    ACTION_ACTIVATE_PRACTITIONER = 3,
+    /**
+     * @generated from protobuf enum value: ACTION_SEARCH_PATIENTS = 4;
+     */
+    ACTION_SEARCH_PATIENTS = 4,
+    /**
+     * @generated from protobuf enum value: ACTION_VIEW_PATIENT = 5;
+     */
+    ACTION_VIEW_PATIENT = 5,
+    /**
+     * @generated from protobuf enum value: ACTION_RECORD_ENCOUNTER = 6;
+     */
+    ACTION_RECORD_ENCOUNTER = 6,
+    /**
+     * @generated from protobuf enum value: ACTION_CREATE_CLINIC = 7;
+     */
+    ACTION_CREATE_CLINIC = 7,
+    /**
+     * @generated from protobuf enum value: ACTION_CONFIGURE_CLINIC = 8;
+     */
+    ACTION_CONFIGURE_CLINIC = 8,
+    /**
+     * @generated from protobuf enum value: ACTION_INVITE_STAFF = 9;
+     */
+    ACTION_INVITE_STAFF = 9,
+    /**
+     * @generated from protobuf enum value: ACTION_ACTIVATE_CLINIC = 10;
+     */
+    ACTION_ACTIVATE_CLINIC = 10,
+    /**
+     * @generated from protobuf enum value: ACTION_OPEN_FIRST_ENCOUNTER = 11;
+     */
+    ACTION_OPEN_FIRST_ENCOUNTER = 11,
+    /**
+     * @generated from protobuf enum value: ACTION_ISSUE_PRESCRIPTION = 12;
+     */
+    ACTION_ISSUE_PRESCRIPTION = 12,
+    /**
+     * @generated from protobuf enum value: ACTION_SUSPEND_MEMBER = 13;
+     */
+    ACTION_SUSPEND_MEMBER = 13,
+    /**
+     * @generated from protobuf enum value: ACTION_CONFIRM_LICENSE = 14;
+     */
+    ACTION_CONFIRM_LICENSE = 14
+}
+/**
+ * @generated from protobuf enum grpc.MembershipRole
+ */
+export enum MembershipRole {
+    /**
+     * @generated from protobuf enum value: MEMBERSHIP_ROLE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: MEMBERSHIP_ROLE_OWNER = 1;
+     */
+    OWNER = 1,
+    /**
+     * @generated from protobuf enum value: MEMBERSHIP_ROLE_ADMIN = 2;
+     */
+    ADMIN = 2,
+    /**
+     * @generated from protobuf enum value: MEMBERSHIP_ROLE_PRACTITIONER = 3;
+     */
+    PRACTITIONER = 3
+}
+/**
+ * @generated from protobuf enum grpc.MembershipStatus
+ */
+export enum MembershipStatus {
+    /**
+     * @generated from protobuf enum value: MEMBERSHIP_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: MEMBERSHIP_STATUS_INVITED = 1;
+     */
+    INVITED = 1,
+    /**
+     * @generated from protobuf enum value: MEMBERSHIP_STATUS_PENDING = 2;
+     */
+    PENDING = 2,
+    /**
+     * @generated from protobuf enum value: MEMBERSHIP_STATUS_ACTIVE = 3;
+     */
+    ACTIVE = 3,
+    /**
+     * @generated from protobuf enum value: MEMBERSHIP_STATUS_SUSPENDED = 4;
+     */
+    SUSPENDED = 4
+}
+/**
+ * @generated from protobuf enum grpc.ClinicStatus
+ */
+export enum ClinicStatus {
+    /**
+     * @generated from protobuf enum value: CLINIC_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: CLINIC_STATUS_PENDING_SETUP = 1;
+     */
+    PENDING_SETUP = 1,
+    /**
+     * @generated from protobuf enum value: CLINIC_STATUS_ACTIVE = 2;
+     */
+    ACTIVE = 2,
+    /**
+     * @generated from protobuf enum value: CLINIC_STATUS_SUSPENDED = 3;
+     */
+    SUSPENDED = 3
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class SearchPatientRequest$Type extends MessageType<SearchPatientRequest> {
@@ -1008,7 +1570,9 @@ export const SearchPatientResponse = new SearchPatientResponse$Type();
 class Identifier$Type extends MessageType<Identifier> {
     constructor() {
         super("grpc.Identifier", [
-            { no: 1, name: "dni", kind: "scalar", oneof: "identifierType", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "dni", kind: "scalar", oneof: "identifierType", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "ce", kind: "scalar", oneof: "identifierType", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "passport", kind: "scalar", oneof: "identifierType", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<Identifier>): Identifier {
@@ -1029,6 +1593,18 @@ class Identifier$Type extends MessageType<Identifier> {
                         dni: reader.string()
                     };
                     break;
+                case /* string ce */ 2:
+                    message.identifierType = {
+                        oneofKind: "ce",
+                        ce: reader.string()
+                    };
+                    break;
+                case /* string passport */ 3:
+                    message.identifierType = {
+                        oneofKind: "passport",
+                        passport: reader.string()
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1044,6 +1620,12 @@ class Identifier$Type extends MessageType<Identifier> {
         /* string dni = 1; */
         if (message.identifierType.oneofKind === "dni")
             writer.tag(1, WireType.LengthDelimited).string(message.identifierType.dni);
+        /* string ce = 2; */
+        if (message.identifierType.oneofKind === "ce")
+            writer.tag(2, WireType.LengthDelimited).string(message.identifierType.ce);
+        /* string passport = 3; */
+        if (message.identifierType.oneofKind === "passport")
+            writer.tag(3, WireType.LengthDelimited).string(message.identifierType.passport);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1231,7 +1813,8 @@ class SignUpResponse$Type extends MessageType<SignUpResponse> {
             { no: 2, name: "message", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "user_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "link", kind: "message", T: () => PersonLink },
-            { no: 5, name: "organization_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "organization_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "session", kind: "message", T: () => SessionTokens }
         ]);
     }
     create(value?: PartialMessage<SignUpResponse>): SignUpResponse {
@@ -1262,6 +1845,9 @@ class SignUpResponse$Type extends MessageType<SignUpResponse> {
                 case /* optional string organization_id */ 5:
                     message.organizationId = reader.string();
                     break;
+                case /* optional grpc.SessionTokens session */ 6:
+                    message.session = SessionTokens.internalBinaryRead(reader, reader.uint32(), options, message.session);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1289,6 +1875,9 @@ class SignUpResponse$Type extends MessageType<SignUpResponse> {
         /* optional string organization_id = 5; */
         if (message.organizationId !== undefined)
             writer.tag(5, WireType.LengthDelimited).string(message.organizationId);
+        /* optional grpc.SessionTokens session = 6; */
+        if (message.session)
+            SessionTokens.internalBinaryWrite(message.session, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1368,7 +1957,16 @@ class SignInResponse$Type extends MessageType<SignInResponse> {
             { no: 8, name: "second_family_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "birth_date", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "address", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "identifier", kind: "message", T: () => Identifier }
+            { no: 11, name: "identifier", kind: "message", T: () => Identifier },
+            { no: 12, name: "session", kind: "message", T: () => SessionTokens },
+            { no: 13, name: "preferred_role", kind: "enum", T: () => ["grpc.Role", Role, "ROLE_"] },
+            { no: 14, name: "sex", kind: "enum", T: () => ["grpc.Sex", Sex, "SEX_"] },
+            { no: 15, name: "professional_body", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "license_number", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 17, name: "specialty", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 18, name: "rne", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "document_verified", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 20, name: "license_verified", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<SignInResponse>): SignInResponse {
@@ -1378,6 +1976,10 @@ class SignInResponse$Type extends MessageType<SignInResponse> {
         message.givenName = "";
         message.isOwner = false;
         message.missingFields = [];
+        message.preferredRole = 0;
+        message.sex = 0;
+        message.documentVerified = false;
+        message.licenseVerified = false;
         if (value !== undefined)
             reflectionMergePartial<SignInResponse>(this, message, value);
         return message;
@@ -1423,6 +2025,33 @@ class SignInResponse$Type extends MessageType<SignInResponse> {
                     break;
                 case /* optional grpc.Identifier identifier */ 11:
                     message.identifier = Identifier.internalBinaryRead(reader, reader.uint32(), options, message.identifier);
+                    break;
+                case /* optional grpc.SessionTokens session */ 12:
+                    message.session = SessionTokens.internalBinaryRead(reader, reader.uint32(), options, message.session);
+                    break;
+                case /* grpc.Role preferred_role */ 13:
+                    message.preferredRole = reader.int32();
+                    break;
+                case /* grpc.Sex sex */ 14:
+                    message.sex = reader.int32();
+                    break;
+                case /* optional string professional_body */ 15:
+                    message.professionalBody = reader.string();
+                    break;
+                case /* optional string license_number */ 16:
+                    message.licenseNumber = reader.string();
+                    break;
+                case /* optional string specialty */ 17:
+                    message.specialty = reader.string();
+                    break;
+                case /* optional string rne */ 18:
+                    message.rne = reader.string();
+                    break;
+                case /* bool document_verified */ 19:
+                    message.documentVerified = reader.bool();
+                    break;
+                case /* bool license_verified */ 20:
+                    message.licenseVerified = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1473,6 +2102,33 @@ class SignInResponse$Type extends MessageType<SignInResponse> {
         /* optional grpc.Identifier identifier = 11; */
         if (message.identifier)
             Identifier.internalBinaryWrite(message.identifier, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* optional grpc.SessionTokens session = 12; */
+        if (message.session)
+            SessionTokens.internalBinaryWrite(message.session, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* grpc.Role preferred_role = 13; */
+        if (message.preferredRole !== 0)
+            writer.tag(13, WireType.Varint).int32(message.preferredRole);
+        /* grpc.Sex sex = 14; */
+        if (message.sex !== 0)
+            writer.tag(14, WireType.Varint).int32(message.sex);
+        /* optional string professional_body = 15; */
+        if (message.professionalBody !== undefined)
+            writer.tag(15, WireType.LengthDelimited).string(message.professionalBody);
+        /* optional string license_number = 16; */
+        if (message.licenseNumber !== undefined)
+            writer.tag(16, WireType.LengthDelimited).string(message.licenseNumber);
+        /* optional string specialty = 17; */
+        if (message.specialty !== undefined)
+            writer.tag(17, WireType.LengthDelimited).string(message.specialty);
+        /* optional string rne = 18; */
+        if (message.rne !== undefined)
+            writer.tag(18, WireType.LengthDelimited).string(message.rne);
+        /* bool document_verified = 19; */
+        if (message.documentVerified !== false)
+            writer.tag(19, WireType.Varint).bool(message.documentVerified);
+        /* bool license_verified = 20; */
+        if (message.licenseVerified !== false)
+            writer.tag(20, WireType.Varint).bool(message.licenseVerified);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1484,6 +2140,831 @@ class SignInResponse$Type extends MessageType<SignInResponse> {
  */
 export const SignInResponse = new SignInResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ActionRequirements$Type extends MessageType<ActionRequirements> {
+    constructor() {
+        super("grpc.ActionRequirements", [
+            { no: 1, name: "action", kind: "enum", T: () => ["grpc.ProtectedAction", ProtectedAction] },
+            { no: 2, name: "missing", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["grpc.ProfileField", ProfileField, "PROFILE_FIELD_"] },
+            { no: 3, name: "organization_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ActionRequirements>): ActionRequirements {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.action = 0;
+        message.missing = [];
+        if (value !== undefined)
+            reflectionMergePartial<ActionRequirements>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ActionRequirements): ActionRequirements {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* grpc.ProtectedAction action */ 1:
+                    message.action = reader.int32();
+                    break;
+                case /* repeated grpc.ProfileField missing */ 2:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.missing.push(reader.int32());
+                    else
+                        message.missing.push(reader.int32());
+                    break;
+                case /* optional string organization_id */ 3:
+                    message.organizationId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ActionRequirements, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* grpc.ProtectedAction action = 1; */
+        if (message.action !== 0)
+            writer.tag(1, WireType.Varint).int32(message.action);
+        /* repeated grpc.ProfileField missing = 2; */
+        if (message.missing.length) {
+            writer.tag(2, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.missing.length; i++)
+                writer.int32(message.missing[i]);
+            writer.join();
+        }
+        /* optional string organization_id = 3; */
+        if (message.organizationId !== undefined)
+            writer.tag(3, WireType.LengthDelimited).string(message.organizationId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.ActionRequirements
+ */
+export const ActionRequirements = new ActionRequirements$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SessionTokens$Type extends MessageType<SessionTokens> {
+    constructor() {
+        super("grpc.SessionTokens", [
+            { no: 1, name: "access_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "access_expires_at", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 3, name: "refresh_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SessionTokens>): SessionTokens {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.accessToken = "";
+        message.accessExpiresAt = "0";
+        message.refreshToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<SessionTokens>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SessionTokens): SessionTokens {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string access_token */ 1:
+                    message.accessToken = reader.string();
+                    break;
+                case /* int64 access_expires_at */ 2:
+                    message.accessExpiresAt = reader.int64().toString();
+                    break;
+                case /* string refresh_token */ 3:
+                    message.refreshToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SessionTokens, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string access_token = 1; */
+        if (message.accessToken !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.accessToken);
+        /* int64 access_expires_at = 2; */
+        if (message.accessExpiresAt !== "0")
+            writer.tag(2, WireType.Varint).int64(message.accessExpiresAt);
+        /* string refresh_token = 3; */
+        if (message.refreshToken !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.refreshToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.SessionTokens
+ */
+export const SessionTokens = new SessionTokens$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RefreshSessionRequest$Type extends MessageType<RefreshSessionRequest> {
+    constructor() {
+        super("grpc.RefreshSessionRequest", [
+            { no: 1, name: "refresh_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RefreshSessionRequest>): RefreshSessionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.refreshToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<RefreshSessionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RefreshSessionRequest): RefreshSessionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string refresh_token */ 1:
+                    message.refreshToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RefreshSessionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string refresh_token = 1; */
+        if (message.refreshToken !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.refreshToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.RefreshSessionRequest
+ */
+export const RefreshSessionRequest = new RefreshSessionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetProfileRequirementsRequest$Type extends MessageType<GetProfileRequirementsRequest> {
+    constructor() {
+        super("grpc.GetProfileRequirementsRequest", []);
+    }
+    create(value?: PartialMessage<GetProfileRequirementsRequest>): GetProfileRequirementsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetProfileRequirementsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetProfileRequirementsRequest): GetProfileRequirementsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetProfileRequirementsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.GetProfileRequirementsRequest
+ */
+export const GetProfileRequirementsRequest = new GetProfileRequirementsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class FieldRequirement$Type extends MessageType<FieldRequirement> {
+    constructor() {
+        super("grpc.FieldRequirement", [
+            { no: 1, name: "field", kind: "enum", T: () => ["grpc.ProfileField", ProfileField, "PROFILE_FIELD_"] },
+            { no: 2, name: "required_for", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["grpc.ProtectedAction", ProtectedAction] },
+            { no: 3, name: "missing", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "read_only", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "roles", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["grpc.Role", Role, "ROLE_"] }
+        ]);
+    }
+    create(value?: PartialMessage<FieldRequirement>): FieldRequirement {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.field = 0;
+        message.requiredFor = [];
+        message.missing = false;
+        message.readOnly = false;
+        message.roles = [];
+        if (value !== undefined)
+            reflectionMergePartial<FieldRequirement>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: FieldRequirement): FieldRequirement {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* grpc.ProfileField field */ 1:
+                    message.field = reader.int32();
+                    break;
+                case /* repeated grpc.ProtectedAction required_for */ 2:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.requiredFor.push(reader.int32());
+                    else
+                        message.requiredFor.push(reader.int32());
+                    break;
+                case /* bool missing */ 3:
+                    message.missing = reader.bool();
+                    break;
+                case /* bool read_only */ 4:
+                    message.readOnly = reader.bool();
+                    break;
+                case /* repeated grpc.Role roles */ 5:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.roles.push(reader.int32());
+                    else
+                        message.roles.push(reader.int32());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: FieldRequirement, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* grpc.ProfileField field = 1; */
+        if (message.field !== 0)
+            writer.tag(1, WireType.Varint).int32(message.field);
+        /* repeated grpc.ProtectedAction required_for = 2; */
+        if (message.requiredFor.length) {
+            writer.tag(2, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.requiredFor.length; i++)
+                writer.int32(message.requiredFor[i]);
+            writer.join();
+        }
+        /* bool missing = 3; */
+        if (message.missing !== false)
+            writer.tag(3, WireType.Varint).bool(message.missing);
+        /* bool read_only = 4; */
+        if (message.readOnly !== false)
+            writer.tag(4, WireType.Varint).bool(message.readOnly);
+        /* repeated grpc.Role roles = 5; */
+        if (message.roles.length) {
+            writer.tag(5, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.roles.length; i++)
+                writer.int32(message.roles[i]);
+            writer.join();
+        }
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.FieldRequirement
+ */
+export const FieldRequirement = new FieldRequirement$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ProfileRequirements$Type extends MessageType<ProfileRequirements> {
+    constructor() {
+        super("grpc.ProfileRequirements", [
+            { no: 1, name: "fields", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => FieldRequirement },
+            { no: 2, name: "memberships", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => Membership },
+            { no: 3, name: "preferred_role", kind: "enum", T: () => ["grpc.Role", Role, "ROLE_"] },
+            { no: 4, name: "missing_for_habitual", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["grpc.ProfileField", ProfileField, "PROFILE_FIELD_"] },
+            { no: 5, name: "account", kind: "message", T: () => SignInResponse }
+        ]);
+    }
+    create(value?: PartialMessage<ProfileRequirements>): ProfileRequirements {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.fields = [];
+        message.memberships = [];
+        message.preferredRole = 0;
+        message.missingForHabitual = [];
+        if (value !== undefined)
+            reflectionMergePartial<ProfileRequirements>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ProfileRequirements): ProfileRequirements {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated grpc.FieldRequirement fields */ 1:
+                    message.fields.push(FieldRequirement.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated grpc.Membership memberships */ 2:
+                    message.memberships.push(Membership.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* grpc.Role preferred_role */ 3:
+                    message.preferredRole = reader.int32();
+                    break;
+                case /* repeated grpc.ProfileField missing_for_habitual */ 4:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.missingForHabitual.push(reader.int32());
+                    else
+                        message.missingForHabitual.push(reader.int32());
+                    break;
+                case /* grpc.SignInResponse account */ 5:
+                    message.account = SignInResponse.internalBinaryRead(reader, reader.uint32(), options, message.account);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ProfileRequirements, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated grpc.FieldRequirement fields = 1; */
+        for (let i = 0; i < message.fields.length; i++)
+            FieldRequirement.internalBinaryWrite(message.fields[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated grpc.Membership memberships = 2; */
+        for (let i = 0; i < message.memberships.length; i++)
+            Membership.internalBinaryWrite(message.memberships[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* grpc.Role preferred_role = 3; */
+        if (message.preferredRole !== 0)
+            writer.tag(3, WireType.Varint).int32(message.preferredRole);
+        /* repeated grpc.ProfileField missing_for_habitual = 4; */
+        if (message.missingForHabitual.length) {
+            writer.tag(4, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.missingForHabitual.length; i++)
+                writer.int32(message.missingForHabitual[i]);
+            writer.join();
+        }
+        /* grpc.SignInResponse account = 5; */
+        if (message.account)
+            SignInResponse.internalBinaryWrite(message.account, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.ProfileRequirements
+ */
+export const ProfileRequirements = new ProfileRequirements$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class Membership$Type extends MessageType<Membership> {
+    constructor() {
+        super("grpc.Membership", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "organization_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "organization_status", kind: "enum", T: () => ["grpc.ClinicStatus", ClinicStatus, "CLINIC_STATUS_"] },
+            { no: 5, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "role", kind: "enum", T: () => ["grpc.MembershipRole", MembershipRole, "MEMBERSHIP_ROLE_"] },
+            { no: 7, name: "status", kind: "enum", T: () => ["grpc.MembershipStatus", MembershipStatus, "MEMBERSHIP_STATUS_"] },
+            { no: 8, name: "license_confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<Membership>): Membership {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.id = "";
+        message.organizationId = "";
+        message.organizationName = "";
+        message.organizationStatus = 0;
+        message.userId = "";
+        message.role = 0;
+        message.status = 0;
+        message.licenseConfirmed = false;
+        if (value !== undefined)
+            reflectionMergePartial<Membership>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: Membership): Membership {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string id */ 1:
+                    message.id = reader.string();
+                    break;
+                case /* string organization_id */ 2:
+                    message.organizationId = reader.string();
+                    break;
+                case /* string organization_name */ 3:
+                    message.organizationName = reader.string();
+                    break;
+                case /* grpc.ClinicStatus organization_status */ 4:
+                    message.organizationStatus = reader.int32();
+                    break;
+                case /* string user_id */ 5:
+                    message.userId = reader.string();
+                    break;
+                case /* grpc.MembershipRole role */ 6:
+                    message.role = reader.int32();
+                    break;
+                case /* grpc.MembershipStatus status */ 7:
+                    message.status = reader.int32();
+                    break;
+                case /* bool license_confirmed */ 8:
+                    message.licenseConfirmed = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: Membership, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string id = 1; */
+        if (message.id !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.id);
+        /* string organization_id = 2; */
+        if (message.organizationId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.organizationId);
+        /* string organization_name = 3; */
+        if (message.organizationName !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.organizationName);
+        /* grpc.ClinicStatus organization_status = 4; */
+        if (message.organizationStatus !== 0)
+            writer.tag(4, WireType.Varint).int32(message.organizationStatus);
+        /* string user_id = 5; */
+        if (message.userId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.userId);
+        /* grpc.MembershipRole role = 6; */
+        if (message.role !== 0)
+            writer.tag(6, WireType.Varint).int32(message.role);
+        /* grpc.MembershipStatus status = 7; */
+        if (message.status !== 0)
+            writer.tag(7, WireType.Varint).int32(message.status);
+        /* bool license_confirmed = 8; */
+        if (message.licenseConfirmed !== false)
+            writer.tag(8, WireType.Varint).bool(message.licenseConfirmed);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.Membership
+ */
+export const Membership = new Membership$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MembershipIdRequest$Type extends MessageType<MembershipIdRequest> {
+    constructor() {
+        super("grpc.MembershipIdRequest", [
+            { no: 1, name: "membership_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<MembershipIdRequest>): MembershipIdRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.membershipId = "";
+        if (value !== undefined)
+            reflectionMergePartial<MembershipIdRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MembershipIdRequest): MembershipIdRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string membership_id */ 1:
+                    message.membershipId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MembershipIdRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string membership_id = 1; */
+        if (message.membershipId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.membershipId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.MembershipIdRequest
+ */
+export const MembershipIdRequest = new MembershipIdRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ClinicIdRequest$Type extends MessageType<ClinicIdRequest> {
+    constructor() {
+        super("grpc.ClinicIdRequest", [
+            { no: 1, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ClinicIdRequest>): ClinicIdRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.organizationId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ClinicIdRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ClinicIdRequest): ClinicIdRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string organization_id */ 1:
+                    message.organizationId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ClinicIdRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string organization_id = 1; */
+        if (message.organizationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.organizationId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.ClinicIdRequest
+ */
+export const ClinicIdRequest = new ClinicIdRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class InviteMemberRequest$Type extends MessageType<InviteMemberRequest> {
+    constructor() {
+        super("grpc.InviteMemberRequest", [
+            { no: 1, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "email", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "role", kind: "enum", T: () => ["grpc.MembershipRole", MembershipRole, "MEMBERSHIP_ROLE_"] }
+        ]);
+    }
+    create(value?: PartialMessage<InviteMemberRequest>): InviteMemberRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.organizationId = "";
+        message.email = "";
+        message.role = 0;
+        if (value !== undefined)
+            reflectionMergePartial<InviteMemberRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: InviteMemberRequest): InviteMemberRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string organization_id */ 1:
+                    message.organizationId = reader.string();
+                    break;
+                case /* string email */ 2:
+                    message.email = reader.string();
+                    break;
+                case /* grpc.MembershipRole role */ 3:
+                    message.role = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: InviteMemberRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string organization_id = 1; */
+        if (message.organizationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.organizationId);
+        /* string email = 2; */
+        if (message.email !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.email);
+        /* grpc.MembershipRole role = 3; */
+        if (message.role !== 0)
+            writer.tag(3, WireType.Varint).int32(message.role);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.InviteMemberRequest
+ */
+export const InviteMemberRequest = new InviteMemberRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateClinicSetupRequest$Type extends MessageType<UpdateClinicSetupRequest> {
+    constructor() {
+        super("grpc.UpdateClinicSetupRequest", [
+            { no: 1, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "tax_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "legal_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "trade_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "ipress_code", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateClinicSetupRequest>): UpdateClinicSetupRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.organizationId = "";
+        if (value !== undefined)
+            reflectionMergePartial<UpdateClinicSetupRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateClinicSetupRequest): UpdateClinicSetupRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string organization_id */ 1:
+                    message.organizationId = reader.string();
+                    break;
+                case /* optional string tax_id */ 2:
+                    message.taxId = reader.string();
+                    break;
+                case /* optional string legal_name */ 3:
+                    message.legalName = reader.string();
+                    break;
+                case /* optional string trade_name */ 4:
+                    message.tradeName = reader.string();
+                    break;
+                case /* optional string ipress_code */ 5:
+                    message.ipressCode = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateClinicSetupRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string organization_id = 1; */
+        if (message.organizationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.organizationId);
+        /* optional string tax_id = 2; */
+        if (message.taxId !== undefined)
+            writer.tag(2, WireType.LengthDelimited).string(message.taxId);
+        /* optional string legal_name = 3; */
+        if (message.legalName !== undefined)
+            writer.tag(3, WireType.LengthDelimited).string(message.legalName);
+        /* optional string trade_name = 4; */
+        if (message.tradeName !== undefined)
+            writer.tag(4, WireType.LengthDelimited).string(message.tradeName);
+        /* optional string ipress_code = 5; */
+        if (message.ipressCode !== undefined)
+            writer.tag(5, WireType.LengthDelimited).string(message.ipressCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.UpdateClinicSetupRequest
+ */
+export const UpdateClinicSetupRequest = new UpdateClinicSetupRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ClinicSummary$Type extends MessageType<ClinicSummary> {
+    constructor() {
+        super("grpc.ClinicSummary", [
+            { no: 1, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "status", kind: "enum", T: () => ["grpc.ClinicStatus", ClinicStatus, "CLINIC_STATUS_"] },
+            { no: 4, name: "tax_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "legal_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "trade_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "ipress_code", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ClinicSummary>): ClinicSummary {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.organizationId = "";
+        message.name = "";
+        message.status = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ClinicSummary>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ClinicSummary): ClinicSummary {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string organization_id */ 1:
+                    message.organizationId = reader.string();
+                    break;
+                case /* string name */ 2:
+                    message.name = reader.string();
+                    break;
+                case /* grpc.ClinicStatus status */ 3:
+                    message.status = reader.int32();
+                    break;
+                case /* optional string tax_id */ 4:
+                    message.taxId = reader.string();
+                    break;
+                case /* optional string legal_name */ 5:
+                    message.legalName = reader.string();
+                    break;
+                case /* optional string trade_name */ 6:
+                    message.tradeName = reader.string();
+                    break;
+                case /* optional string ipress_code */ 7:
+                    message.ipressCode = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ClinicSummary, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string organization_id = 1; */
+        if (message.organizationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.organizationId);
+        /* string name = 2; */
+        if (message.name !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.name);
+        /* grpc.ClinicStatus status = 3; */
+        if (message.status !== 0)
+            writer.tag(3, WireType.Varint).int32(message.status);
+        /* optional string tax_id = 4; */
+        if (message.taxId !== undefined)
+            writer.tag(4, WireType.LengthDelimited).string(message.taxId);
+        /* optional string legal_name = 5; */
+        if (message.legalName !== undefined)
+            writer.tag(5, WireType.LengthDelimited).string(message.legalName);
+        /* optional string trade_name = 6; */
+        if (message.tradeName !== undefined)
+            writer.tag(6, WireType.LengthDelimited).string(message.tradeName);
+        /* optional string ipress_code = 7; */
+        if (message.ipressCode !== undefined)
+            writer.tag(7, WireType.LengthDelimited).string(message.ipressCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.ClinicSummary
+ */
+export const ClinicSummary = new ClinicSummary$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class CompleteProfileRequest$Type extends MessageType<CompleteProfileRequest> {
     constructor() {
         super("grpc.CompleteProfileRequest", [
@@ -1494,7 +2975,13 @@ class CompleteProfileRequest$Type extends MessageType<CompleteProfileRequest> {
             { no: 5, name: "second_family_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "birth_date", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "address", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "identifier", kind: "message", T: () => Identifier }
+            { no: 8, name: "identifier", kind: "message", T: () => Identifier },
+            { no: 9, name: "sex", kind: "enum", T: () => ["grpc.Sex", Sex, "SEX_"] },
+            { no: 10, name: "professional_body", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "license_number", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "specialty", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "rne", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "preferred_role", kind: "enum", T: () => ["grpc.Role", Role, "ROLE_"] }
         ]);
     }
     create(value?: PartialMessage<CompleteProfileRequest>): CompleteProfileRequest {
@@ -1503,6 +2990,8 @@ class CompleteProfileRequest$Type extends MessageType<CompleteProfileRequest> {
         message.givenName = "";
         message.phone = "";
         message.birthDate = "";
+        message.sex = 0;
+        message.preferredRole = 0;
         if (value !== undefined)
             reflectionMergePartial<CompleteProfileRequest>(this, message, value);
         return message;
@@ -1512,7 +3001,7 @@ class CompleteProfileRequest$Type extends MessageType<CompleteProfileRequest> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string id_token */ 1:
+                case /* string id_token = 1 [deprecated = true] */ 1:
                     message.idToken = reader.string();
                     break;
                 case /* string given_name */ 2:
@@ -1536,6 +3025,24 @@ class CompleteProfileRequest$Type extends MessageType<CompleteProfileRequest> {
                 case /* optional grpc.Identifier identifier */ 8:
                     message.identifier = Identifier.internalBinaryRead(reader, reader.uint32(), options, message.identifier);
                     break;
+                case /* grpc.Sex sex */ 9:
+                    message.sex = reader.int32();
+                    break;
+                case /* optional string professional_body */ 10:
+                    message.professionalBody = reader.string();
+                    break;
+                case /* optional string license_number */ 11:
+                    message.licenseNumber = reader.string();
+                    break;
+                case /* optional string specialty */ 12:
+                    message.specialty = reader.string();
+                    break;
+                case /* optional string rne */ 13:
+                    message.rne = reader.string();
+                    break;
+                case /* grpc.Role preferred_role */ 14:
+                    message.preferredRole = reader.int32();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1548,7 +3055,7 @@ class CompleteProfileRequest$Type extends MessageType<CompleteProfileRequest> {
         return message;
     }
     internalBinaryWrite(message: CompleteProfileRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string id_token = 1; */
+        /* string id_token = 1 [deprecated = true]; */
         if (message.idToken !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.idToken);
         /* string given_name = 2; */
@@ -1572,6 +3079,24 @@ class CompleteProfileRequest$Type extends MessageType<CompleteProfileRequest> {
         /* optional grpc.Identifier identifier = 8; */
         if (message.identifier)
             Identifier.internalBinaryWrite(message.identifier, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* grpc.Sex sex = 9; */
+        if (message.sex !== 0)
+            writer.tag(9, WireType.Varint).int32(message.sex);
+        /* optional string professional_body = 10; */
+        if (message.professionalBody !== undefined)
+            writer.tag(10, WireType.LengthDelimited).string(message.professionalBody);
+        /* optional string license_number = 11; */
+        if (message.licenseNumber !== undefined)
+            writer.tag(11, WireType.LengthDelimited).string(message.licenseNumber);
+        /* optional string specialty = 12; */
+        if (message.specialty !== undefined)
+            writer.tag(12, WireType.LengthDelimited).string(message.specialty);
+        /* optional string rne = 13; */
+        if (message.rne !== undefined)
+            writer.tag(13, WireType.LengthDelimited).string(message.rne);
+        /* grpc.Role preferred_role = 14; */
+        if (message.preferredRole !== 0)
+            writer.tag(14, WireType.Varint).int32(message.preferredRole);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2323,11 +3848,20 @@ export const PatientApi = new ServiceType("grpc.PatientApi", [
 export const UserApi = new ServiceType("grpc.UserApi", [
     { name: "SignUp", options: {}, I: SignUpRequest, O: SignUpResponse },
     { name: "SignIn", options: {}, I: SignInRequest, O: SignInResponse },
-    { name: "CompleteProfile", options: {}, I: CompleteProfileRequest, O: SignInResponse }
+    { name: "CompleteProfile", options: {}, I: CompleteProfileRequest, O: SignInResponse },
+    { name: "RefreshSession", options: {}, I: RefreshSessionRequest, O: SessionTokens },
+    { name: "GetProfileRequirements", options: {}, I: GetProfileRequirementsRequest, O: ProfileRequirements }
 ]);
 /**
  * @generated ServiceType for protobuf service grpc.ClinicApi
  */
 export const ClinicApi = new ServiceType("grpc.ClinicApi", [
-    { name: "CreateClinic", options: {}, I: CreateClinicRequest, O: CreateClinicResponse }
+    { name: "CreateClinic", options: {}, I: CreateClinicRequest, O: CreateClinicResponse },
+    { name: "UpdateClinicSetup", options: {}, I: UpdateClinicSetupRequest, O: ClinicSummary },
+    { name: "ActivateClinic", options: {}, I: ClinicIdRequest, O: ClinicSummary },
+    { name: "InviteMember", options: {}, I: InviteMemberRequest, O: Membership },
+    { name: "JoinClinic", options: {}, I: MembershipIdRequest, O: Membership },
+    { name: "ActivatePractitioner", options: {}, I: MembershipIdRequest, O: Membership },
+    { name: "ConfirmLicense", options: {}, I: MembershipIdRequest, O: Membership },
+    { name: "SuspendMembership", options: {}, I: MembershipIdRequest, O: Membership }
 ]);

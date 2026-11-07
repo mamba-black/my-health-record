@@ -73,7 +73,17 @@ src/
 * **TypeScript:** primitivos (`string`, `number`, `boolean`), nunca los tipos envoltorio (`String`, `Number`, `Boolean`).
 * **Verificación:** `bun run check` debe terminar con 0 errores y 0 advertencias antes de dar un cambio por bueno.
 
-## 5. Comandos (desde `frontendts/`)
+## 5. Sesión, roles y datos exigidos
+
+Fuente oficial: [`identity/progressive-profiling`](../openspec/specs/identity/progressive-profiling/spec.md) y
+[`access-control/action-authorization`](../openspec/specs/access-control/action-authorization/spec.md).
+
+* **Sesión** (`shared/api/session`): los tokens del backend viven en `localStorage` (`auth_token`, `auth_refresh`, `auth_expires`). El interceptor de `shared/api/grpc/client.ts` agrega `authorization: Bearer` a toda llamada protegida. Envuelve cada llamada protegida en `withSession(...)`: renueva el token si está por vencer, reintenta una vez ante `UNAUTHENTICATED` y, si no puede renovar, cierra la sesión y lleva al login.
+* **Rol y membresías** (`entities/session`): `profileContext` guarda la respuesta de `GetProfileRequirements`; `canSearchPatients` y `hasClinicMemberships` deciden menús y rutas. `AppLayout` redirige a `/access-denied` las rutas de médico. Es solo presentación: el servidor autoriza igual.
+* **Acción que exige datos**: ejecútala con `runWithRequirements(() => api.accion(...))` de `$features/profile`. Si el servidor responde `FAILED_PRECONDITION` con `ActionRequirements`, se abre la ventana global «Completa tus datos» (`RequirementsDialog`, montada en `AppLayout`) con solo los datos faltantes, el acceso a «Editar todos mis datos», y «Completar»/«Rechazar». Al completar se guardan los datos y se reintenta la acción; devuelve `undefined` si el usuario sale sin continuar, y la página debe descartar el estado de la acción.
+* Etiquetas de datos y frases por acción: `entities/profile` (`FIELD_LABELS`, `ACTION_PURPOSE`).
+
+## 6. Comandos (desde `frontendts/`)
 
 ```bash
 bun install      # Instalar dependencias

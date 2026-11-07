@@ -1,4 +1,5 @@
 use crate::domain::clinical_network::clinical_network_repository::ClinicalNetworkRepository;
+use crate::domain::membership::membership_repository::MembershipRepository;
 use crate::domain::organization::organization_repository::OrganizationRepository;
 use crate::domain::patient::patient_repository::PatientRepository;
 use crate::domain::practitioner::practitioner_repository::PractitionerRepository;
@@ -15,4 +16,5 @@ pub struct AdministrationState {
     pub organization_repository: Arc<dyn OrganizationRepository>,
     pub patient_repository: Arc<dyn PatientRepository>,
     pub practitioner_repository: Arc<dyn PractitionerRepository>,
+    pub membership_repository: Arc<dyn MembershipRepository>,
 }

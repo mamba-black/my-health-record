@@ -1,4 +1,5 @@
 use crate::infrastructure::grpc::FILE_DESCRIPTOR_SET;
+use crate::infrastructure::grpc::access::{AccessContextBuilder, Authenticator};
 use crate::infrastructure::grpc::clinic_api_impl::ClinicApiImpl;
 use crate::infrastructure::grpc::clinic_api_server::ClinicApiServer;
 use crate::infrastructure::grpc::patient_api_impl::PatientApiImpl;
@@ -17,8 +18,12 @@ use tracing::info;
 pub mod cli;
 pub mod grpc;
 pub mod log;
+pub mod migration;
 
 /// Inicia el servidor gRPC y gRPC-Web de ClickCare junto con los workers de eventos en segundo plano.
+///
+/// Antes de construir las dependencias aplica las migraciones pendientes del esquema
+/// (ver [`migration`]), así que la base queda al día en cada arranque.
 ///
 /// # Parámetros
 /// - `database_url`: Cadena de conexión a la base de datos PostgreSQL (ej. `"postgres://user:pass@localhost:5432"`).
@@ -37,18 +42,27 @@ pub async fn start_server(
         .build_v1()
         .expect("Could not build server");
 
-    let administration =
-        administration_di::new(administration_di::DBType::Postgres(database_url.clone())).await?;
-    let subdomain_resolver = Arc::new(SubdomainResolver::new(Arc::clone(
-        &administration.state.organization_repository,
-    )));
+    match database_url
+        .clone()
+        .or_else(|| std::env::var("DATABASE_URL").ok())
+        .or_else(|| std::env::var("PG_URL").ok())
+    {
+        Some(url) => migration::run(&url).await?,
+        None => tracing::warn!("Sin DATABASE_URL ni PG_URL: se omiten las migraciones del esquema"),
+    }
 
-    let patient_service_server = PatientApiServer::new(PatientApiImpl::default());
-    let user_service_server =
-        UserApiServer::new(UserApiImpl::new(database_url, Arc::clone(&subdomain_resolver)).await?);
-    let clinic_service_server = ClinicApiServer::new(ClinicApiImpl::new(Arc::clone(
-        &administration.create_clinic_use_case,
-    )));
+    let services = build_services(
+        database_url,
+        user::infrastructure::config::DIOverrides::default(),
+    )
+    .await?;
+    let administration = services.administration;
+    let authenticator = services.authenticator;
+    let patient_service_server =
+        PatientApiServer::with_interceptor(services.patient_api, authenticator.interceptor());
+    let user_service_server = UserApiServer::new(services.user_api);
+    let clinic_service_server =
+        ClinicApiServer::with_interceptor(services.clinic_api, authenticator.interceptor());
 
     let apalis_api = ApiBuilder::new(axum::Router::<()>::new())
         .register(administration.storage())
@@ -99,6 +113,69 @@ pub async fn start_server(
     Ok(())
 }
 
+/// Servicios gRPC ya cableados, compartidos por el servidor y el arnés de pruebas.
+pub struct Services {
+    pub administration: administration_di::DI,
+    pub authenticator: Authenticator,
+    pub user_api: UserApiImpl,
+    pub clinic_api: ClinicApiImpl,
+    pub patient_api: PatientApiImpl,
+}
+
+/// Arma las dependencias de los contextos acotados y las APIs gRPC.
+///
+/// `user_overrides` permite a las pruebas sustituir el verificador de Google y la clave
+/// de sesión.
+pub async fn build_services(
+    database_url: Option<String>,
+    user_overrides: user::infrastructure::config::DIOverrides,
+) -> Result<Services, ClickCareError> {
+    let administration =
+        administration_di::new(administration_di::DBType::Postgres(database_url.clone())).await?;
+    let subdomain_resolver = Arc::new(SubdomainResolver::new(Arc::clone(
+        &administration.state.organization_repository,
+    )));
+    let user_di = user::infrastructure::config::new_with_overrides(
+        user::infrastructure::config::DBType::Postgres(database_url),
+        user_overrides,
+    )
+    .await?;
+
+    let authenticator = Authenticator::new(Arc::clone(&user_di.session_service));
+    let access = Arc::new(AccessContextBuilder::new(
+        Arc::clone(&user_di.user_repository),
+        Arc::clone(&administration.membership_use_cases),
+    ));
+
+    let user_api = UserApiImpl::new(
+        &user_di,
+        authenticator.clone(),
+        Arc::clone(&access),
+        Arc::clone(&administration.membership_use_cases),
+        Arc::clone(&subdomain_resolver),
+    );
+    let clinic_api = ClinicApiImpl::new(
+        Arc::clone(&administration.create_clinic_use_case),
+        Arc::clone(&administration.membership_use_cases),
+        Arc::clone(&access),
+        Arc::clone(&user_di.user_repository),
+    );
+    let patient_api = PatientApiImpl::new(
+        Arc::clone(&administration.state.patient_repository),
+        Arc::clone(&administration.membership_use_cases),
+        Arc::clone(&access),
+        subdomain_resolver,
+    );
+
+    Ok(Services {
+        administration,
+        authenticator,
+        user_api,
+        clinic_api,
+        patient_api,
+    })
+}
+
 /// Middleware CORS para peticiones gRPC-Web desde el navegador (ej. `http://localhost:5173`).
 async fn grpc_web_cors_middleware(
     request: axum::extract::Request,
@@ -134,7 +211,7 @@ fn insert_grpc_web_cors_headers(headers: &mut axum::http::HeaderMap) {
     headers.insert(
         axum::http::header::ACCESS_CONTROL_EXPOSE_HEADERS,
         axum::http::HeaderValue::from_static(
-            "grpc-status, grpc-message, grpc-encoding, grpc-accept-encoding",
+            "grpc-status, grpc-message, grpc-status-details-bin, grpc-encoding, grpc-accept-encoding",
         ),
     );
 }
@@ -154,10 +231,14 @@ mod tests {
 
     #[test]
     fn test_router_merging_without_fallback_panic() {
-        let patient_service_server = PatientApiServer::new(PatientApiImpl::default());
         let apalis_board_router: axum::Router = ApiBuilder::new(axum::Router::<()>::new()).build();
         let grpc_router: axum::Router = tonic::service::Routes::default()
-            .add_service(patient_service_server)
+            .add_service(
+                tonic_reflection::server::Builder::configure()
+                    .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET)
+                    .build_v1()
+                    .expect("reflexión"),
+            )
             .into_axum_router()
             .layer(GrpcWebLayer::new());
 

@@ -1,3 +1,4 @@
+pub mod access;
 pub mod clinic_api_impl;
 pub mod patient_api_impl;
 pub mod subdomain_resolver;

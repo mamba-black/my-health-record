@@ -33,13 +33,19 @@
 
 ### Registro Progresivo (Progressive Profiling)
 
-El flujo de registro es único y recolecta datos de forma progresiva: la creación inicial de la cuenta requiere datos mínimos y el DNI es **opcional**. El documento de identidad se exige más adelante, según disparadores operacionales por rol:
+La fuente oficial es la especificación [`identity/progressive-profiling`](../../../openspec/specs/identity/progressive-profiling/spec.md)
+(mientras el cambio `role-based-access-by-profile-data` no se archive, está en
+`openspec/changes/role-based-access-by-profile-data/specs/`). Resumen:
 
-| Rol del Usuario | ¿DNI al registrarse? | Disparador mandatorio de DNI | Razón de negocio / legal (Perú) |
-|---|---|---|---|
-| **Paciente (`Patient`)** | ❌ Opcional | Al **confirmar su primera cita médica** o emitir una receta / atención. | Ley N° 30024 RNHCE / MINSA: asociación de la Historia Clínica a una persona real. |
-| **Administrador de Clínica** | ❌ Opcional | Al **activar o crear la Clínica (`Organization`)** o configurar facturación / RUC. | Verificación de identidad legal del representante de la clínica. |
-| **Profesional de Salud (`Practitioner`)** | ❌ Opcional | Al **activar el perfil médico**, habilitar agenda o **firmar atenciones / recetas**. | Verificación de identidad + colegiatura (CMP/COP) para emitir actos médicos. |
+* Cada rol **ve** todos los datos que llegará a necesitar, pero **ninguno es obligatorio al guardar**: se exigen solo al intentar una acción que los requiere (confirmar cita, activar perfil médico, activar clínica…).
+* El catálogo único dato → roles → acciones vive en `app_core::domain::access::CATALOG`; `User::present_fields()` y `User::missing_for(acción)` lo evalúan para una cuenta.
+* `CompleteProfileUseCase` toma la cuenta de la **sesión**, valida formato (DNI de 8 dígitos, CE/pasaporte alfanuméricos, fecha no futura, colegio + número de colegiatura juntos) y rechaza cambios a datos verificados (`document_verified`, `license_verified`) con `ReadOnly`.
+* El rol preferido (`preferred_role`, desde el `intent` del registro) **solo orienta la interfaz**; los permisos salen de las membresías de `crates/administration`.
+
+### Sesión
+
+* `SignIn` y `SignUp` emiten una sesión propia (`SessionService`, JWT HS256 en `JwtSessionServiceImpl`): token de acceso de 15 min y de renovación de 7 días, canjeable con `RefreshSession` (`RefreshSessionUseCase`). El token no lleva roles.
+* Configuración: `SESSION_SECRET` (sin ella se genera una clave aleatoria y las sesiones caducan al reiniciar), `SESSION_ACCESS_TTL_SECS`, `SESSION_REFRESH_TTL_SECS`.
 
 ### Recuperación de Cuenta y Re-vinculación Presencial
 

@@ -1,5 +1,4 @@
 use crate::application::dto::complete_profile::{CompleteProfileCommand, CompleteProfileError};
-use crate::application::integration::service::token_service::TokenService;
 use crate::domain::user::User;
 use crate::domain::user::user_repository::{ProfileUpdate, UserRepository};
 use app_core::domain::error::ClickCareError;
@@ -11,15 +10,23 @@ const GIVEN_NAME_MAX_CHARS: usize = 100;
 const FAMILY_NAME_MAX_CHARS: usize = 50;
 const PHONE_MAX_CHARS: usize = 20;
 const ADDRESS_MAX_CHARS: usize = 255;
+const PROFESSIONAL_BODY_MAX_CHARS: usize = 20;
+const LICENSE_MAX_CHARS: usize = 30;
+const SPECIALTY_MAX_CHARS: usize = 100;
 const DNI_DIGITS: usize = 8;
+/// Carné de extranjería y pasaporte: alfanuméricos, entre 6 y 12 caracteres.
+const FOREIGN_DOCUMENT_CHARS: std::ops::RangeInclusive<usize> = 6..=12;
 
-/// Caso de uso para completar los datos de una cuenta existente.
+/// Mensaje para un dato verificado que el usuario intenta cambiar.
+pub const READ_ONLY_MESSAGE: &str = "Para cambiarlo, acércate a recepción";
+
+/// Caso de uso para guardar datos del perfil de la cuenta de la sesión.
 ///
-/// La cuenta se obtiene del correo del token verificado, nunca de un dato enviado por el
-/// cliente: así nadie puede modificar la cuenta de otra persona.
+/// Ningún dato es obligatorio al guardar: se exigen solo al intentar una acción que los
+/// requiere (`openspec/specs/identity/progressive-profiling`). Sí se valida el formato de
+/// todo lo que se ingresa, aunque no sea obligatorio en ese momento.
 pub struct CompleteProfileUseCase {
     pub(crate) user_repository: Arc<dyn UserRepository>,
-    pub(crate) token_service: Arc<dyn TokenService>,
 }
 
 impl CompleteProfileUseCase {
@@ -28,12 +35,10 @@ impl CompleteProfileUseCase {
         command: CompleteProfileCommand,
     ) -> Result<User, CompleteProfileError> {
         let profile = validated_profile(&command)?;
+        let user = self.find_user(&command).await?;
 
-        let email = self
-            .token_service
-            .validate_and_extract_email(&command.id_token)
-            .await?;
-        let user = self.find_user(&command, &email).await?;
+        reject_changes_to_verified_data(&user, &profile)?;
+        require_license_with_body(&user, &profile)?;
 
         if let Some(identifier) = &profile.identifier
             && user.person.identifier() != &Some(identifier.clone())
@@ -43,7 +48,9 @@ impl CompleteProfileUseCase {
                 .await?
         {
             return Err(CompleteProfileError::DocumentAlreadyRegistered(
-                ClickCareError::generic("El DNI ya está registrado en otra cuenta".to_string()),
+                ClickCareError::generic(
+                    "El documento ya está registrado en otra cuenta".to_string(),
+                ),
             ));
         }
 
@@ -51,95 +58,172 @@ impl CompleteProfileUseCase {
             .update_profile(&user.id, &profile)
             .await?;
 
-        self.find_user(&command, &email).await
+        self.find_user(&command).await
     }
 
     async fn find_user(
         &self,
         command: &CompleteProfileCommand,
-        email: &str,
     ) -> Result<User, CompleteProfileError> {
         self.user_repository
-            .find_user_by_email(&command.network_id, email)
+            .find_user_by_id(&command.user_id)
             .await?
+            .filter(|user| user.network_id == command.network_id)
             .ok_or_else(|| {
                 CompleteProfileError::UserNotFound(ClickCareError::generic(format!(
-                    "No existe cuenta registrada para el correo {email}"
+                    "No existe la cuenta {} en la red de la sesión",
+                    command.user_id
                 )))
             })
+    }
+}
+
+/// Un documento o colegiatura verificados no se pueden cambiar desde el perfil.
+fn reject_changes_to_verified_data(
+    user: &User,
+    profile: &ProfileUpdate,
+) -> Result<(), CompleteProfileError> {
+    if user.document_verified
+        && let Some(identifier) = &profile.identifier
+        && user.person.identifier() != &Some(identifier.clone())
+    {
+        return Err(CompleteProfileError::ReadOnly(format!(
+            "Tu documento está verificado. {READ_ONLY_MESSAGE}"
+        )));
+    }
+    let changes = |new: &Option<String>, current: &Option<String>| {
+        new.as_ref()
+            .is_some_and(|value| Some(value) != current.as_ref())
+    };
+    if user.license_verified
+        && (changes(
+            &profile.professional_body,
+            &user.professional.professional_body,
+        ) || changes(&profile.license_number, &user.professional.license_number))
+    {
+        return Err(CompleteProfileError::ReadOnly(format!(
+            "Tu colegiatura está confirmada. {READ_ONLY_MESSAGE}"
+        )));
+    }
+    Ok(())
+}
+
+/// El número de colegiatura va siempre acompañado de su colegio profesional, y viceversa.
+fn require_license_with_body(
+    user: &User,
+    profile: &ProfileUpdate,
+) -> Result<(), CompleteProfileError> {
+    let body = profile
+        .professional_body
+        .as_ref()
+        .or(user.professional.professional_body.as_ref());
+    let number = profile
+        .license_number
+        .as_ref()
+        .or(user.professional.license_number.as_ref());
+    match (body, number) {
+        (Some(_), None) => Err(CompleteProfileError::InvalidInput(
+            "Indica también tu número de colegiatura".to_string(),
+        )),
+        (None, Some(_)) => Err(CompleteProfileError::InvalidInput(
+            "Indica también tu colegio profesional".to_string(),
+        )),
+        _ => Ok(()),
     }
 }
 
 fn validated_profile(
     command: &CompleteProfileCommand,
 ) -> Result<ProfileUpdate, CompleteProfileError> {
-    let birth_date = required_text(&command.birth_date, "fecha de nacimiento", usize::MAX)?;
-    let parsed_birth_date: jiff::civil::Date = birth_date.parse().map_err(|_| {
-        CompleteProfileError::InvalidInput(
-            "La fecha de nacimiento debe tener el formato AAAA-MM-DD".to_string(),
-        )
-    })?;
-    if parsed_birth_date > jiff::Zoned::now().date() {
-        return Err(CompleteProfileError::InvalidInput(
-            "La fecha de nacimiento no puede ser futura".to_string(),
-        ));
+    let birth_date = optional_text(command.birth_date.as_deref(), "fecha de nacimiento", 10)?;
+    if let Some(birth_date) = &birth_date {
+        let parsed: jiff::civil::Date = birth_date.parse().map_err(|_| {
+            CompleteProfileError::InvalidInput(
+                "La fecha de nacimiento debe tener el formato AAAA-MM-DD".to_string(),
+            )
+        })?;
+        if parsed > jiff::Zoned::now().date() {
+            return Err(CompleteProfileError::InvalidInput(
+                "La fecha de nacimiento no puede ser futura".to_string(),
+            ));
+        }
     }
 
     Ok(ProfileUpdate {
-        given_name: required_text(&command.given_name, "nombres", GIVEN_NAME_MAX_CHARS)?
-            .to_string(),
+        given_name: optional_text(
+            command.given_name.as_deref(),
+            "nombres",
+            GIVEN_NAME_MAX_CHARS,
+        )?,
         family_name: optional_text(
             command.family_name.as_deref(),
-            "primer apellido",
+            "apellido paterno",
             FAMILY_NAME_MAX_CHARS,
         )?,
         second_family_name: optional_text(
             command.second_family_name.as_deref(),
-            "segundo apellido",
+            "apellido materno",
             FAMILY_NAME_MAX_CHARS,
         )?,
         identifier: validated_identifier(command.identifier.as_ref())?,
-        phone: required_text(&command.phone, "teléfono", PHONE_MAX_CHARS)?.to_string(),
-        birth_date: birth_date.to_string(),
+        phone: optional_text(command.phone.as_deref(), "teléfono", PHONE_MAX_CHARS)?,
+        birth_date,
         address: optional_text(command.address.as_deref(), "dirección", ADDRESS_MAX_CHARS)?,
+        sex: command.sex,
+        professional_body: optional_text(
+            command.professional_body.as_deref(),
+            "colegio profesional",
+            PROFESSIONAL_BODY_MAX_CHARS,
+        )?
+        .map(|body| body.to_uppercase()),
+        license_number: optional_text(
+            command.license_number.as_deref(),
+            "número de colegiatura",
+            LICENSE_MAX_CHARS,
+        )?,
+        specialty: optional_text(
+            command.specialty.as_deref(),
+            "especialidad",
+            SPECIALTY_MAX_CHARS,
+        )?,
+        rne: optional_text(command.rne.as_deref(), "RNE", LICENSE_MAX_CHARS)?,
+        preferred_role: command.preferred_role,
     })
 }
 
+/// Valida el formato del documento: DNI de 8 dígitos; CE y pasaporte alfanuméricos.
 fn validated_identifier(
     identifier: Option<&Identifier>,
 ) -> Result<Option<Identifier>, CompleteProfileError> {
-    let Some(Identifier::DNI(dni)) = identifier else {
+    let Some(identifier) = identifier else {
         return Ok(None);
     };
-    let dni = dni.trim();
-    if dni.is_empty() {
+    let value = identifier.value().trim().to_uppercase();
+    if value.is_empty() {
         return Ok(None);
     }
-    if dni.len() != DNI_DIGITS || !dni.chars().all(|digit| digit.is_ascii_digit()) {
-        return Err(CompleteProfileError::InvalidInput(format!(
-            "El DNI debe tener {DNI_DIGITS} dígitos"
-        )));
+    match identifier {
+        Identifier::DNI(_) => {
+            if value.len() != DNI_DIGITS || !value.chars().all(|c| c.is_ascii_digit()) {
+                return Err(CompleteProfileError::InvalidInput(format!(
+                    "El DNI debe tener {DNI_DIGITS} dígitos"
+                )));
+            }
+            Ok(Some(Identifier::DNI(value)))
+        }
+        Identifier::CE(_) | Identifier::Passport(_) => {
+            if !FOREIGN_DOCUMENT_CHARS.contains(&value.len())
+                || !value.chars().all(|c| c.is_ascii_alphanumeric())
+            {
+                return Err(CompleteProfileError::InvalidInput(format!(
+                    "El documento debe tener entre {} y {} letras o dígitos",
+                    FOREIGN_DOCUMENT_CHARS.start(),
+                    FOREIGN_DOCUMENT_CHARS.end()
+                )));
+            }
+            Ok(Identifier::from_parts(identifier.type_code(), value))
+        }
     }
-    Ok(Some(Identifier::DNI(dni.to_string())))
-}
-
-fn required_text<'a>(
-    value: &'a str,
-    label: &str,
-    max_chars: usize,
-) -> Result<&'a str, CompleteProfileError> {
-    let value = value.trim();
-    if value.is_empty() {
-        return Err(CompleteProfileError::InvalidInput(format!(
-            "El campo {label} es obligatorio"
-        )));
-    }
-    if value.chars().count() > max_chars {
-        return Err(CompleteProfileError::InvalidInput(format!(
-            "El campo {label} no puede tener más de {max_chars} caracteres"
-        )));
-    }
-    Ok(value)
 }
 
 fn optional_text(
@@ -147,38 +231,27 @@ fn optional_text(
     label: &str,
     max_chars: usize,
 ) -> Result<Option<String>, CompleteProfileError> {
-    match value.map(str::trim).filter(|value| !value.is_empty()) {
-        Some(value) => required_text(value, label, max_chars).map(|v| Some(v.to_string())),
-        None => Ok(None),
+    let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(None);
+    };
+    if value.chars().count() > max_chars {
+        return Err(CompleteProfileError::InvalidInput(format!(
+            "El campo {label} no puede tener más de {max_chars} caracteres"
+        )));
     }
+    Ok(Some(value.to_string()))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::application::dto::sign_in::SignInError;
-    use crate::domain::user::RequiredProfileField;
+    use crate::domain::user::Sex;
     use crate::testing::MockUserRepositoryImpl;
-    use async_trait::async_trait;
+    use app_core::domain::access::{ProfileField, ProtectedAction};
     use tokio::sync::Mutex;
     use uuid::Uuid;
 
     const EMAIL: &str = "paciente@example.com";
-
-    /// Identifica siempre a `EMAIL`, salvo que el token sea `"invalido"`.
-    struct FixedTokenService;
-
-    #[async_trait]
-    impl TokenService for FixedTokenService {
-        async fn validate_and_extract_email(&self, id_token: &str) -> Result<String, SignInError> {
-            if id_token == "invalido" {
-                return Err(SignInError::InvalidToken(ClickCareError::generic(
-                    "token inválido".to_string(),
-                )));
-            }
-            Ok(EMAIL.to_string())
-        }
-    }
 
     fn incomplete_user(network_id: Uuid, family_name: Option<&str>) -> User {
         User::new(
@@ -201,120 +274,138 @@ mod tests {
             user_repository: Arc::new(MockUserRepositoryImpl {
                 saved_users: Mutex::new(users),
             }),
-            token_service: Arc::new(FixedTokenService),
         }
     }
 
-    fn command(network_id: Uuid) -> CompleteProfileCommand {
+    fn command(user: &User) -> CompleteProfileCommand {
         CompleteProfileCommand {
-            network_id,
-            id_token: "valido".to_string(),
-            given_name: "  Elena ".to_string(),
-            family_name: None,
-            second_family_name: None,
-            identifier: None,
-            phone: " 999888777 ".to_string(),
-            birth_date: "1990-05-10".to_string(),
-            address: None,
+            network_id: user.network_id,
+            user_id: user.id,
+            ..Default::default()
         }
     }
 
-    #[test]
-    fn incomplete_account_reports_name_and_phone_as_missing() {
+    #[tokio::test]
+    async fn guarda_sin_exigir_datos_si_no_hay_accion_en_curso() {
         let user = incomplete_user(Uuid::now_v7(), None);
+        let saved = use_case(vec![user.clone()])
+            .execute(CompleteProfileCommand {
+                address: Some("Av. Principal 123".to_string()),
+                ..command(&user)
+            })
+            .await
+            .expect("guardar sin DNI ni teléfono");
 
+        assert_eq!(saved.address.as_deref(), Some("Av. Principal 123"));
         assert_eq!(
-            user.missing_required_fields(),
+            saved.missing_for(ProtectedAction::ConfirmAppointment),
             vec![
-                RequiredProfileField::GivenName,
-                RequiredProfileField::Phone,
-                RequiredProfileField::BirthDate,
+                ProfileField::GivenName,
+                ProfileField::FamilyName,
+                ProfileField::Phone,
+                ProfileField::Document,
             ]
         );
     }
 
     #[tokio::test]
-    async fn completes_account_of_token_owner() {
-        let network_id = Uuid::now_v7();
-        let use_case = use_case(vec![incomplete_user(network_id, None)]);
-
-        let user = use_case
-            .execute(command(network_id))
-            .await
-            .expect("debe completar la cuenta");
-
-        assert_eq!(user.person.name().given().join(" "), "Elena");
-        assert_eq!(user.phone().as_deref(), Some("999888777"));
-        assert!(user.missing_required_fields().is_empty());
-    }
-
-    #[tokio::test]
-    async fn saves_every_field() {
-        let network_id = Uuid::now_v7();
-        let use_case = use_case(vec![incomplete_user(network_id, None)]);
-
-        let user = use_case
+    async fn guarda_todos_los_datos() {
+        let user = incomplete_user(Uuid::now_v7(), None);
+        let saved = use_case(vec![user.clone()])
             .execute(CompleteProfileCommand {
+                given_name: Some("  Elena ".to_string()),
                 family_name: Some("García".to_string()),
                 second_family_name: Some("Pérez".to_string()),
                 identifier: Some(Identifier::DNI("12345678".to_string())),
+                phone: Some(" 999888777 ".to_string()),
+                birth_date: Some("1990-05-10".to_string()),
                 address: Some("Av. Principal 123".to_string()),
-                ..command(network_id)
+                sex: Some(Sex::Female),
+                professional_body: Some("cmp".to_string()),
+                license_number: Some("012345".to_string()),
+                specialty: Some("Pediatría".to_string()),
+                rne: Some("RNE-123".to_string()),
+                ..command(&user)
             })
             .await
             .expect("debe guardar la cuenta");
 
-        assert_eq!(user.person.name().family().as_deref(), Some("García"));
-        assert_eq!(user.person.name().second_family().as_deref(), Some("Pérez"));
-        assert_eq!(
-            user.person.identifier(),
-            &Some(Identifier::DNI("12345678".to_string()))
+        assert_eq!(saved.person.name().given().join(" "), "Elena");
+        assert_eq!(saved.phone().as_deref(), Some("999888777"));
+        assert_eq!(saved.birth_date(), "1990-05-10");
+        assert_eq!(saved.sex, Some(Sex::Female));
+        assert_eq!(saved.professional.professional_body.as_deref(), Some("CMP"));
+        assert!(
+            saved
+                .missing_for(ProtectedAction::ActivatePractitioner)
+                .is_empty()
         );
-        assert_eq!(user.birth_date(), "1990-05-10");
-        assert_eq!(user.address.as_deref(), Some("Av. Principal 123"));
     }
 
     #[tokio::test]
-    async fn rejects_invalid_birth_date_and_dni() {
-        let network_id = Uuid::now_v7();
-        let use_case = use_case(vec![incomplete_user(network_id, None)]);
+    async fn conserva_lo_que_no_se_envia() {
+        let user = incomplete_user(Uuid::now_v7(), Some("García"));
+        let saved = use_case(vec![user.clone()])
+            .execute(command(&user))
+            .await
+            .expect("guardar vacío");
+        assert_eq!(saved.person.name().family().as_deref(), Some("García"));
+    }
 
-        for invalid in [
-            CompleteProfileCommand {
-                birth_date: "   ".to_string(),
-                ..command(network_id)
-            },
-            CompleteProfileCommand {
-                birth_date: "10/05/1990".to_string(),
-                ..command(network_id)
-            },
-            CompleteProfileCommand {
-                birth_date: "2999-01-01".to_string(),
-                ..command(network_id)
-            },
-            CompleteProfileCommand {
-                identifier: Some(Identifier::DNI("1234".to_string())),
-                ..command(network_id)
-            },
-        ] {
-            assert!(matches!(
-                use_case.execute(invalid).await,
-                Err(CompleteProfileError::InvalidInput(_))
-            ));
-        }
+    /// Escenarios «Formato y validación de los datos».
+    #[rstest::rstest]
+    #[case::dni_de_7_digitos(CompleteProfileCommand { identifier: Some(Identifier::DNI("1234567".into())), ..Default::default() })]
+    #[case::dni_con_letras(CompleteProfileCommand { identifier: Some(Identifier::DNI("1234567A".into())), ..Default::default() })]
+    #[case::ce_corto(CompleteProfileCommand { identifier: Some(Identifier::CE("123".into())), ..Default::default() })]
+    #[case::fecha_mal_formada(CompleteProfileCommand { birth_date: Some("10/05/1990".into()), ..Default::default() })]
+    #[case::fecha_futura(CompleteProfileCommand { birth_date: Some("2999-01-01".into()), ..Default::default() })]
+    #[case::telefono_largo(CompleteProfileCommand { phone: Some("1".repeat(PHONE_MAX_CHARS + 1)), ..Default::default() })]
+    #[case::colegiatura_sin_colegio(CompleteProfileCommand { license_number: Some("012345".into()), ..Default::default() })]
+    #[case::colegio_sin_numero(CompleteProfileCommand { professional_body: Some("CMP".into()), ..Default::default() })]
+    #[tokio::test]
+    async fn rechaza_datos_mal_formados(#[case] invalid: CompleteProfileCommand) {
+        let user = incomplete_user(Uuid::now_v7(), None);
+        let result = use_case(vec![user.clone()])
+            .execute(CompleteProfileCommand {
+                network_id: user.network_id,
+                user_id: user.id,
+                ..invalid
+            })
+            .await;
+        assert!(
+            matches!(result, Err(CompleteProfileError::InvalidInput(_))),
+            "{result:?}"
+        );
     }
 
     #[tokio::test]
-    async fn rejects_dni_of_another_account_but_accepts_own() {
-        let network_id = Uuid::now_v7();
-        let mut other = incomplete_user(network_id, None);
+    async fn acepta_carne_de_extranjeria() {
+        let user = incomplete_user(Uuid::now_v7(), None);
+        let saved = use_case(vec![user.clone()])
+            .execute(CompleteProfileCommand {
+                identifier: Some(Identifier::CE("x00123456".to_string())),
+                ..command(&user)
+            })
+            .await
+            .expect("CE válido");
+        assert_eq!(
+            saved.person.identifier(),
+            &Some(Identifier::CE("X00123456".to_string()))
+        );
+        assert!(saved.present_fields().contains(&ProfileField::Document));
+    }
+
+    #[tokio::test]
+    async fn rechaza_documento_de_otra_cuenta_pero_acepta_el_propio() {
+        let user = incomplete_user(Uuid::now_v7(), None);
+        let mut other = incomplete_user(user.network_id, None);
         other.person.identifier = Some(Identifier::DNI("11111111".to_string()));
         other.person.telecom = vec![];
-        let use_case = use_case(vec![incomplete_user(network_id, None), other]);
+        let use_case = use_case(vec![user.clone(), other]);
 
         let taken = CompleteProfileCommand {
             identifier: Some(Identifier::DNI("11111111".to_string())),
-            ..command(network_id)
+            ..command(&user)
         };
         assert!(matches!(
             use_case.execute(taken).await,
@@ -323,86 +414,79 @@ mod tests {
 
         let own = CompleteProfileCommand {
             identifier: Some(Identifier::DNI("22222222".to_string())),
-            ..command(network_id)
+            ..command(&user)
         };
         use_case.execute(own.clone()).await.expect("DNI libre");
         use_case.execute(own).await.expect("su propio DNI");
     }
 
+    /// Escenarios «DNI verificado» y «DNI no verificado».
     #[tokio::test]
-    async fn keeps_family_name_when_omitted() {
-        let network_id = Uuid::now_v7();
-        let use_case = use_case(vec![incomplete_user(network_id, Some("García"))]);
+    async fn un_dni_verificado_no_se_cambia_y_uno_sin_verificar_si() {
+        let mut verified = incomplete_user(Uuid::now_v7(), None);
+        verified.person.identifier = Some(Identifier::DNI("11111111".to_string()));
+        verified.document_verified = true;
+        let result = use_case(vec![verified.clone()])
+            .execute(CompleteProfileCommand {
+                identifier: Some(Identifier::DNI("22222222".to_string())),
+                ..command(&verified)
+            })
+            .await;
+        assert!(
+            matches!(&result, Err(CompleteProfileError::ReadOnly(message)) if message.contains(READ_ONLY_MESSAGE))
+        );
 
-        let user = use_case
-            .execute(command(network_id))
+        let mut unverified = verified.clone();
+        unverified.document_verified = false;
+        let saved = use_case(vec![unverified.clone()])
+            .execute(CompleteProfileCommand {
+                identifier: Some(Identifier::DNI("22222222".to_string())),
+                ..command(&unverified)
+            })
             .await
-            .expect("debe completar la cuenta");
-
-        assert_eq!(user.person.name().family().as_deref(), Some("García"));
+            .expect("DNI sin verificar es editable");
+        assert_eq!(
+            saved.person.identifier(),
+            &Some(Identifier::DNI("22222222".to_string()))
+        );
     }
 
     #[tokio::test]
-    async fn rejects_blank_required_fields() {
-        let network_id = Uuid::now_v7();
-        let use_case = use_case(vec![incomplete_user(network_id, None)]);
-
-        let blank_name = CompleteProfileCommand {
-            given_name: "   ".to_string(),
-            ..command(network_id)
-        };
-        let blank_phone = CompleteProfileCommand {
-            phone: "   ".to_string(),
-            ..command(network_id)
-        };
+    async fn una_colegiatura_confirmada_no_se_cambia() {
+        let mut user = incomplete_user(Uuid::now_v7(), None);
+        user.professional.professional_body = Some("CMP".to_string());
+        user.professional.license_number = Some("012345".to_string());
+        user.license_verified = true;
+        let use_case = use_case(vec![user.clone()]);
 
         assert!(matches!(
-            use_case.execute(blank_name).await,
-            Err(CompleteProfileError::InvalidInput(_))
+            use_case
+                .execute(CompleteProfileCommand {
+                    license_number: Some("999999".to_string()),
+                    ..command(&user)
+                })
+                .await,
+            Err(CompleteProfileError::ReadOnly(_))
         ));
-        assert!(matches!(
-            use_case.execute(blank_phone).await,
-            Err(CompleteProfileError::InvalidInput(_))
-        ));
+        use_case
+            .execute(CompleteProfileCommand {
+                license_number: Some("012345".to_string()),
+                specialty: Some("Cardiología".to_string()),
+                ..command(&user)
+            })
+            .await
+            .expect("repetir el mismo valor no es un cambio");
     }
 
     #[tokio::test]
-    async fn rejects_phone_longer_than_column() {
-        let network_id = Uuid::now_v7();
-        let use_case = use_case(vec![incomplete_user(network_id, None)]);
-        let long_phone = CompleteProfileCommand {
-            phone: "1".repeat(PHONE_MAX_CHARS + 1),
-            ..command(network_id)
-        };
-
-        assert!(matches!(
-            use_case.execute(long_phone).await,
-            Err(CompleteProfileError::InvalidInput(_))
-        ));
-    }
-
-    #[tokio::test]
-    async fn rejects_invalid_token() {
-        let network_id = Uuid::now_v7();
-        let use_case = use_case(vec![incomplete_user(network_id, None)]);
-        let invalid_token = CompleteProfileCommand {
-            id_token: "invalido".to_string(),
-            ..command(network_id)
-        };
-
-        assert!(matches!(
-            use_case.execute(invalid_token).await,
-            Err(CompleteProfileError::InvalidToken(_))
-        ));
-    }
-
-    #[tokio::test]
-    async fn rejects_token_owner_without_account_in_network() {
-        let use_case = use_case(vec![incomplete_user(Uuid::now_v7(), None)]);
-
-        assert!(matches!(
-            use_case.execute(command(Uuid::now_v7())).await,
-            Err(CompleteProfileError::UserNotFound(_))
-        ));
+    async fn la_cuenta_sale_de_la_sesion_y_de_su_red() {
+        let user = incomplete_user(Uuid::now_v7(), None);
+        let result = use_case(vec![user.clone()])
+            .execute(CompleteProfileCommand {
+                network_id: Uuid::now_v7(),
+                ..command(&user)
+            })
+            .await;
+        assert!(matches!(result, Err(CompleteProfileError::UserNotFound(_))));
     }
 }

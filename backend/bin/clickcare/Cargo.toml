@@ -49,6 +49,14 @@ opentelemetry-appender-tracing.workspace = true
 sys-info.workspace = true
 
 ## =============================
+## Migraciones del esquema
+refinery.workspace = true
+tokio-postgres.workspace = true
+tokio-postgres-rustls.workspace = true
+rustls.workspace = true
+rustls-native-certs.workspace = true
+
+## =============================
 fake.workspace = true
 regex.workspace = true
 apalis-board.workspace = true

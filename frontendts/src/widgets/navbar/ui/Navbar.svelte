@@ -1,7 +1,10 @@
 <script lang="ts">
-import { authStore } from "$entities/session";
+import { authStore, canSearchPatients, hasClinicMemberships } from "$entities/session";
 import { LogoutButton } from "$features/auth";
-import { LOGIN, ROOT, SEARCH } from "$shared/config";
+import { COMPLETE_PROFILE, LOGIN, MY_CLINICS, ROOT, SEARCH } from "$shared/config";
+
+const linkClass =
+  "block py-2 px-3 text-gray-900 rounded-sm hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent";
 
 let isMenuOpen = $state(false);
 </script>
@@ -41,13 +44,14 @@ let isMenuOpen = $state(false);
             href="{ROOT}">Home</a
           >
         </li>
+        {#if $authStore.isAuthenticated && $canSearchPatients}
+          <li><a class={linkClass} href="{SEARCH}">Busqueda</a></li>
+        {/if}
+        {#if $authStore.isAuthenticated && $hasClinicMemberships}
+          <li><a class={linkClass} href="{MY_CLINICS}">Mis clínicas</a></li>
+        {/if}
         {#if $authStore.isAuthenticated}
-          <li>
-            <a
-              class="block py-2 px-3 text-gray-900 rounded-sm hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent"
-              href="{SEARCH}">Busqueda</a
-            >
-          </li>
+          <li><a class={linkClass} href="{COMPLETE_PROFILE}">Mi perfil</a></li>
         {/if}
         <li>
           <a

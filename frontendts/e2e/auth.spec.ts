@@ -37,10 +37,8 @@ test.describe("sin sesión", () => {
     await expect(page).toHaveURL("/login");
   });
 
-  // Fallo conocido: `LoginForm.svelte` crea la sesión sin validar la contraseña.
-  // Al corregirlo esta prueba pasará y `test.fail` avisará para quitar la marca.
+  // El servidor aún no autentica con contraseña: el formulario no abre sesión.
   test("el login rechaza credenciales inválidas", async ({ page }) => {
-    test.fail();
     await gotoHydrated(page, "/login");
 
     await page.getByLabel("Email Address").fill("nadie@example.com");

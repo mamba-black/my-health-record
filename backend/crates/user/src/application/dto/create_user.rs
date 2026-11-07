@@ -82,6 +82,7 @@ impl From<CreateUserCommand> for Result<User, ClickCareError> {
         )
         .map(|mut user| {
             user.address = Some(command.address).filter(|address| !address.trim().is_empty());
+            user.preferred_role = command.intent.preferred_role(command.create_clinic);
             user
         })
     }

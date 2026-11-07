@@ -1,9 +1,15 @@
 export {
   type AuthState,
   authStore,
+  canSearchPatients,
   clearAuth,
   clearPendingRegistration,
+  hasClinicMemberships,
+  loadProfileContext,
   type PendingRegistration,
-  setAuthToken,
+  preferredRole,
+  profileContext,
+  setAuthSession,
+  setSessionUser,
   setPendingRegistration,
 } from "./model/session.store";

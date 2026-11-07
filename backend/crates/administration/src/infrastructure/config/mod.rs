@@ -1,12 +1,17 @@
 use crate::application::create_clinic_usecase::{CreateClinicUseCase, CreateClinicUseCaseImpl};
+use crate::application::membership_usecase::MembershipUseCases;
 use crate::application::state::AdministrationState;
 use crate::domain::clinical_network::clinical_network_repository::ClinicalNetworkRepository;
+use crate::domain::membership::membership_repository::MembershipRepository;
 use crate::domain::organization::organization_repository::OrganizationRepository;
 use crate::domain::patient::patient_repository::PatientRepository;
 use crate::domain::practitioner::practitioner_repository::PractitionerRepository;
 use crate::infrastructure::entrypoint::subscriber::user_created_handler::handle_user_created_event;
 use crate::infrastructure::repository::clinical_network_repository_impl::{
     ClinicalNetworkRecord, ClinicalNetworkRepositoryImpl,
+};
+use crate::infrastructure::repository::membership_repository_impl::{
+    MembershipRecord, MembershipRepositoryImpl,
 };
 use crate::infrastructure::repository::organization_repository_impl::{
     OrganizationRecord, OrganizationRepositoryImpl,
@@ -56,6 +61,8 @@ pub struct DI {
     pub state: AdministrationState,
     /// Caso de uso para crear y registrar una nueva clínica u hospital.
     pub create_clinic_use_case: Arc<CreateClinicUseCase>,
+    /// Casos de uso de membresías y de configuración y activación de la clínica.
+    pub membership_use_cases: Arc<MembershipUseCases>,
 }
 
 // ─── Constructores ───────────────────────────────────────────────────────────
@@ -77,10 +84,13 @@ pub async fn new(database_type: DBType) -> Result<DI, ClickCareError> {
         state: state.clone(),
     });
 
+    let membership_use_cases = Arc::new(MembershipUseCases::new(state.clone()));
+
     Ok(DI {
         storage,
         state,
         create_clinic_use_case,
+        membership_use_cases,
     })
 }
 
@@ -160,7 +170,8 @@ async fn build_state(database_url: &str) -> Result<AdministrationState, ClickCar
             ClinicalNetworkRecord,
             OrganizationRecord,
             PatientRecord,
-            PractitionerRecord
+            PractitionerRecord,
+            MembershipRecord
         ))
         .connect(database_url)
         .await
@@ -177,12 +188,15 @@ async fn build_state(database_url: &str) -> Result<AdministrationState, ClickCar
     let patient_repository: Arc<dyn PatientRepository> =
         Arc::new(PatientRepositoryImpl { db: db.clone() });
     let practitioner_repository: Arc<dyn PractitionerRepository> =
-        Arc::new(PractitionerRepositoryImpl { db });
+        Arc::new(PractitionerRepositoryImpl { db: db.clone() });
+    let membership_repository: Arc<dyn MembershipRepository> =
+        Arc::new(MembershipRepositoryImpl { db });
 
     Ok(AdministrationState {
         clinical_network_repository,
         organization_repository,
         patient_repository,
         practitioner_repository,
+        membership_repository,
     })
 }

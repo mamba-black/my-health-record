@@ -1,9 +1,11 @@
 use crate::application::dto::create_clinic::*;
 use crate::application::state::AdministrationState;
 use crate::domain::clinical_network::ClinicalNetwork;
+use crate::domain::membership::Membership;
 use crate::domain::organization::Organization;
 use crate::domain::practitioner::Practitioner;
 use app_core::application::UseCase;
+use app_core::domain::access::{MembershipRole, MembershipStatus};
 use app_core::domain::fhir::{ContactPoint, HumanName, Person};
 use async_trait::async_trait;
 use tracing::info;
@@ -106,6 +108,18 @@ impl UseCase for CreateClinicUseCaseImpl {
             "Clínica creada: id={} subdomain={} para el propietario user_id={owner_user_id}",
             organization.id, organization.subdomain
         );
+
+        // Quien crea la clínica es su dueño desde el primer momento, aunque la clínica
+        // siga pendiente de activación.
+        self.state
+            .membership_repository
+            .insert(&Membership::new(
+                organization.id,
+                owner_user_id,
+                MembershipRole::Owner,
+                MembershipStatus::Active,
+            ))
+            .await?;
 
         let practitioner_id = self
             .ensure_practitioner(&organization.id, &owner_user_id, &command)
@@ -292,6 +306,14 @@ mod test {
                 .map(|organization| (organization.id, organization.network_id)))
         }
 
+        async fn find_by_id(&self, _id: &Uuid) -> Result<Option<Organization>, ClickCareError> {
+            Ok(None)
+        }
+
+        async fn update_setup(&self, _organization: &Organization) -> Result<(), ClickCareError> {
+            Ok(())
+        }
+
         async fn save(&self, organization: &Organization) -> Result<(), ClickCareError> {
             self.saved_organizations
                 .lock()
@@ -322,6 +344,22 @@ mod test {
 
     #[async_trait]
     impl PatientRepository for SpyRepository {
+        async fn search(
+            &self,
+            _organization_id: &Uuid,
+            _name: &str,
+        ) -> Result<Vec<Patient>, ClickCareError> {
+            Ok(vec![])
+        }
+
+        async fn find_by_id(
+            &self,
+            _organization_id: &Uuid,
+            _id: &Uuid,
+        ) -> Result<Option<Patient>, ClickCareError> {
+            Ok(None)
+        }
+
         async fn exists_by_user_id(
             &self,
             _organization_id: &Uuid,
@@ -346,6 +384,9 @@ mod test {
                 organization_repository: organization,
                 patient_repository: SpyRepository::empty(),
                 practitioner_repository: practitioner,
+                membership_repository: Arc::new(
+                    crate::testing::InMemoryMembershipRepository::default(),
+                ),
             },
         }
     }

@@ -38,3 +38,4 @@ jsonwebtoken-google2 = { workspace = true, features = ["test-helper"] }
 testcontainers.workspace = true
 testcontainers-modules.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+rstest.workspace = true

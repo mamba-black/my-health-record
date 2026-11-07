@@ -14,7 +14,7 @@
 ## Reglas de Dominio
 
 * **La cita se confirma al 100 %, nunca queda tentativa**: aunque la identidad del paciente esté pendiente de verificación presencial (`LinkAssuranceLevel::Level1`), la reserva se guarda **CONFIRMADA** y el cupo médico queda garantizado. El nivel de certeza de la identidad **no** condiciona la disponibilidad del cupo; se resuelve en el check-in.
-* **DNI obligatorio al confirmar**: confirmar la primera cita de un paciente es el disparador que vuelve mandatorio su DNI (Ley N° 30024). Ver el registro progresivo en [crates/user/AGENTS.md](../user/AGENTS.md).
+* **Datos obligatorios al confirmar**: confirmar una cita exige al paciente nombres, apellido paterno, documento y teléfono (Ley N° 30024, pendiente de validación legal). La acción es `ProtectedAction::ConfirmAppointment` y la regla ya está en `app_core::domain::access`: la API de citas debe llamar a `authorize` y devolver los datos faltantes. Fuente oficial: [`access-control/action-authorization`](../../../openspec/specs/access-control/action-authorization/spec.md) e [`identity/progressive-profiling`](../../../openspec/specs/identity/progressive-profiling/spec.md).
 * **`Slot` es la unidad de exclusión mutua**: la disponibilidad se reserva sobre el `Slot`, no sobre el `Appointment`. Dos citas no pueden ocupar el mismo `Slot`; la garantía se implementa en la base de datos, no en la capa de aplicación.
 
 ---

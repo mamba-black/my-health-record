@@ -2,9 +2,19 @@
 // @generated from protobuf file "api.proto" (package "grpc", syntax proto3)
 // tslint:disable
 import { ClinicApi } from "./api";
+import type { MembershipIdRequest } from "./api";
+import type { Membership } from "./api";
+import type { InviteMemberRequest } from "./api";
+import type { ClinicIdRequest } from "./api";
+import type { ClinicSummary } from "./api";
+import type { UpdateClinicSetupRequest } from "./api";
 import type { CreateClinicResponse } from "./api";
 import type { CreateClinicRequest } from "./api";
 import { UserApi } from "./api";
+import type { ProfileRequirements } from "./api";
+import type { GetProfileRequirementsRequest } from "./api";
+import type { SessionTokens } from "./api";
+import type { RefreshSessionRequest } from "./api";
 import type { CompleteProfileRequest } from "./api";
 import type { SignInResponse } from "./api";
 import type { SignInRequest } from "./api";
@@ -113,11 +123,24 @@ export interface IUserApiClient {
      */
     signIn(input: SignInRequest, options?: RpcOptions): UnaryCall<SignInRequest, SignInResponse>;
     /**
-     * / Completa los datos obligatorios de la cuenta del titular del token de ID.
+     * / Guarda datos del perfil de la cuenta de la sesión. Un dato omitido conserva su valor.
      *
      * @generated from protobuf rpc: CompleteProfile
      */
     completeProfile(input: CompleteProfileRequest, options?: RpcOptions): UnaryCall<CompleteProfileRequest, SignInResponse>;
+    /**
+     * / Renueva la sesión con el token de renovación. No requiere token de acceso.
+     *
+     * @generated from protobuf rpc: RefreshSession
+     */
+    refreshSession(input: RefreshSessionRequest, options?: RpcOptions): UnaryCall<RefreshSessionRequest, SessionTokens>;
+    /**
+     * / Datos que aplican a los roles del usuario de la sesión, para qué acción es
+     * / obligatorio cada uno y cuáles faltan, junto con sus membresías.
+     *
+     * @generated from protobuf rpc: GetProfileRequirements
+     */
+    getProfileRequirements(input: GetProfileRequirementsRequest, options?: RpcOptions): UnaryCall<GetProfileRequirementsRequest, ProfileRequirements>;
 }
 /**
  * / Servicio de gestión de usuarios, autenticación y registro inicial.
@@ -149,13 +172,32 @@ export class UserApiClient implements IUserApiClient, ServiceInfo {
         return stackIntercept<SignInRequest, SignInResponse>("unary", this._transport, method, opt, input);
     }
     /**
-     * / Completa los datos obligatorios de la cuenta del titular del token de ID.
+     * / Guarda datos del perfil de la cuenta de la sesión. Un dato omitido conserva su valor.
      *
      * @generated from protobuf rpc: CompleteProfile
      */
     completeProfile(input: CompleteProfileRequest, options?: RpcOptions): UnaryCall<CompleteProfileRequest, SignInResponse> {
         const method = this.methods[2], opt = this._transport.mergeOptions(options);
         return stackIntercept<CompleteProfileRequest, SignInResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * / Renueva la sesión con el token de renovación. No requiere token de acceso.
+     *
+     * @generated from protobuf rpc: RefreshSession
+     */
+    refreshSession(input: RefreshSessionRequest, options?: RpcOptions): UnaryCall<RefreshSessionRequest, SessionTokens> {
+        const method = this.methods[3], opt = this._transport.mergeOptions(options);
+        return stackIntercept<RefreshSessionRequest, SessionTokens>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * / Datos que aplican a los roles del usuario de la sesión, para qué acción es
+     * / obligatorio cada uno y cuáles faltan, junto con sus membresías.
+     *
+     * @generated from protobuf rpc: GetProfileRequirements
+     */
+    getProfileRequirements(input: GetProfileRequirementsRequest, options?: RpcOptions): UnaryCall<GetProfileRequirementsRequest, ProfileRequirements> {
+        const method = this.methods[4], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetProfileRequirementsRequest, ProfileRequirements>("unary", this._transport, method, opt, input);
     }
 }
 /**
@@ -173,6 +215,48 @@ export interface IClinicApiClient {
      * @generated from protobuf rpc: CreateClinic
      */
     createClinic(input: CreateClinicRequest, options?: RpcOptions): UnaryCall<CreateClinicRequest, CreateClinicResponse>;
+    /**
+     * / Guarda los datos legales de la clínica mientras está pendiente de activación.
+     *
+     * @generated from protobuf rpc: UpdateClinicSetup
+     */
+    updateClinicSetup(input: UpdateClinicSetupRequest, options?: RpcOptions): UnaryCall<UpdateClinicSetupRequest, ClinicSummary>;
+    /**
+     * / Activa la clínica. Exige los datos del dueño y los datos legales de la clínica.
+     *
+     * @generated from protobuf rpc: ActivateClinic
+     */
+    activateClinic(input: ClinicIdRequest, options?: RpcOptions): UnaryCall<ClinicIdRequest, ClinicSummary>;
+    /**
+     * / Invita a un usuario registrado (por su correo) a la clínica con un rol.
+     *
+     * @generated from protobuf rpc: InviteMember
+     */
+    inviteMember(input: InviteMemberRequest, options?: RpcOptions): UnaryCall<InviteMemberRequest, Membership>;
+    /**
+     * / El invitado acepta la invitación y se une a la clínica.
+     *
+     * @generated from protobuf rpc: JoinClinic
+     */
+    joinClinic(input: MembershipIdRequest, options?: RpcOptions): UnaryCall<MembershipIdRequest, Membership>;
+    /**
+     * / El médico activa su perfil en la clínica. Exige sus datos y su colegiatura.
+     *
+     * @generated from protobuf rpc: ActivatePractitioner
+     */
+    activatePractitioner(input: MembershipIdRequest, options?: RpcOptions): UnaryCall<MembershipIdRequest, Membership>;
+    /**
+     * / Un dueño o administrador confirma la colegiatura de un médico de su clínica.
+     *
+     * @generated from protobuf rpc: ConfirmLicense
+     */
+    confirmLicense(input: MembershipIdRequest, options?: RpcOptions): UnaryCall<MembershipIdRequest, Membership>;
+    /**
+     * / Un dueño o administrador suspende una membresía de su clínica.
+     *
+     * @generated from protobuf rpc: SuspendMembership
+     */
+    suspendMembership(input: MembershipIdRequest, options?: RpcOptions): UnaryCall<MembershipIdRequest, Membership>;
 }
 /**
  * / Servicio de gestión de clínicas (FHIR R4 Organization).
@@ -196,5 +280,68 @@ export class ClinicApiClient implements IClinicApiClient, ServiceInfo {
     createClinic(input: CreateClinicRequest, options?: RpcOptions): UnaryCall<CreateClinicRequest, CreateClinicResponse> {
         const method = this.methods[0], opt = this._transport.mergeOptions(options);
         return stackIntercept<CreateClinicRequest, CreateClinicResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * / Guarda los datos legales de la clínica mientras está pendiente de activación.
+     *
+     * @generated from protobuf rpc: UpdateClinicSetup
+     */
+    updateClinicSetup(input: UpdateClinicSetupRequest, options?: RpcOptions): UnaryCall<UpdateClinicSetupRequest, ClinicSummary> {
+        const method = this.methods[1], opt = this._transport.mergeOptions(options);
+        return stackIntercept<UpdateClinicSetupRequest, ClinicSummary>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * / Activa la clínica. Exige los datos del dueño y los datos legales de la clínica.
+     *
+     * @generated from protobuf rpc: ActivateClinic
+     */
+    activateClinic(input: ClinicIdRequest, options?: RpcOptions): UnaryCall<ClinicIdRequest, ClinicSummary> {
+        const method = this.methods[2], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ClinicIdRequest, ClinicSummary>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * / Invita a un usuario registrado (por su correo) a la clínica con un rol.
+     *
+     * @generated from protobuf rpc: InviteMember
+     */
+    inviteMember(input: InviteMemberRequest, options?: RpcOptions): UnaryCall<InviteMemberRequest, Membership> {
+        const method = this.methods[3], opt = this._transport.mergeOptions(options);
+        return stackIntercept<InviteMemberRequest, Membership>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * / El invitado acepta la invitación y se une a la clínica.
+     *
+     * @generated from protobuf rpc: JoinClinic
+     */
+    joinClinic(input: MembershipIdRequest, options?: RpcOptions): UnaryCall<MembershipIdRequest, Membership> {
+        const method = this.methods[4], opt = this._transport.mergeOptions(options);
+        return stackIntercept<MembershipIdRequest, Membership>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * / El médico activa su perfil en la clínica. Exige sus datos y su colegiatura.
+     *
+     * @generated from protobuf rpc: ActivatePractitioner
+     */
+    activatePractitioner(input: MembershipIdRequest, options?: RpcOptions): UnaryCall<MembershipIdRequest, Membership> {
+        const method = this.methods[5], opt = this._transport.mergeOptions(options);
+        return stackIntercept<MembershipIdRequest, Membership>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * / Un dueño o administrador confirma la colegiatura de un médico de su clínica.
+     *
+     * @generated from protobuf rpc: ConfirmLicense
+     */
+    confirmLicense(input: MembershipIdRequest, options?: RpcOptions): UnaryCall<MembershipIdRequest, Membership> {
+        const method = this.methods[6], opt = this._transport.mergeOptions(options);
+        return stackIntercept<MembershipIdRequest, Membership>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * / Un dueño o administrador suspende una membresía de su clínica.
+     *
+     * @generated from protobuf rpc: SuspendMembership
+     */
+    suspendMembership(input: MembershipIdRequest, options?: RpcOptions): UnaryCall<MembershipIdRequest, Membership> {
+        const method = this.methods[7], opt = this._transport.mergeOptions(options);
+        return stackIntercept<MembershipIdRequest, Membership>("unary", this._transport, method, opt, input);
     }
 }

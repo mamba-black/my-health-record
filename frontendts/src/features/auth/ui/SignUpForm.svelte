@@ -3,7 +3,7 @@ import { goto } from "$app/navigation";
 import {
   authStore,
   clearPendingRegistration,
-  setAuthToken,
+  setAuthSession,
 } from "$entities/session";
 import { SignUpIntent, UserApiError } from "$shared/api";
 import { signUpAccount } from "../api/auth.api";
@@ -87,7 +87,10 @@ const handleSignUpSubmit = async (event: Event) => {
     });
 
     log.info("Registro progresivo completado exitosamente:", response.userId);
-    setAuthToken(idToken, trimmedGivenName);
+    if (!response.session) {
+      throw new Error("El servidor no abrió la sesión tras el registro.");
+    }
+    setAuthSession(response.session, trimmedGivenName);
   } catch (error) {
     log.error("Error al registrar usuario:", error);
     if (error instanceof UserApiError && error.code === "ALREADY_EXISTS") {

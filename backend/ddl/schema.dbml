@@ -1,4 +1,5 @@
-// Database Markup Language (DBML) schema generated from ddl/table.sql
+// Modelo DBML de referencia, generado del antiguo `ddl/table.sql`. La fuente de verdad
+// del esquema son las migraciones de `backend/migrations/`; este modelo puede estar desactualizado.
 
 Table user_account {
   id uuid [pk]

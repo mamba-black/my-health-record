@@ -35,6 +35,7 @@ impl SubdomainResolver {
     }
 
     /// Crea un resolvedor mock en memoria para pruebas unitarias sin repositorio real.
+    #[cfg(test)]
     pub fn new_mock() -> Self {
         Self {
             cache: Arc::new(RwLock::new(HashMap::new())),

@@ -4,6 +4,7 @@ use app_core::domain::error::ClickCareError;
 use app_core::infrastructure::transport::PersonDto;
 use async_trait::async_trait;
 use toasty::Db;
+use toasty::stmt::{Type, Value};
 use tracing::error;
 use uuid::Uuid;
 
@@ -91,4 +92,81 @@ impl PatientRepository for PatientRepositoryImpl {
 
         Ok(())
     }
+
+    async fn search(
+        &self,
+        organization_id: &Uuid,
+        name: &str,
+    ) -> Result<Vec<Patient>, ClickCareError> {
+        // Búsqueda simple sobre el JSON de la `Person`: suficiente para la escala actual.
+        let pattern = format!("%{}%", name.trim().to_lowercase());
+        let rows = toasty::sql::query(
+            "select id, organization_id, user_id, active, person from administration.patient \
+             where organization_id = $1 and active and lower(person) like $2 \
+             order by created_at limit 100",
+        )
+        .bind(*organization_id)
+        .bind(pattern)
+        .column_types(patient_column_types())
+        .exec(&mut self.db.clone())
+        .await
+        .map_err(|error| {
+            error!("Error al buscar pacientes de la clínica {organization_id}: {error}");
+            ClickCareError::generic(format!(
+                "Error al buscar pacientes de la clínica {organization_id} ({error})"
+            ))
+        })?;
+        rows.into_iter().map(map_patient_row).collect()
+    }
+
+    async fn find_by_id(
+        &self,
+        organization_id: &Uuid,
+        id: &Uuid,
+    ) -> Result<Option<Patient>, ClickCareError> {
+        let rows = toasty::sql::query(
+            "select id, organization_id, user_id, active, person from administration.patient \
+             where organization_id = $1 and id = $2 limit 1",
+        )
+        .bind(*organization_id)
+        .bind(*id)
+        .column_types(patient_column_types())
+        .exec(&mut self.db.clone())
+        .await
+        .map_err(|error| {
+            error!("Error al consultar el expediente {id}: {error}");
+            ClickCareError::generic(format!("Error al consultar el expediente {id} ({error})"))
+        })?;
+        rows.into_iter().next().map(map_patient_row).transpose()
+    }
+}
+
+fn patient_column_types() -> [Type; 5] {
+    [Type::Uuid, Type::Uuid, Type::Uuid, Type::Bool, Type::String]
+}
+
+fn map_patient_row(row: Value) -> Result<Patient, ClickCareError> {
+    let mut fields = row.into_record().fields.into_iter();
+    let mut next = |name: &str| {
+        fields
+            .next()
+            .ok_or_else(|| ClickCareError::generic(format!("Falta la columna {name} de patient")))
+    };
+    let uuid =
+        |value: Value| Uuid::try_from(value).map_err(|e| ClickCareError::generic(e.to_string()));
+    let id = uuid(next("id")?)?;
+    let organization_id = uuid(next("organization_id")?)?;
+    let user_id = uuid(next("user_id")?)?;
+    let active =
+        bool::try_from(next("active")?).map_err(|e| ClickCareError::generic(e.to_string()))?;
+    let person_json =
+        String::try_from(next("person")?).map_err(|e| ClickCareError::generic(e.to_string()))?;
+    let person: PersonDto = serde_json::from_str(&person_json).map_err(|error| {
+        ClickCareError::generic(format!(
+            "La Person del expediente {id} no es válida ({error})"
+        ))
+    })?;
+    let mut patient = Patient::new(id, organization_id, user_id, person.into());
+    patient.active = active;
+    Ok(patient)
 }

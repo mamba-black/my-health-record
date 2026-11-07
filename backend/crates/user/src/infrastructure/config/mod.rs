@@ -1,10 +1,13 @@
+use crate::application::integration::service::session_service::SessionService;
 use crate::application::integration::service::token_service::TokenService;
 use crate::application::use_case::complete_profile_usecase::CompleteProfileUseCase;
 use crate::application::use_case::create_user_usecase::CreateUserUseCase;
+use crate::application::use_case::refresh_session_usecase::RefreshSessionUseCase;
 use crate::application::use_case::sign_in_usecase::SignInUseCase;
 use crate::domain::user::user_repository::UserRepository;
 use crate::infrastructure::integration::event::apalis_publisher::ApalisIntegrationEventPublisherImpl;
 use crate::infrastructure::integration::event::logging_publisher::LoggingIntegrationEventPublisherImpl;
+pub use crate::infrastructure::integration::service::session_service_impl::JwtSessionServiceImpl;
 use crate::infrastructure::integration::service::token_service_impl::TokenServiceImpl;
 use crate::infrastructure::repository::user_repository_impl::{UserAccount, UserRepositoryImpl};
 use app_core::application::integration::event_publisher::IntegrationEventPublisher;
@@ -26,8 +29,12 @@ pub struct DI {
     pub create_user_use_case: Arc<CreateUserUseCase>,
     /// Caso de uso para autenticar usuarios existentes mediante su token OAuth/OIDC.
     pub sign_in_use_case: Arc<SignInUseCase>,
-    /// Caso de uso para completar los datos obligatorios de una cuenta existente.
+    /// Caso de uso para guardar datos del perfil de la cuenta de la sesión.
     pub complete_profile_use_case: Arc<CompleteProfileUseCase>,
+    /// Caso de uso para renovar la sesión con el token de renovación.
+    pub refresh_session_use_case: Arc<RefreshSessionUseCase>,
+    /// Emite y verifica los tokens de sesión del backend.
+    pub session_service: Arc<dyn SessionService>,
     #[allow(dead_code)]
     /// Puerto de repositorio para persistencia de cuentas de usuario.
     pub user_repository: Arc<dyn UserRepository>,
@@ -50,6 +57,8 @@ pub struct DIOverrides {
     pub event_publisher: Option<Arc<dyn IntegrationEventPublisher>>,
     /// Servicio alternativo o mock para validación de tokens JWT.
     pub token_service: Option<Arc<dyn TokenService>>,
+    /// Servicio alternativo de sesión (p. ej. con una clave fija en pruebas).
+    pub session_service: Option<Arc<dyn SessionService>>,
 }
 
 // ─── Constructores ──────────────────────────────────────────────────────────
@@ -111,13 +120,21 @@ pub async fn new_with_overrides(
     });
     let complete_profile_use_case = Arc::new(CompleteProfileUseCase {
         user_repository: Arc::clone(&user_repository),
-        token_service: Arc::clone(&token_service),
+    });
+    let session_service: Arc<dyn SessionService> = overrides
+        .session_service
+        .unwrap_or_else(|| Arc::new(JwtSessionServiceImpl::from_env()));
+    let refresh_session_use_case = Arc::new(RefreshSessionUseCase {
+        user_repository: Arc::clone(&user_repository),
+        session_service: Arc::clone(&session_service),
     });
 
     Ok(DI {
         create_user_use_case,
         sign_in_use_case,
         complete_profile_use_case,
+        refresh_session_use_case,
+        session_service,
         user_repository,
         event_publisher,
         token_service,

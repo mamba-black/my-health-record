@@ -59,6 +59,12 @@ sqlx = { version = "0.9.0", features = [
     "tls-rustls",
 ] }
 postgres = "0.19.14"
+# Migraciones versionadas del esquema (`backend/migrations`), aplicadas al arrancar.
+refinery = { version = "0.10.0", features = ["tokio-postgres"] }
+tokio-postgres = "0.7.18"
+tokio-postgres-rustls = { version = "0.14.0", default-features = false }
+rustls = { version = "0.23", default-features = false, features = ["std", "ring"] }
+rustls-native-certs = "0.8.4"
 
 
 ## =============================

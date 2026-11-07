@@ -1,7 +1,7 @@
 import { expect, test } from "./support/fixtures";
 
-// Salvo que se indique, estas pruebas requieren el backend en :50051. Los nombres
-// esperados vienen de `get_mock_patients` en `patient_api_impl.rs`.
+// Salvo que se indique, estas pruebas requieren el backend. La sesión es de un médico
+// activo en la clínica e2e, cuyos pacientes siembra `e2e/support/seed.ts`.
 test.describe("búsqueda de pacientes", () => {
   test.beforeEach(async ({ signedInPage: page }) => {
     await page.goto("/search");

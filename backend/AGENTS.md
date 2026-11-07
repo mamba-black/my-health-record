@@ -280,7 +280,8 @@ ni código) y **no** son miembros del workspace hasta que se implementen.
 backend/
 ├── Cargo.toml                      # Workspace: members declarados uno a uno
 ├── proto/api.proto                 # Contrato público de la API (única fuente de verdad)
-├── ddl/table.sql                   # Esquema SQL (PK por defecto uuidv7())
+├── migrations/                     # Migraciones SQL versionadas (refinery), V{n}__desc.sql
+├── ddl/schema.dbml                 # Modelo DBML del esquema (referencia, no se ejecuta)
 ├── docs/
 │   ├── arquitectura_cebolla.md     # Reglas innegociables de la arquitectura cebolla
 │   └── use_cases.md                # Casos de uso del ciclo de vida de identidad
@@ -404,6 +405,17 @@ Leyenda de estado: ✅ implementado · 🚧 andamiaje (miembro del workspace, si
 
 ---
 
+### 3.x. Sesión y autorización
+
+Fuente oficial: [`access-control/action-authorization`](../openspec/specs/access-control/action-authorization/spec.md).
+
+* **Sesión**: `SignIn`/`SignUp` devuelven `SessionTokens`; toda operación protegida exige `authorization: Bearer <token de acceso>`. `ClinicApi` y `PatientApi` lo validan con el interceptor de tonic (`infrastructure/grpc/access.rs`, `Authenticator`); `UserApi` mezcla operaciones públicas (`SignUp`, `SignIn`, `RefreshSession`) y protegidas, que llaman a `authenticate` dentro de la operación.
+* **Regla única**: `app_core::domain::access::authorize(acción, contexto, objetivo)` es una función pura. Orden de evaluación: rol o membresía → estado de la clínica → datos. Se prueba con un `#[case]` por fila de la matriz.
+* **Contexto**: `AccessContextBuilder` arma el `RequestContext` (datos presentes de la cuenta y membresías) con una caché de 5 s que se invalida al cambiar una membresía.
+* **Errores**: sin sesión `UNAUTHENTICATED`; sin permiso `PERMISSION_DENIED` (sin listar datos); clínica en estado no válido `FAILED_PRECONDITION` sin detalle; **datos faltantes** `FAILED_PRECONDITION` con un `ActionRequirements` (acción, datos, clínica) codificado en `grpc-status-details-bin`; recurso de otra clínica o ajeno `NOT_FOUND`.
+* **Nueva acción protegida**: agregarla a `ProtectedAction` (dominio y proto), a la matriz de `authorize`, a sus datos en `CATALOG`, a su caso de prueba, y llamar a `authorize` en su caso de uso.
+* `build_services` (`infrastructure/mod.rs`) cablea todo y lo usan tanto el servidor como el arnés de integración.
+
 ## 4. Comandos de Compilación, Pruebas y Desarrollo
 
 ```bash
@@ -439,7 +451,7 @@ cargo clippy --workspace -- -D warnings
 * **Casos parametrizados**: `#[rstest]` con anotaciones `#[case::<etiqueta>]` para que cada escenario quede identificado en la salida.
 * **Pruebas asíncronas**: anotar con `#[rstest]` **y** `#[tokio::test]`; usar `#[future(awt)]` para fixtures asíncronos.
 * **Estado compartido**: `tokio::sync::OnceCell` para singletons asíncronos en módulos de prueba.
-* **Contenedor de Postgres**: se levanta **una sola vez por suite** vía `testcontainers` sobre Podman, con el esquema de `backend/ddl/table.sql` copiado a `/docker-entrypoint-initdb.d/`. La exclusión mutua entre procesos de prueba se resuelve con `flock`, y el desmontaje se registra con `#[dtor]`.
+* **Contenedor de Postgres**: se levanta **una sola vez por suite** vía `testcontainers` sobre Podman, y el esquema se crea aplicando las mismas migraciones de `backend/migrations/` que usa el servidor (`clickcare::infrastructure::migration::run`). La exclusión mutua entre procesos de prueba se resuelve con `flock`, y el desmontaje se registra con `#[dtor]`.
 * **Antes de dar por terminado un cambio**: `cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings` y `cargo test --workspace` deben pasar.
 
 ---
@@ -462,11 +474,16 @@ cargo clippy --workspace -- -D warnings
 
 ## 7. Entorno e Infraestructura Local
 
+* **Sesión**: `SESSION_SECRET` firma los tokens de sesión (definirla fuera de desarrollo); `SESSION_ACCESS_TTL_SECS` y `SESSION_REFRESH_TTL_SECS` ajustan su vida.
 * **Variable requerida**: `DATABASE_URL` (URL de conexión a PostgreSQL), cargada desde `.env` vía `dotenvy`. `PG_URL` se acepta como respaldo. Si ninguna está definida, el DI cae al valor por defecto `postgres://user:password@localhost:5432`.
 * **Secretos**: **no commitear credenciales**. Usar un `.env.example` como plantilla y mantener `.env` fuera del control de versiones.
 * **Servicios locales**: `backend/devops/postgres.yaml` y `backend/devops/tempo.yaml` levantan los servicios; `backend/devops/simulate_telemetry.nu` genera telemetría de prueba.
-* **Esquema SQL**: `backend/ddl/table.sql` (modelo en `backend/ddl/schema.dbml`). Las columnas de clave primaria usan `uuidv7()` como valor por defecto.
-* **Cola de eventos**: el esquema `apalis` lo crean las migraciones embebidas de `apalis-postgres` al construir el DI (`PostgresStorage::setup`). No se versiona en `backend/ddl/`.
+* **Esquema SQL — migraciones con [refinery](https://docs.rs/refinery)**:
+  * Viven en `backend/migrations/` como `V{n}__descripcion.sql` (p. ej. `V3__agregar_genero.sql`). Se embeben en el binario al compilar (`embed_migrations!`) y `clickcare` aplica las pendientes **al arrancar**, antes de construir el DI (`bin/clickcare/src/infrastructure/migration.rs`). Cada migración corre en su propia transacción.
+  * El historial está en `public.refinery_schema_history`, separado de `_sqlx_migrations` de apalis.
+  * **Nunca edites una migración ya aplicada**: refinery valida su checksum y el arranque falla. Todo cambio va en una migración nueva.
+  * Las columnas de clave primaria usan `uuidv7()` como valor por defecto. `backend/ddl/schema.dbml` es solo un modelo de referencia.
+* **Cola de eventos**: el esquema `apalis` lo crean las migraciones embebidas de `apalis-postgres` al construir el DI (`PostgresStorage::setup`). No se versiona en `backend/migrations/`.
 * **Servidor**: escucha en `0.0.0.0:50051` con soporte gRPC-Web y reflexión habilitada.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:970c3bf2 -->

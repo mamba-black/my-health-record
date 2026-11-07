@@ -1,8 +1,20 @@
-import { writable } from "svelte/store";
+import { derived, writable } from "svelte/store";
 import { browser } from "$app/environment";
 import { goto } from "$app/navigation";
 import { base } from "$app/paths";
 import { page } from "$app/state";
+import {
+  ClinicStatus,
+  type Membership,
+  MembershipRole,
+  MembershipStatus,
+  onSessionExpired,
+  type ProfileRequirements,
+  Role,
+  type SessionInput,
+  sessionTokens,
+  userApi,
+} from "$shared/api";
 import { LOGIN, type Page } from "$shared/config";
 import { log } from "$shared/lib";
 
@@ -37,11 +49,11 @@ const initialAuth: AuthState = {
 };
 
 if (browser) {
-  const storedToken = localStorage.getItem("auth_token");
+  const stored = sessionTokens.get();
   const storedUser = localStorage.getItem("auth_user");
-  if (storedToken) {
+  if (stored) {
     initialAuth.isAuthenticated = true;
-    initialAuth.token = storedToken;
+    initialAuth.token = stored.accessToken;
     initialAuth.user = storedUser;
   }
 
@@ -84,13 +96,14 @@ export const clearPendingRegistration = () => {
   }));
 };
 
-export const setAuthToken = (
-  token: string,
+/** Abre la sesión con los tokens que emitió el backend y navega. */
+export const setAuthSession = (
+  session: SessionInput,
   user: string | null = null,
   redirectTo?: string,
 ) => {
+  sessionTokens.save(session);
   if (browser) {
-    localStorage.setItem("auth_token", token);
     if (user) {
       localStorage.setItem("auth_user", user);
     } else {
@@ -100,10 +113,11 @@ export const setAuthToken = (
   }
   authStore.set({
     isAuthenticated: true,
-    token,
+    token: session.accessToken,
     user,
     pendingRegistration: null,
   });
+  void loadProfileContext();
 
   const previousPage = page.state as Partial<Page> | undefined;
   log.debug(`AuthService: previous path ${previousPage?.path}`);
@@ -120,8 +134,9 @@ export const setAuthToken = (
 };
 
 export const clearAuth = () => {
+  sessionTokens.clear();
+  profileContext.set(null);
   if (browser) {
-    localStorage.removeItem("auth_token");
     localStorage.removeItem("auth_user");
     sessionStorage.removeItem(PENDING_REGISTRATION_STORAGE_KEY);
 
@@ -147,3 +162,63 @@ export const clearAuth = () => {
   log.info("Sesión cerrada correctamente");
   goto(LOGIN);
 };
+
+/** Actualiza el nombre que se muestra del usuario de la sesión. */
+export const setSessionUser = (user: string) => {
+  if (browser) localStorage.setItem("auth_user", user);
+  authStore.update((state) => ({ ...state, user }));
+};
+
+/** Rol preferido, membresías y requisitos de datos del usuario de la sesión. */
+export const profileContext = writable<ProfileRequirements | null>(null);
+
+/** Vuelve a leer del backend el rol, las membresías y los datos que faltan. */
+export async function loadProfileContext(): Promise<ProfileRequirements | null> {
+  if (!sessionTokens.get()) {
+    profileContext.set(null);
+    return null;
+  }
+  try {
+    const context = await userApi.getProfileRequirements();
+    profileContext.set(context);
+    return context;
+  } catch (error) {
+    log.warn("No se pudo leer el contexto del perfil", error);
+    return null;
+  }
+}
+
+const isActiveClinicPractitioner = (membership: Membership) =>
+  membership.role === MembershipRole.PRACTITIONER &&
+  membership.status === MembershipStatus.ACTIVE &&
+  membership.organizationStatus === ClinicStatus.ACTIVE;
+
+/** Puede buscar y ver pacientes: es médico activo en una clínica activa. */
+export const canSearchPatients = derived(
+  profileContext,
+  ($context) => $context?.memberships.some(isActiveClinicPractitioner) ?? false,
+);
+
+/** Tiene alguna membresía (no suspendida) en una clínica. */
+export const hasClinicMemberships = derived(
+  profileContext,
+  ($context) =>
+    $context?.memberships.some(
+      (membership) => membership.status !== MembershipStatus.SUSPENDED,
+    ) ?? false,
+);
+
+export const preferredRole = derived(
+  profileContext,
+  ($context) => $context?.preferredRole ?? Role.PATIENT,
+);
+
+// Sin forma de renovar la sesión, se cierra y se vuelve al login.
+onSessionExpired(() => {
+  log.info("La sesión venció y no se pudo renovar");
+  clearAuth();
+});
+
+if (browser && sessionTokens.get()) {
+  void loadProfileContext();
+}

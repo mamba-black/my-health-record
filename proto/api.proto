@@ -26,8 +26,15 @@ service UserApi {
     /// Inicio de sesión de un usuario registrado utilizando token de ID.
     rpc SignIn (SignInRequest) returns (SignInResponse) {}
 
-    /// Completa los datos obligatorios de la cuenta del titular del token de ID.
+    /// Guarda datos del perfil de la cuenta de la sesión. Un dato omitido conserva su valor.
     rpc CompleteProfile (CompleteProfileRequest) returns (SignInResponse) {}
+
+    /// Renueva la sesión con el token de renovación. No requiere token de acceso.
+    rpc RefreshSession (RefreshSessionRequest) returns (SessionTokens) {}
+
+    /// Datos que aplican a los roles del usuario de la sesión, para qué acción es
+    /// obligatorio cada uno y cuáles faltan, junto con sus membresías.
+    rpc GetProfileRequirements (GetProfileRequirementsRequest) returns (ProfileRequirements) {}
 }
 
 /// Servicio de gestión de clínicas (FHIR R4 Organization).
@@ -37,6 +44,27 @@ service ClinicApi {
     /// Es una operación independiente del registro: un usuario ya existente puede
     /// crear una clínica, y puede crear más de una.
     rpc CreateClinic (CreateClinicRequest) returns (CreateClinicResponse) {}
+
+    /// Guarda los datos legales de la clínica mientras está pendiente de activación.
+    rpc UpdateClinicSetup (UpdateClinicSetupRequest) returns (ClinicSummary) {}
+
+    /// Activa la clínica. Exige los datos del dueño y los datos legales de la clínica.
+    rpc ActivateClinic (ClinicIdRequest) returns (ClinicSummary) {}
+
+    /// Invita a un usuario registrado (por su correo) a la clínica con un rol.
+    rpc InviteMember (InviteMemberRequest) returns (Membership) {}
+
+    /// El invitado acepta la invitación y se une a la clínica.
+    rpc JoinClinic (MembershipIdRequest) returns (Membership) {}
+
+    /// El médico activa su perfil en la clínica. Exige sus datos y su colegiatura.
+    rpc ActivatePractitioner (MembershipIdRequest) returns (Membership) {}
+
+    /// Un dueño o administrador confirma la colegiatura de un médico de su clínica.
+    rpc ConfirmLicense (MembershipIdRequest) returns (Membership) {}
+
+    /// Un dueño o administrador suspende una membresía de su clínica.
+    rpc SuspendMembership (MembershipIdRequest) returns (Membership) {}
 }
 
 
@@ -66,7 +94,9 @@ message SearchPatientResponse {
 /// Representa una identificación oficial o nacional (FHIR Identifier).
 message Identifier {
     oneof identifier_type {
-        string dni = 1; // Documento Nacional de Identidad
+        string dni = 1;        // Documento Nacional de Identidad (8 dígitos)
+        string ce = 2;         // Carné de extranjería
+        string passport = 3;   // Pasaporte
     }
 }
 
@@ -121,6 +151,7 @@ message SignUpResponse {
     optional string user_id = 3;   // UUID v7 de la cuenta de usuario creada
     optional PersonLink link = 4;  // Enlace generado con su nivel de certeza (AssuranceLevel)
     optional string organization_id = 5; // UUID v7 de la organización/clínica pre-asignada (cuando intent = INTENT_CLINIC_OWNER)
+    optional SessionTokens session = 6;   // Sesión abierta para la cuenta recién creada
 }
 
 /// Solicitud de autenticación de usuario (Sign In).
@@ -142,6 +173,15 @@ message SignInResponse {
     optional string birth_date = 9;           // Fecha de nacimiento (Formato YYYY-MM-DD)
     optional string address = 10;             // Dirección domiciliaria
     optional Identifier identifier = 11;      // Documento de identidad
+    optional SessionTokens session = 12;      // Sesión emitida por el backend (solo en SignIn)
+    Role preferred_role = 13;                 // Rol preferido: orienta la interfaz, no autoriza
+    Sex sex = 14;                             // Sexo registrado
+    optional string professional_body = 15;   // Colegio profesional (CMP, COP, CEP, CPsP…)
+    optional string license_number = 16;      // Número de colegiatura
+    optional string specialty = 17;           // Especialidad
+    optional string rne = 18;                 // Registro Nacional de Especialista
+    bool document_verified = 19;              // El documento fue verificado (no editable)
+    bool license_verified = 20;               // La colegiatura fue confirmada (no editable)
 }
 
 /// Dato obligatorio del perfil de un usuario.
@@ -150,18 +190,177 @@ enum ProfileField {
     PROFILE_FIELD_GIVEN_NAME = 1;
     PROFILE_FIELD_PHONE = 2;
     PROFILE_FIELD_BIRTH_DATE = 3;
+    PROFILE_FIELD_FAMILY_NAME = 4;
+    PROFILE_FIELD_DOCUMENT = 5;
+    PROFILE_FIELD_SEX = 6;
+    PROFILE_FIELD_ADDRESS = 7;
+    PROFILE_FIELD_PROFESSIONAL_LICENSE = 8;   // Colegio profesional y número de colegiatura
+    PROFILE_FIELD_SPECIALTY = 9;              // Especialidad y RNE
+    PROFILE_FIELD_CLINIC_TAX_ID = 10;         // RUC de la clínica
+    PROFILE_FIELD_CLINIC_LEGAL_NAME = 11;     // Razón social de la clínica
+    PROFILE_FIELD_IPRESS_CODE = 12;           // Código IPRESS (RENIPRESS)
+    PROFILE_FIELD_SECOND_FAMILY_NAME = 13;
+    PROFILE_FIELD_EMAIL = 14;
+    PROFILE_FIELD_LICENSE_CONFIRMED = 15;     // Colegiatura confirmada por la clínica (no se llena)
+    PROFILE_FIELD_CLINIC_TRADE_NAME = 16;     // Nombre comercial de la clínica
+}
+
+/// Rol preferido de la cuenta. Solo orienta la interfaz; los permisos salen de las membresías.
+enum Role {
+    ROLE_UNSPECIFIED = 0;
+    ROLE_PATIENT = 1;
+    ROLE_PRACTITIONER = 2;
+    ROLE_CLINIC_OWNER = 3;
+}
+
+/// Sexo registrado (FHIR AdministrativeGender).
+enum Sex {
+    SEX_UNSPECIFIED = 0;
+    SEX_FEMALE = 1;
+    SEX_MALE = 2;
+    SEX_OTHER = 3;
+}
+
+/// Acción protegida. Cada una exige un rol, una membresía, unos datos y un estado de clínica.
+enum ProtectedAction {
+    ACTION_UNSPECIFIED = 0;
+    ACTION_CONFIRM_APPOINTMENT = 1;
+    ACTION_JOIN_CLINIC = 2;
+    ACTION_ACTIVATE_PRACTITIONER = 3;
+    ACTION_SEARCH_PATIENTS = 4;
+    ACTION_VIEW_PATIENT = 5;
+    ACTION_RECORD_ENCOUNTER = 6;
+    ACTION_CREATE_CLINIC = 7;
+    ACTION_CONFIGURE_CLINIC = 8;
+    ACTION_INVITE_STAFF = 9;
+    ACTION_ACTIVATE_CLINIC = 10;
+    ACTION_OPEN_FIRST_ENCOUNTER = 11;
+    ACTION_ISSUE_PRESCRIPTION = 12;
+    ACTION_SUSPEND_MEMBER = 13;
+    ACTION_CONFIRM_LICENSE = 14;
+}
+
+/// Detalle de un error FAILED_PRECONDITION: la acción y los datos que le faltan.
+/// Viaja en `grpc-status-details-bin`.
+message ActionRequirements {
+    ProtectedAction action = 1;
+    repeated ProfileField missing = 2;
+    optional string organization_id = 3;
+}
+
+/// Tokens de sesión emitidos por el backend.
+message SessionTokens {
+    string access_token = 1;       // Se envía como `authorization: Bearer <token>`
+    int64 access_expires_at = 2;   // Vencimiento del token de acceso (segundos Unix)
+    string refresh_token = 3;      // Se canjea en `RefreshSession`
+}
+
+message RefreshSessionRequest {
+    string refresh_token = 1;
+}
+
+message GetProfileRequirementsRequest {}
+
+/// Requisito de un dato del perfil para el usuario de la sesión.
+message FieldRequirement {
+    ProfileField field = 1;
+    repeated ProtectedAction required_for = 2; // Acciones que lo vuelven obligatorio (vacío: siempre opcional)
+    bool missing = 3;                          // El usuario aún no lo registró
+    bool read_only = 4;                        // Verificado o proveniente del proveedor de identidad
+    repeated Role roles = 5;                   // Roles del usuario a los que aplica
+}
+
+message ProfileRequirements {
+    repeated FieldRequirement fields = 1;
+    repeated Membership memberships = 2;
+    Role preferred_role = 3;
+    repeated ProfileField missing_for_habitual = 4; // Lo que falta para las acciones habituales del rol
+    SignInResponse account = 5;                     // Valores actuales de la cuenta (sin sesión)
+}
+
+enum MembershipRole {
+    MEMBERSHIP_ROLE_UNSPECIFIED = 0;
+    MEMBERSHIP_ROLE_OWNER = 1;
+    MEMBERSHIP_ROLE_ADMIN = 2;
+    MEMBERSHIP_ROLE_PRACTITIONER = 3;
+}
+
+enum MembershipStatus {
+    MEMBERSHIP_STATUS_UNSPECIFIED = 0;
+    MEMBERSHIP_STATUS_INVITED = 1;
+    MEMBERSHIP_STATUS_PENDING = 2;
+    MEMBERSHIP_STATUS_ACTIVE = 3;
+    MEMBERSHIP_STATUS_SUSPENDED = 4;
+}
+
+enum ClinicStatus {
+    CLINIC_STATUS_UNSPECIFIED = 0;
+    CLINIC_STATUS_PENDING_SETUP = 1;
+    CLINIC_STATUS_ACTIVE = 2;
+    CLINIC_STATUS_SUSPENDED = 3;
+}
+
+/// Relación de un usuario con una clínica.
+message Membership {
+    string id = 1;
+    string organization_id = 2;
+    string organization_name = 3;
+    ClinicStatus organization_status = 4;
+    string user_id = 5;
+    MembershipRole role = 6;
+    MembershipStatus status = 7;
+    bool license_confirmed = 8;
+}
+
+message MembershipIdRequest {
+    string membership_id = 1;
+}
+
+message ClinicIdRequest {
+    string organization_id = 1;
+}
+
+message InviteMemberRequest {
+    string organization_id = 1;
+    string email = 2;
+    MembershipRole role = 3;
+}
+
+message UpdateClinicSetupRequest {
+    string organization_id = 1;
+    optional string tax_id = 2;      // RUC (11 dígitos, módulo 11)
+    optional string legal_name = 3;  // Razón social
+    optional string trade_name = 4;  // Nombre comercial
+    optional string ipress_code = 5; // Código IPRESS
+}
+
+message ClinicSummary {
+    string organization_id = 1;
+    string name = 2;
+    ClinicStatus status = 3;
+    optional string tax_id = 4;
+    optional string legal_name = 5;
+    optional string trade_name = 6;
+    optional string ipress_code = 7;
 }
 
 /// Solicitud para completar los datos de la cuenta. Un dato opcional omitido conserva su valor.
 message CompleteProfileRequest {
-    string id_token = 1;             // Token JWT que identifica al titular de la cuenta
-    string given_name = 2;           // Nombres de pila
+    // DEPRECADO: la cuenta sale de la sesión (`authorization: Bearer`). Se ignora.
+    string id_token = 1 [deprecated = true];
+    string given_name = 2;           // Nombres de pila (vacío: conserva el valor)
     optional string family_name = 3; // Primer apellido
-    string phone = 4;                // Teléfono de contacto
+    string phone = 4;                // Teléfono de contacto (vacío: conserva el valor)
     optional string second_family_name = 5; // Segundo apellido
-    string birth_date = 6;                  // Fecha de nacimiento (Formato YYYY-MM-DD)
+    string birth_date = 6;                  // Fecha de nacimiento YYYY-MM-DD (vacío: conserva el valor)
     optional string address = 7;            // Dirección domiciliaria
     optional Identifier identifier = 8;     // Documento de identidad
+    Sex sex = 9;                            // SEX_UNSPECIFIED conserva el valor
+    optional string professional_body = 10; // Colegio profesional
+    optional string license_number = 11;    // Número de colegiatura
+    optional string specialty = 12;         // Especialidad
+    optional string rne = 13;               // Registro Nacional de Especialista
+    Role preferred_role = 14;               // ROLE_UNSPECIFIED conserva el valor
 }
 
 

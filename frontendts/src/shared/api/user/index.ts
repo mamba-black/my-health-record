@@ -1,6 +1,7 @@
 export {
   type CompleteProfileRequest,
   type GrpcStatusName,
+  type ProfileRequirements,
   ProfileField,
   type SignInRequest,
   type SignInResponse,
@@ -8,6 +9,7 @@ export {
   type SignUpRequest,
   type SignUpResponse,
   SignUpStatus,
+  toUserApiError,
   UserApiError,
   userApi,
 } from "./user-api";

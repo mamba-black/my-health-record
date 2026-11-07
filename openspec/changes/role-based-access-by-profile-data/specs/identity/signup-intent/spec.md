@@ -1,0 +1,28 @@
+## MODIFIED Requirements
+
+### Requirement: Captura de intención de registro (SignUpIntent) y generación anticipada de organization_id
+El sistema SHALL permitir que un usuario especifique su intención inicial mediante el campo `intent` en `SignUpRequest`. Cuando la intención es `INTENT_CLINIC_OWNER`, el sistema SHALL generar deterministamente un identificador `organization_id` de tipo UUIDv7 de antemano. El sistema SHALL persistir la intención como rol preferido de la cuenta (ver `identity/role-membership`); la intención no SHALL conceder por sí misma permisos sobre ninguna clínica.
+
+#### Scenario: Registro como Dueño de Clínica con organization_id anticipado
+- **WHEN** un usuario envía `SignUpRequest` con `intent = INTENT_CLINIC_OWNER`
+- **THEN** el sistema registra la cuenta, genera un `organization_id` (UUIDv7), emite el evento `FounderRegistered(user_id, person_id, organization_id)` y retorna el contexto de sesión conteniendo el identificador de la organización creada
+
+#### Scenario: Registro como Profesional Médico
+- **WHEN** un usuario envía `SignUpRequest` con `intent = INTENT_PRACTITIONER`
+- **THEN** el sistema registra el usuario sin exigir colegiatura CMP ni emitir `FounderRegistered`
+
+#### Scenario: Registro como Paciente
+- **WHEN** un usuario envía `SignUpRequest` con `intent = INTENT_PATIENT`
+- **THEN** el sistema registra el usuario sin vincularlo a ninguna organización clínica obligatoria
+
+#### Scenario: Multi-Clínica sin restricción de unicidad por propietario
+- **WHEN** un usuario que ya posee una clínica registrada decide fundar una nueva organización
+- **THEN** el sistema genera un nuevo `organization_id` (UUIDv7) independiente y le otorga la membresía de propietario (`OWNER`) sin rechazar por duplicidad de dueño
+
+#### Scenario: Retrocompatibilidad con create_clinic
+- **WHEN** un cliente legacy envía `SignUpRequest` con `intent = INTENT_UNSPECIFIED` y `create_clinic = true`
+- **THEN** el sistema interpreta la intención como `INTENT_CLINIC_OWNER`, genera el `organization_id` y emite `FounderRegistered`
+
+#### Scenario: La intención se conserva como rol preferido
+- **WHEN** un usuario se registra con `intent = INTENT_PRACTITIONER` y luego inicia sesión
+- **THEN** la respuesta del inicio de sesión indica rol preferido «médico» y el perfil muestra los datos profesionales del catálogo, sin que tenga acceso a pacientes

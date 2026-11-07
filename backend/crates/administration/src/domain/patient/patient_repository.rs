@@ -25,4 +25,18 @@ pub trait PatientRepository: Send + Sync {
 
     /// Persiste el expediente del paciente junto a su recurso FHIR `Person`.
     async fn save(&self, patient: &Patient) -> Result<(), ClickCareError>;
+
+    /// Expedientes activos de **una** clínica cuyo nombre contiene el texto (vacío: todos).
+    async fn search(
+        &self,
+        organization_id: &Uuid,
+        name: &str,
+    ) -> Result<Vec<Patient>, ClickCareError>;
+
+    /// Expediente por su id, solo si pertenece a esa clínica.
+    async fn find_by_id(
+        &self,
+        organization_id: &Uuid,
+        id: &Uuid,
+    ) -> Result<Option<Patient>, ClickCareError>;
 }

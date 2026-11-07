@@ -1,20 +1,27 @@
-use crate::domain::user::User;
+use crate::domain::user::{Sex, User};
+use app_core::domain::access::Role;
 use app_core::domain::error::ClickCareError;
 use app_core::domain::fhir::Identifier;
 use async_trait::async_trait;
 use uuid::Uuid;
 
-/// Datos de perfil a guardar. Un dato opcional en `None` conserva el valor actual.
-#[derive(Debug, Clone)]
+/// Datos de perfil a guardar. Todo dato en `None` conserva el valor actual.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ProfileUpdate {
-    pub given_name: String,
+    pub given_name: Option<String>,
     pub family_name: Option<String>,
     pub second_family_name: Option<String>,
     pub identifier: Option<Identifier>,
-    pub phone: String,
+    pub phone: Option<String>,
     /// Fecha en formato `YYYY-MM-DD`.
-    pub birth_date: String,
+    pub birth_date: Option<String>,
     pub address: Option<String>,
+    pub sex: Option<Sex>,
+    pub professional_body: Option<String>,
+    pub license_number: Option<String>,
+    pub specialty: Option<String>,
+    pub rne: Option<String>,
+    pub preferred_role: Option<Role>,
 }
 
 /// Puerto de repositorio de dominio para la persistencia y recuperación de `User`.
@@ -44,7 +51,10 @@ pub trait UserRepository: Send + Sync {
     ) -> Result<Option<User>, ClickCareError>;
 
     /// Busca un usuario por su identificador único (UUID v7).
-    async fn find_user_by_id(&self, user_id: &str) -> Result<User, ClickCareError>;
+    async fn find_user_by_id(&self, user_id: &Uuid) -> Result<Option<User>, ClickCareError>;
+
+    /// Marca la colegiatura como confirmada por una clínica: desde entonces no es editable.
+    async fn set_license_verified(&self, user_id: &Uuid) -> Result<(), ClickCareError>;
 
     /// Actualiza los datos de perfil de una cuenta existente.
     async fn update_profile(

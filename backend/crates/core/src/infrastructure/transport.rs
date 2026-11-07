@@ -66,6 +66,8 @@ pub struct ContactPointDto {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum IdentifierDto {
     DNI(String),
+    CE(String),
+    Passport(String),
 }
 
 /// Forma JSON de `HumanName`. Incluye `text`, igual que el tipo de dominio.
@@ -175,6 +177,8 @@ impl From<Identifier> for IdentifierDto {
     fn from(identifier: Identifier) -> Self {
         match identifier {
             Identifier::DNI(dni) => Self::DNI(dni),
+            Identifier::CE(ce) => Self::CE(ce),
+            Identifier::Passport(passport) => Self::Passport(passport),
         }
     }
 }
@@ -297,6 +301,8 @@ impl From<IdentifierDto> for Identifier {
     fn from(identifier: IdentifierDto) -> Self {
         match identifier {
             IdentifierDto::DNI(dni) => Self::DNI(dni),
+            IdentifierDto::CE(ce) => Self::CE(ce),
+            IdentifierDto::Passport(passport) => Self::Passport(passport),
         }
     }
 }

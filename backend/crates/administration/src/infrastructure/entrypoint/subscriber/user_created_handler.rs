@@ -247,6 +247,14 @@ mod test {
             Ok(None)
         }
 
+        async fn find_by_id(&self, _id: &Uuid) -> Result<Option<Organization>, ClickCareError> {
+            Ok(None)
+        }
+
+        async fn update_setup(&self, _organization: &Organization) -> Result<(), ClickCareError> {
+            Ok(())
+        }
+
         async fn save(&self, _organization: &Organization) -> Result<(), ClickCareError> {
             self.record_save();
             Ok(())
@@ -255,6 +263,22 @@ mod test {
 
     #[async_trait]
     impl PatientRepository for SpyRepository {
+        async fn search(
+            &self,
+            _organization_id: &Uuid,
+            _name: &str,
+        ) -> Result<Vec<Patient>, ClickCareError> {
+            Ok(vec![])
+        }
+
+        async fn find_by_id(
+            &self,
+            _organization_id: &Uuid,
+            _id: &Uuid,
+        ) -> Result<Option<Patient>, ClickCareError> {
+            Ok(None)
+        }
+
         async fn exists_by_user_id(
             &self,
             _organization_id: &Uuid,
@@ -297,6 +321,7 @@ mod test {
             organization_repository: organization,
             patient_repository: patient,
             practitioner_repository: practitioner,
+            membership_repository: Arc::new(crate::testing::InMemoryMembershipRepository::default()),
         }
     }
 

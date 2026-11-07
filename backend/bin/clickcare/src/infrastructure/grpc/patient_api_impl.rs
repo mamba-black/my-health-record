@@ -1,80 +1,94 @@
+use crate::infrastructure::grpc::access::{AccessContextBuilder, claims_of, denied_to_status};
 use crate::infrastructure::grpc::patient_api_server::*;
+use crate::infrastructure::grpc::subdomain_resolver::SubdomainResolver;
+use crate::infrastructure::grpc::user_api_impl::identifier_to_proto;
 use crate::infrastructure::grpc::*;
+use administration::application::membership_usecase::{MembershipUseCases, clinic_target};
+use administration::domain::patient::Patient as DomainPatient;
+use administration::domain::patient::patient_repository::PatientRepository;
+use app_core::domain::access::{
+    AccessDenied, MembershipRole, MembershipStatus, ProtectedAction, RequestContext, authorize,
+};
+use app_core::domain::fhir::ContactPointSystem;
+use std::sync::Arc;
 use tonic::*;
+use uuid::Uuid;
 
-#[derive(Default)]
-pub struct PatientApiImpl {}
+/// Adaptador del servicio gRPC `PatientApi`.
+///
+/// Solo responde a un médico con membresía activa en una clínica activa, y siempre
+/// limitado a los expedientes de esa clínica: un expediente de otra clínica se trata
+/// como inexistente (`openspec/specs/access-control/action-authorization`).
+pub struct PatientApiImpl {
+    patient_repository: Arc<dyn PatientRepository>,
+    membership_use_cases: Arc<MembershipUseCases>,
+    access: Arc<AccessContextBuilder>,
+    subdomain_resolver: Arc<SubdomainResolver>,
+}
 
-fn get_mock_patients() -> Vec<Patient> {
-    vec![
-        Patient {
-            id: "018f6f71-6c12-7801-b5cb-112233445566".to_string(),
-            identifier: vec![],
-            active: true,
-            name: vec![HumanName {
-                r#use: "official".to_string(),
-                family: vec!["Malpica".to_string(), "Gallegos".to_string()],
-                given: vec!["Hector".to_string(), "Miuler".to_string()],
-            }],
-            telecom: vec![
-                ContactPoint {
-                    system: contact_point::System::Email as i32,
-                    value: "miuler@gmail.com".to_string(),
-                    r#use: contact_point::Use::Home as i32,
-                },
-                ContactPoint {
-                    system: contact_point::System::Phone as i32,
-                    value: "+51999888777".to_string(),
-                    r#use: contact_point::Use::Mobile as i32,
-                },
-            ],
-            gender: patient::Gender::Male as i32,
-            birth_date: "1980-05-15".to_string(),
-            deceased_status: None,
-            managing_organization_reference: String::new(),
-            photo: vec![],
-        },
-        Patient {
-            id: "018f6f71-6c12-7802-b5cb-223344556677".to_string(),
-            identifier: vec![],
-            active: true,
-            name: vec![HumanName {
-                r#use: "official".to_string(),
-                family: vec!["Picard".to_string()],
-                given: vec!["Jan".to_string(), "Luc".to_string()],
-            }],
-            telecom: vec![ContactPoint {
-                system: contact_point::System::Email as i32,
-                value: "jan.picard@starfleet.org".to_string(),
-                r#use: contact_point::Use::Work as i32,
-            }],
-            gender: patient::Gender::Male as i32,
-            birth_date: "1940-07-13".to_string(),
-            deceased_status: None,
-            managing_organization_reference: String::new(),
-            photo: vec![],
-        },
-        Patient {
-            id: "018f6f71-6c12-7803-b5cb-334455667788".to_string(),
-            identifier: vec![],
-            active: true,
-            name: vec![HumanName {
-                r#use: "official".to_string(),
-                family: vec!["Crusher".to_string()],
-                given: vec!["Beverly".to_string()],
-            }],
-            telecom: vec![ContactPoint {
-                system: contact_point::System::Email as i32,
-                value: "beverly.crusher@starfleet.org".to_string(),
-                r#use: contact_point::Use::Work as i32,
-            }],
-            gender: patient::Gender::Female as i32,
-            birth_date: "1953-10-13".to_string(),
-            deceased_status: None,
-            managing_organization_reference: String::new(),
-            photo: vec![],
-        },
-    ]
+impl PatientApiImpl {
+    pub fn new(
+        patient_repository: Arc<dyn PatientRepository>,
+        membership_use_cases: Arc<MembershipUseCases>,
+        access: Arc<AccessContextBuilder>,
+        subdomain_resolver: Arc<SubdomainResolver>,
+    ) -> Self {
+        Self {
+            patient_repository,
+            membership_use_cases,
+            access,
+            subdomain_resolver,
+        }
+    }
+
+    /// Autoriza la acción y devuelve la clínica en la que se actúa.
+    ///
+    /// La clínica sale del subdominio de la petición. Sin subdominio, se usa la única
+    /// clínica donde el médico está activo; con varias, debe indicar el subdominio.
+    async fn authorize<T>(
+        &self,
+        request: &Request<T>,
+        action: ProtectedAction,
+    ) -> Result<(RequestContext, Uuid), Status> {
+        let claims = claims_of(request)?;
+        let (_user, ctx) = self.access.build(&claims).await?;
+        let (_network_id, resolved) = self.subdomain_resolver.resolve(request).await?;
+
+        let active_clinics: Vec<Uuid> = ctx
+            .memberships
+            .iter()
+            .filter(|m| {
+                m.role == MembershipRole::Practitioner && m.status == MembershipStatus::Active
+            })
+            .map(|m| m.organization_id)
+            .collect();
+        let organization_id = if ctx
+            .memberships
+            .iter()
+            .any(|m| m.organization_id == resolved)
+        {
+            resolved
+        } else {
+            match active_clinics.as_slice() {
+                [only] => *only,
+                [] => return Err(denied_to_status(AccessDenied::Forbidden, None)),
+                _ => {
+                    return Err(Status::invalid_argument(
+                        "Trabajas en varias clínicas: entra por el subdominio de la clínica",
+                    ));
+                }
+            }
+        };
+
+        let clinic = self
+            .membership_use_cases
+            .clinic(&organization_id)
+            .await
+            .map_err(|_| denied_to_status(AccessDenied::Forbidden, None))?;
+        authorize(action, &ctx, &clinic_target(&clinic))
+            .map_err(|denied| denied_to_status(denied, Some(organization_id)))?;
+        Ok((ctx, organization_id))
+    }
 }
 
 #[async_trait]
@@ -83,80 +97,96 @@ impl PatientApi for PatientApiImpl {
         &self,
         request: Request<SearchPatientRequest>,
     ) -> Result<Response<SearchPatientResponse>, Status> {
-        let search_patient_request = request.into_inner();
-        let query_name = search_patient_request
-            .name
-            .clone()
-            .unwrap_or_default()
-            .to_lowercase();
+        let (_ctx, organization_id) = self
+            .authorize(&request, ProtectedAction::SearchPatients)
+            .await?;
+        let name = request.into_inner().name.unwrap_or_default();
+        let patients = self
+            .patient_repository
+            .search(&organization_id, &name)
+            .await
+            .map_err(|error| Status::internal(error.to_string()))?;
 
-        let mock_patients = if query_name.is_empty() {
-            get_mock_patients()
-        } else {
-            get_mock_patients()
-                .into_iter()
-                .filter(|p| {
-                    p.name.iter().any(|n| {
-                        n.given
-                            .iter()
-                            .any(|g| g.to_lowercase().contains(&query_name))
-                            || n.family
-                                .iter()
-                                .any(|f| f.to_lowercase().contains(&query_name))
-                    })
-                })
-                .collect()
-        };
-
-        let search_patient_response = SearchPatientResponse {
-            first_name: search_patient_request.name,
-            last_name: Some("Malpica".to_string()),
-            second_last_name: Some("Gallegos".to_string()),
-            email: Some("miuler@gmail.com".to_string()),
-            patients: mock_patients,
-        };
-
-        Ok(Response::new(search_patient_response))
+        Ok(Response::new(SearchPatientResponse {
+            first_name: None,
+            last_name: None,
+            second_last_name: None,
+            email: None,
+            patients: patients.iter().map(patient_to_proto).collect(),
+        }))
     }
 
     async fn get_patient_by_id(
         &self,
         request: Request<PatientIdRequest>,
     ) -> Result<Response<Patient>, Status> {
-        let req = request.into_inner();
-        let patient_id = req.id.unwrap_or_default();
-
-        let patient = get_mock_patients()
-            .into_iter()
-            .find(|p| p.id == patient_id)
-            .unwrap_or_else(|| Patient {
-                id: patient_id.clone(),
-                identifier: vec![],
-                active: true,
-                name: vec![HumanName {
-                    r#use: "official".to_string(),
-                    family: vec!["Paciente".to_string()],
-                    given: vec![format!("Demo ({})", &patient_id[..patient_id.len().min(8)])],
-                }],
-                telecom: vec![ContactPoint {
-                    system: contact_point::System::Email as i32,
-                    value: "demo@clickcare.pe".to_string(),
-                    r#use: contact_point::Use::Home as i32,
-                }],
-                gender: patient::Gender::Unknown as i32,
-                birth_date: "1990-01-01".to_string(),
-                deceased_status: None,
-                managing_organization_reference: String::new(),
-                photo: vec![],
-            });
-
-        Ok(Response::new(patient))
+        let not_found = || Status::not_found("El paciente no existe");
+        // Un expediente que no se puede ver se trata como inexistente: así no se
+        // revela si existe (escenario «Expediente ajeno»).
+        let (_ctx, organization_id) = self
+            .authorize(&request, ProtectedAction::ViewPatient)
+            .await
+            .map_err(|status| match status.code() {
+                Code::PermissionDenied => not_found(),
+                _ => status,
+            })?;
+        let patient_id = request
+            .into_inner()
+            .id
+            .and_then(|id| Uuid::parse_str(id.trim()).ok())
+            .ok_or_else(not_found)?;
+        self.patient_repository
+            .find_by_id(&organization_id, &patient_id)
+            .await
+            .map_err(|error| Status::internal(error.to_string()))?
+            .map(|patient| Response::new(patient_to_proto(&patient)))
+            .ok_or_else(not_found)
     }
 
+    /// Todavía no persiste: solo exige el mismo permiso que ver un paciente.
     async fn save(&self, request: Request<Patient>) -> Result<Response<Patient>, Status> {
+        self.authorize(&request, ProtectedAction::ViewPatient)
+            .await?;
         Ok(Response::new(request.into_inner()))
     }
 }
 
-#[cfg(test)]
-mod test {}
+fn patient_to_proto(patient: &DomainPatient) -> Patient {
+    let person = &patient.person;
+    let mut family = Vec::new();
+    family.extend(person.name().family().clone());
+    family.extend(person.name().second_family().clone());
+    Patient {
+        id: patient.id.to_string(),
+        identifier: person
+            .identifier()
+            .as_ref()
+            .map(identifier_to_proto)
+            .into_iter()
+            .collect(),
+        active: patient.active,
+        name: vec![HumanName {
+            r#use: "official".to_string(),
+            family,
+            given: person.name().given().clone(),
+        }],
+        telecom: person
+            .telecom()
+            .iter()
+            .map(|contact| ContactPoint {
+                system: match contact.system {
+                    ContactPointSystem::Email => contact_point::System::Email,
+                    ContactPointSystem::Phone => contact_point::System::Phone,
+                    _ => contact_point::System::Unspecified,
+                } as i32,
+                value: contact.value.clone(),
+                r#use: contact_point::Use::Unspecified as i32,
+            })
+            .collect(),
+        gender: patient::Gender::Unknown as i32,
+        birth_date: person.birth_date().clone().unwrap_or_default(),
+        deceased_status: None,
+        managing_organization_reference: format!("Organization/{}", patient.organization_id),
+        photo: vec![],
+    }
+}

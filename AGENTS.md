@@ -17,7 +17,8 @@ my-health-record/
 │   ├── Cargo.toml          # Workspace de Rust (crates por Bounded Contexts)
 │   ├── bin/clickcare/      # Servidor ejecutable (gRPC + gRPC-Web con tonic/axum)
 │   ├── proto/api.proto     # Contrato Protobuf público (Única fuente de verdad de la API)
-│   ├── ddl/                # Esquema de base de datos PostgreSQL (UUIDv7)
+│   ├── migrations/         # Migraciones versionadas del esquema PostgreSQL (refinery)
+│   ├── ddl/                # Modelo DBML del esquema (referencia)
 │   ├── docs/use_cases.md   # Casos de uso del ciclo de vida de identidad
 │   └── crates/             # Crates del Cargo Workspace por Contexto Acotado
 │

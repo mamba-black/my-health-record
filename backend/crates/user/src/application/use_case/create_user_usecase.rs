@@ -1,12 +1,10 @@
 use crate::application::dto::create_user::CreateUserError::{UnknownError, UserAlreadyExists};
 use crate::application::dto::create_user::*;
-use crate::domain::user::Identifier::DNI;
 use crate::domain::user::user_repository::UserRepository;
 use crate::domain::user::{SignUpIntent, User};
 use app_core::application::integration::event_publisher::IntegrationEventPublisher;
 use app_core::domain::error::ClickCareError;
 use app_core::domain::event::{FounderRegistered, UserCreatedEvent};
-use async_trait::async_trait;
 use std::sync::Arc;
 use tracing::error;
 use uuid::Uuid;
@@ -26,17 +24,17 @@ impl CreateUserUseCase {
         command: CreateUserCommand,
     ) -> Result<CreateUserResponse, CreateUserError> {
         let user_exists_by_document = match &command.identifier {
-            Some(DNI(value)) => self
+            Some(identifier) => self
                 .user_repository
-                .exist_user_by_document(&command.network_id, DNI(value.clone()))
+                .exist_user_by_document(&command.network_id, identifier.clone())
                 .await
                 .map_err(|_e| {
                     UnknownError(ClickCareError::generic(format!(
                         "User with document ID {}",
-                        value
+                        identifier.value()
                     )))
                 })?,
-            _ => false,
+            None => false,
         };
 
         if user_exists_by_document {
@@ -132,8 +130,10 @@ impl CreateUserUseCase {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::user::Identifier::DNI;
     use crate::testing::MockUserRepositoryImpl;
     use app_core::domain::event::DomainEvent;
+    use async_trait::async_trait;
     use std::sync::Mutex as StdMutex;
     use tokio::sync::Mutex;
 

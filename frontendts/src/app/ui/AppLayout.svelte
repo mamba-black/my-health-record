@@ -3,8 +3,18 @@ import "../styles/app.css";
 import { onMount, type Snippet } from "svelte";
 import { goto } from "$app/navigation";
 import { page } from "$app/state";
-import { authStore } from "$entities/session";
-import { CALLBACK, LOGIN, Page, ROOT, SIGNUP } from "$shared/config";
+import { authStore, canSearchPatients, profileContext } from "$entities/session";
+import { RequirementsDialog } from "$features/profile";
+import {
+  ACCESS_DENIED,
+  CALLBACK,
+  HISTORY,
+  LOGIN,
+  Page,
+  ROOT,
+  SEARCH,
+  SIGNUP,
+} from "$shared/config";
 import { log } from "$shared/lib";
 import { Navbar } from "$widgets/navbar";
 
@@ -14,6 +24,22 @@ const PUBLIC_ROUTES = [ROOT, LOGIN, SIGNUP, CALLBACK];
 const isPublicRoute = $derived(
   PUBLIC_ROUTES.some((route) => page.url.pathname === route),
 );
+
+// Rutas solo para médicos activos en una clínica activa. Es solo presentación: el
+// servidor aplica la autorización de todos modos.
+const PRACTITIONER_ROUTES = [SEARCH, HISTORY];
+const needsPractitioner = $derived(
+  PRACTITIONER_ROUTES.some((route) => page.url.pathname.startsWith(route)),
+);
+const roleResolved = $derived(!needsPractitioner || $profileContext !== null);
+const allowedByRole = $derived(!needsPractitioner || $canSearchPatients);
+
+$effect(() => {
+  if ($authStore.isAuthenticated && roleResolved && !allowedByRole) {
+    log.info(`Rol sin acceso a ${page.url.pathname}. Redirigiendo a ${ACCESS_DENIED}.`);
+    goto(ACCESS_DENIED);
+  }
+});
 
 $effect(() => {
   const currentPath = page.url.pathname;
@@ -40,11 +66,18 @@ onMount(() => {
 </script>
 
 <Navbar/>
+<RequirementsDialog />
 
 <main class="pt-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
   <div class="bg-white rounded-2xl shadow-lg p-6 md:p-8">
-    {#if $authStore.isAuthenticated || isPublicRoute}
+    {#if isPublicRoute}
       {@render children()}
+    {:else if $authStore.isAuthenticated}
+      {#if !roleResolved}
+        <p class="text-sm text-gray-500">Cargando...</p>
+      {:else if allowedByRole}
+        {@render children()}
+      {/if}
     {/if}
   </div>
 </main>

@@ -1,8 +1,9 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import { goto } from "$app/navigation";
-import { setAuthToken, setPendingRegistration } from "$entities/session";
-import { ProfileField, type SignInResponse, UserApiError } from "$shared/api";
+import { setAuthSession, setPendingRegistration } from "$entities/session";
+import { fieldList, ROLE_HABITUAL_PURPOSE } from "$entities/profile";
+import { type SessionTokens, type SignInResponse, UserApiError } from "$shared/api";
 import { signInWithGoogle } from "../api/auth.api";
 import { COMPLETE_PROFILE, GOOGLE_CLIENT_ID, SIGNUP } from "$shared/config";
 import { decodeGoogleJwt, log } from "$shared/lib";
@@ -41,17 +42,11 @@ type WindowWithGoogle = Window & {
 };
 
 interface IncompleteAccount {
-  idToken: string;
+  session: SessionTokens;
   displayName: string;
   account: SignInResponse;
   claims: ReturnType<typeof decodeGoogleJwt>;
 }
-
-const PROFILE_FIELD_LABELS: Partial<Record<ProfileField, string>> = {
-  [ProfileField.GIVEN_NAME]: "nombres",
-  [ProfileField.PHONE]: "teléfono",
-  [ProfileField.BIRTH_DATE]: "fecha de nacimiento",
-};
 
 const getGoogleId = (): GoogleAccountsId | undefined =>
   (window as WindowWithGoogle).google?.accounts?.id;
@@ -64,11 +59,14 @@ let isSubmitting = $state(false);
 let errorMessage = $state<string | null>(null);
 let incompleteAccount = $state<IncompleteAccount | null>(null);
 
-const missingLabels = $derived(
-  (incompleteAccount?.account.missingFields ?? []).map(
-    (field) => PROFILE_FIELD_LABELS[field] ?? "otros datos",
-  ),
-);
+// Aviso según el rol: qué falta para su acción habitual (confirmar citas, activar su
+// perfil médico o su clínica). Siempre se puede ignorar.
+const missingMessage = $derived.by(() => {
+  if (!incompleteAccount) return "";
+  const missing = incompleteAccount.account.missingFields;
+  const purpose = ROLE_HABITUAL_PURPOSE[incompleteAccount.account.preferredRole];
+  return `Te falta registrar: ${fieldList(missing)}. ${missing.length > 1 ? "Los" : "Lo"} necesitarás para ${purpose}.`;
+});
 
 const handleGoogleCredentialResponse = async (
   response: GoogleCredentialResponse,
@@ -92,12 +90,16 @@ const handleGoogleCredentialResponse = async (
     const displayName =
       result.givenName || claims?.given_name || claims?.name || result.email;
 
+    if (!result.session) {
+      throw new Error("El servidor no abrió la sesión.");
+    }
+
     if (result.missingFields.length > 0) {
-      incompleteAccount = { idToken, displayName, account: result, claims };
+      incompleteAccount = { session: result.session, displayName, account: result, claims };
       return;
     }
 
-    setAuthToken(idToken, displayName);
+    setAuthSession(result.session, displayName);
   } catch (error) {
     if (error instanceof UserApiError && error.code === "NOT_FOUND") {
       log.info(
@@ -166,27 +168,19 @@ onMount(() => {
 
 const ignoreMissingData = () => {
   if (!incompleteAccount) return;
-  setAuthToken(incompleteAccount.idToken, incompleteAccount.displayName);
+  setAuthSession(incompleteAccount.session, incompleteAccount.displayName);
 };
 
-const registerMissingData = () => {
+const completeMissingData = () => {
   if (!incompleteAccount) return;
-  const { idToken, displayName, account, claims } = incompleteAccount;
-
-  setAuthToken(idToken, displayName, COMPLETE_PROFILE);
+  const { session, displayName, account, claims } = incompleteAccount;
+  setAuthSession(session, displayName, COMPLETE_PROFILE);
+  // Lo que Google ya sabe sirve para precargar el formulario.
   setPendingRegistration({
-    idToken,
+    idToken: "",
     email: account.email,
     givenName: account.givenName || claims?.given_name || claims?.name || "",
     familyName: account.familyName || claims?.family_name,
-    secondFamilyName: account.secondFamilyName,
-    dni:
-      account.identifier?.identifierType.oneofKind === "dni"
-        ? account.identifier.identifierType.dni
-        : undefined,
-    phone: account.phone,
-    birthDate: account.birthDate,
-    address: account.address,
     picture: claims?.picture,
     providerId: "google.com",
   });
@@ -205,7 +199,8 @@ const handleGooglePromptFallback = () => {
 const loginHandler = (event: Event) => {
   event.preventDefault();
   errorMessage = null;
-  setAuthToken("1234567890", email.trim() || "Miuler");
+  // El servidor aún no autentica con contraseña (`tus`): no se abre ninguna sesión.
+  errorMessage = "El inicio de sesión con contraseña aún no está disponible. Usa Google.";
 };
 </script>
 
@@ -296,10 +291,10 @@ const loginHandler = (event: Event) => {
       role="alertdialog"
     >
       <h2 class="text-lg font-semibold text-gray-900" id="missing-data-title">
-        Faltan datos obligatorios en tu cuenta
+        Te faltan algunos datos
       </h2>
       <p class="mt-3 p-3 rounded-md bg-amber-50 border border-amber-200 text-sm text-amber-800">
-        Te falta registrar: {missingLabels.join(", ")}.
+        {missingMessage}
       </p>
       <div class="pt-5 flex items-center justify-end gap-3">
         <button
@@ -311,10 +306,10 @@ const loginHandler = (event: Event) => {
         </button>
         <button
           class="rounded-md bg-cyan-600 px-5 py-2 text-sm font-medium text-white hover:bg-cyan-700"
-          onclick={registerMissingData}
+          onclick={completeMissingData}
           type="button"
         >
-          Registrar
+          Completar ahora
         </button>
       </div>
     </div>

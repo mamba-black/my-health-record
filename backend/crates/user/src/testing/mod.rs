@@ -73,17 +73,17 @@ impl UserRepository for MockUserRepositoryImpl {
         Ok(matched_user)
     }
 
-    async fn find_user_by_id(&self, user_id: &str) -> Result<User, ClickCareError> {
+    async fn find_user_by_id(&self, user_id: &uuid::Uuid) -> Result<Option<User>, ClickCareError> {
         let users = self.saved_users.lock().await;
-        users
-            .iter()
-            .find(|user| user.id.to_string() == user_id)
-            .cloned()
-            .ok_or_else(|| {
-                ClickCareError::generic(format!(
-                    "User with ID {user_id} not found in mock repository"
-                ))
-            })
+        Ok(users.iter().find(|user| user.id == *user_id).cloned())
+    }
+
+    async fn set_license_verified(&self, user_id: &uuid::Uuid) -> Result<(), ClickCareError> {
+        let mut users = self.saved_users.lock().await;
+        if let Some(user) = users.iter_mut().find(|user| user.id == *user_id) {
+            user.license_verified = true;
+        }
+        Ok(())
     }
 
     async fn update_profile(
@@ -97,9 +97,13 @@ impl UserRepository for MockUserRepositoryImpl {
             .find(|user| user.id == *user_id)
             .ok_or_else(|| ClickCareError::generic(format!("User {user_id} not found")))?;
 
+        // Igual que el repositorio real: un dato en `None` conserva el valor actual.
         let current_name = user.person.name.clone();
         user.person.name = HumanName::new(
-            vec![profile.given_name.clone()],
+            match &profile.given_name {
+                Some(given_name) => vec![given_name.clone()],
+                None => current_name.given().clone(),
+            },
             profile
                 .family_name
                 .clone()
@@ -109,18 +113,39 @@ impl UserRepository for MockUserRepositoryImpl {
                 .clone()
                 .or_else(|| current_name.second_family().clone()),
         );
-        user.person
-            .telecom
-            .retain(|telecom_entry| telecom_entry.system != ContactPointSystem::Phone);
-        user.person
-            .telecom
-            .push(ContactPoint::phone(profile.phone.clone(), None));
-        user.person.birth_date = Some(profile.birth_date.clone());
+        if let Some(phone) = &profile.phone {
+            user.person
+                .telecom
+                .retain(|telecom_entry| telecom_entry.system != ContactPointSystem::Phone);
+            user.person
+                .telecom
+                .push(ContactPoint::phone(phone.clone(), None));
+        }
+        let keep = |new: &Option<String>, current: &mut Option<String>| {
+            if new.is_some() {
+                *current = new.clone();
+            }
+        };
+        keep(&profile.birth_date, &mut user.person.birth_date);
+        keep(&profile.address, &mut user.address);
+        keep(
+            &profile.professional_body,
+            &mut user.professional.professional_body,
+        );
+        keep(
+            &profile.license_number,
+            &mut user.professional.license_number,
+        );
+        keep(&profile.specialty, &mut user.professional.specialty);
+        keep(&profile.rne, &mut user.professional.rne);
         if profile.identifier.is_some() {
             user.person.identifier = profile.identifier.clone();
         }
-        if profile.address.is_some() {
-            user.address = profile.address.clone();
+        if profile.sex.is_some() {
+            user.sex = profile.sex;
+        }
+        if let Some(role) = profile.preferred_role {
+            user.preferred_role = role;
         }
         Ok(())
     }

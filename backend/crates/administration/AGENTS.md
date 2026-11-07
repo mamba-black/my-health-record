@@ -70,7 +70,7 @@ usando `apalis-postgres` sobre la cola `UserCreatedEvent::QUEUE` (`"user.created
 
 Los repositorios viven en `src/infrastructure/repository/` e implementan los puertos de
 `src/domain/repository/`. Las tablas están en el esquema **`administration`** de Postgres
-(`ddl/table.sql`).
+(`backend/migrations/`).
 
 | Puerto de dominio | Implementación | Tabla |
 | :--- | :--- | :--- |
@@ -137,3 +137,17 @@ classDiagram
 
     Location "1" -- "0..*" HealthcareService : ofrece
 ```
+
+---
+
+## Membresías y estado de la clínica
+
+Fuente oficial: [`identity/role-membership`](../../../openspec/specs/identity/role-membership/spec.md)
+y [`access-control/action-authorization`](../../../openspec/specs/access-control/action-authorization/spec.md).
+
+* **Membresía** (`domain/membership`, tabla `administration.membership`): `(organization_id, user_id, role, status)` con `role` ∈ `OWNER | ADMIN | PRACTITIONER` y `status` ∈ `INVITED | PENDING | ACTIVE | SUSPENDED`. Es **lo único que concede permisos** dentro de una clínica; un usuario puede tener varias.
+* **Estado de la clínica** (`Organization.status`): `PENDING_SETUP | ACTIVE | SUSPENDED` (sustituye a `active`, que se mantiene sincronizado hasta eliminarlo). Una clínica nueva nace `PENDING_SETUP` y su creador recibe la membresía `OWNER` activa.
+* **`MembershipUseCases`** (`application/membership_usecase.rs`): invitar, unirse, activar perfil médico, confirmar colegiatura, suspender (nunca al último dueño activo), guardar datos legales y activar la clínica. Cada operación arma su `AccessTarget` y llama a `app_core::domain::access::authorize` antes de cambiar nada; quien llama aporta el `RequestContext`.
+* **Médico**: queda `ACTIVE` solo con sus datos completos (incluida la colegiatura) **y** la colegiatura confirmada por un dueño o administrador; mientras tanto, `PENDING`.
+* **Pacientes por clínica**: `PatientRepository::search` y `find_by_id` siempre filtran por `organization_id`; un expediente de otra clínica no existe para quien consulta.
+
