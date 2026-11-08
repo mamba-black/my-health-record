@@ -102,6 +102,20 @@ pub enum ProtectedAction {
     RequestMembership,
     /// El dueño o un administrador aprueba una solicitud de ingreso.
     ApproveMember,
+    /// El médico define su horario y sus excepciones en la clínica.
+    ManageSchedule,
+    /// Ver la agenda de la clínica (el médico, solo la suya).
+    ViewClinicAgenda,
+    /// Reservar en nombre de un paciente (recepción, o el médico en su agenda).
+    BookForPatient,
+    /// Cancelar o reprogramar como clínica.
+    ManageAppointment,
+    /// Registrar llegada, verificación del documento e inasistencia.
+    CheckIn,
+    /// Sugerir y confirmar el vínculo de un paciente sin cuenta con su cuenta.
+    LinkPatientAccount,
+    /// Deshacer un vínculo equivocado.
+    UnlinkPatientAccount,
 }
 
 /// Rol de un usuario dentro de una clínica.
@@ -324,7 +338,7 @@ pub const CATALOG: &[FieldSpec] = {
             field: ProfileField::LicenseConfirmed,
             subject: FieldSubject::Membership,
             roles: &[Role::Practitioner],
-            required_for: &[A::RecordEncounter, A::IssuePrescription],
+            required_for: &[A::RecordEncounter, A::IssuePrescription, A::ManageSchedule],
             user_editable: false,
         },
         FieldSpec {
@@ -535,6 +549,31 @@ pub fn authorize(
                 MembershipRole::Receptionist,
             ],
         )?),
+        A::ManageSchedule => Some(active_membership(
+            ctx,
+            target,
+            &[MembershipRole::Practitioner],
+        )?),
+        A::ViewClinicAgenda | A::BookForPatient | A::ManageAppointment => Some(active_membership(
+            ctx,
+            target,
+            &[
+                MembershipRole::Practitioner,
+                MembershipRole::Owner,
+                MembershipRole::Admin,
+                MembershipRole::Receptionist,
+            ],
+        )?),
+        A::CheckIn | A::LinkPatientAccount => Some(active_membership(
+            ctx,
+            target,
+            &[
+                MembershipRole::Owner,
+                MembershipRole::Admin,
+                MembershipRole::Receptionist,
+            ],
+        )?),
+        A::UnlinkPatientAccount => Some(active_membership(ctx, target, &[MembershipRole::Owner])?),
         A::OpenFirstEncounter | A::RecordEncounter | A::IssuePrescription => Some(
             active_membership(ctx, target, &[MembershipRole::Practitioner])?,
         ),
@@ -768,6 +807,46 @@ mod tests {
         vec![membership(Receptionist, Active, false)], Some(ClinicActive), Err(AccessDenied::Forbidden))]
     #[case::dueno_aprueba(A::ApproveMember, fields(&[]),
         vec![membership(Owner, Active, false)], Some(ClinicActive), Ok(()))]
+    // Agenda
+    #[case::horario_ok(A::ManageSchedule, fields(&[]),
+        vec![membership(Practitioner, Active, true)], Some(ClinicActive), Ok(()))]
+    #[case::horario_sin_colegiatura(A::ManageSchedule, fields(&[]),
+        vec![membership(Practitioner, Active, false)], Some(ClinicActive),
+        Err(AccessDenied::MissingData { action: A::ManageSchedule, fields: vec![F::LicenseConfirmed] }))]
+    #[case::horario_por_el_dueno(A::ManageSchedule, fields(&[]),
+        vec![membership(Owner, Active, false)], Some(ClinicActive), Err(AccessDenied::Forbidden))]
+    #[case::horario_clinica_pendiente(A::ManageSchedule, fields(&[]),
+        vec![membership(Practitioner, Active, true)], Some(PendingSetup), Err(AccessDenied::ClinicNotActive))]
+    #[case::agenda_medico(A::ViewClinicAgenda, fields(&[]),
+        vec![membership(Practitioner, Active, false)], Some(ClinicActive), Ok(()))]
+    #[case::agenda_recepcion(A::ViewClinicAgenda, fields(&[]),
+        vec![membership(Receptionist, Active, false)], Some(ClinicActive), Ok(()))]
+    #[case::agenda_paciente(A::ViewClinicAgenda, all_person_fields(), vec![], Some(ClinicActive),
+        Err(AccessDenied::Forbidden))]
+    #[case::reserva_admin(A::BookForPatient, fields(&[]),
+        vec![membership(Admin, Active, false)], Some(ClinicActive), Ok(()))]
+    #[case::reserva_medico(A::BookForPatient, fields(&[]),
+        vec![membership(Practitioner, Active, false)], Some(ClinicActive), Ok(()))]
+    #[case::reserva_invitado(A::BookForPatient, fields(&[]),
+        vec![membership(Practitioner, Invited, false)], Some(ClinicActive), Err(AccessDenied::Forbidden))]
+    #[case::reserva_clinica_pendiente(A::BookForPatient, fields(&[]),
+        vec![membership(Admin, Active, false)], Some(PendingSetup), Err(AccessDenied::ClinicNotActive))]
+    #[case::gestiona_cita_recepcion(A::ManageAppointment, fields(&[]),
+        vec![membership(Receptionist, Active, false)], Some(ClinicActive), Ok(()))]
+    #[case::llegada_admin(A::CheckIn, fields(&[]),
+        vec![membership(Admin, Active, false)], Some(ClinicActive), Ok(()))]
+    #[case::llegada_recepcion(A::CheckIn, fields(&[]),
+        vec![membership(Receptionist, Active, false)], Some(ClinicActive), Ok(()))]
+    #[case::llegada_medico(A::CheckIn, all_person_fields(),
+        vec![membership(Practitioner, Active, true)], Some(ClinicActive), Err(AccessDenied::Forbidden))]
+    #[case::vincular_recepcion(A::LinkPatientAccount, fields(&[]),
+        vec![membership(Receptionist, Active, false)], Some(ClinicActive), Ok(()))]
+    #[case::vincular_paciente(A::LinkPatientAccount, all_person_fields(), vec![], Some(ClinicActive),
+        Err(AccessDenied::Forbidden))]
+    #[case::desvincular_dueno(A::UnlinkPatientAccount, fields(&[]),
+        vec![membership(Owner, Active, false)], Some(ClinicActive), Ok(()))]
+    #[case::desvincular_admin(A::UnlinkPatientAccount, fields(&[]),
+        vec![membership(Admin, Active, false)], Some(ClinicActive), Err(AccessDenied::Forbidden))]
     #[case::receta_sin_confirmar(A::IssuePrescription, all_person_fields(),
         vec![membership(Practitioner, Active, false)], Some(ClinicActive),
         Err(AccessDenied::MissingData { action: A::IssuePrescription, fields: vec![F::LicenseConfirmed] }))]
@@ -857,7 +936,7 @@ mod tests {
     #[case(F::Sex, &[A::OpenFirstEncounter][..])]
     #[case(F::Address, &[][..])]
     #[case(F::ProfessionalLicense, &[A::ActivatePractitioner][..])]
-    #[case(F::LicenseConfirmed, &[A::RecordEncounter, A::IssuePrescription][..])]
+    #[case(F::LicenseConfirmed, &[A::RecordEncounter, A::IssuePrescription, A::ManageSchedule][..])]
     #[case(F::Specialty, &[][..])]
     #[case(F::ClinicTaxId, &[A::ActivateClinic][..])]
     #[case(F::ClinicLegalName, &[A::ActivateClinic][..])]

@@ -1,4 +1,5 @@
 mod scenarios;
+mod scheduling;
 mod steps;
 
 use clickcare::infrastructure::grpc::clinic_api_server::ClinicApiServer;

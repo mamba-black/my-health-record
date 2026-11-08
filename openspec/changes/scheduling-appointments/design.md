@@ -90,7 +90,7 @@ Al reservar, la aplicación vuelve a comprobar que el cupo existe en el horario 
 - **En `administration`**:
   - `organization.timezone text NOT NULL DEFAULT 'America/Lima'`.
   - `patient.user_id` ya admite nulos (`V6`), para los pacientes registrados por recepción (`RegisterPatient`, `my-health-record-cvk.17`).
-  - Un índice único parcial `(organization_id, user_id) WHERE user_id IS NOT NULL` impide que un paciente con cuenta quede registrado dos veces en la misma clínica.
+  - Que un paciente con cuenta no quede registrado dos veces en la misma clínica ya lo garantiza `uq_patient_org_user UNIQUE (organization_id, user_id)` de `V1`: en Postgres los `NULL` no chocan, así que no hace falta un índice parcial nuevo.
   - **`patient_link`**: `id`, `network_id`, `organization_id`, `patient_id` (el registro sin cuenta), `user_id`, `linked_by`, `linked_at`, `unlinked_by`, `unlinked_at` y `unlink_reason`. Hay un vínculo activo como máximo por registro.
 
 ### 4. Puertos de `crates/scheduling`
@@ -116,8 +116,8 @@ Al reservar, la aplicación vuelve a comprobar que el cupo existe en el horario 
 | `ViewClinicAgenda` | Médico `ACTIVE`, dueño, administrador o recepcionista `ACTIVE` | — | `ACTIVE` |
 | `BookForPatient` | Médico `ACTIVE`, dueño, administrador o recepcionista `ACTIVE` | Del paciente: los de `ConfirmAppointment` | `ACTIVE` |
 | `ManageAppointment` (cancelar o reprogramar como clínica) | Médico `ACTIVE`, dueño, administrador o recepcionista `ACTIVE` | — | `ACTIVE` |
-| `CheckIn` (llegada, verificación, inasistencia) | Dueño o administrador `ACTIVE` | — | `ACTIVE` |
-| `LinkPatientAccount` (sugerir y vincular) | Dueño o administrador `ACTIVE` | — | `ACTIVE` |
+| `CheckIn` (llegada, verificación, inasistencia) | Dueño, administrador o recepcionista `ACTIVE` | — | `ACTIVE` |
+| `LinkPatientAccount` (sugerir y vincular) | Dueño, administrador o recepcionista `ACTIVE` | — | `ACTIVE` |
 | `UnlinkPatientAccount` | Dueño `ACTIVE` | — | `ACTIVE` |
 
 - **Propiedad**: `authorize` no conoce las citas. Las comprobaciones de propiedad las hace el caso de uso después de autorizar:
@@ -231,7 +231,7 @@ La clínica va como campo `subdomain` en los mensajes públicos, no solo en la c
 ## Migration Plan
 
 1. `V8__agenda.sql`:
-   - en `administration`: la zona horaria de la clínica, `patient.user_id` nulo y el índice único parcial;
+   - en `administration`: la zona horaria de la clínica y `patient_link` (`patient.user_id` ya es nulo desde `V6`, y la unicidad por cuenta ya existe);
    - el esquema `scheduling` con `btree_gist`.
    Es un cambio aditivo, y en Neon se aplica solo al arrancar.
 2. Desplegar el backend con el worker de recordatorios. Sin `SMTP_HOST`, los avisos solo se registran en el log, así que no se envía correo por accidente.

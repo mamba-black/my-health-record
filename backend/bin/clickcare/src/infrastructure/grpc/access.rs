@@ -233,5 +233,12 @@ pub fn action_to_proto(action: ProtectedAction) -> grpc::ProtectedAction {
         ProtectedAction::RegisterPatient => P::ActionRegisterPatient,
         ProtectedAction::RequestMembership => P::ActionRequestMembership,
         ProtectedAction::ApproveMember => P::ActionApproveMember,
+        ProtectedAction::ManageSchedule => P::ActionManageSchedule,
+        ProtectedAction::ViewClinicAgenda => P::ActionViewClinicAgenda,
+        ProtectedAction::BookForPatient => P::ActionBookForPatient,
+        ProtectedAction::ManageAppointment => P::ActionManageAppointment,
+        ProtectedAction::CheckIn => P::ActionCheckIn,
+        ProtectedAction::LinkPatientAccount => P::ActionLinkPatientAccount,
+        ProtectedAction::UnlinkPatientAccount => P::ActionUnlinkPatientAccount,
     }
 }

@@ -21,6 +21,9 @@ const ALLOWED_EXTERNAL: &[&str] = &[
     "async_trait",
     "pulldown_cmark",
     "sha2",
+    // Estándar de fechas (ISO 8601 y zonas IANA). Solo en `scheduling/src/domain/calendar.rs`;
+    // la zona horaria la carga `infrastructure`, así que el dominio no hace I/O.
+    "jiff",
 ];
 
 /// Crate compartido del workspace que el dominio puede usar (su nombre de paquete es `core`).

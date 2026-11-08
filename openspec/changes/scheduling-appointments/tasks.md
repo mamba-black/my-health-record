@@ -2,13 +2,13 @@
 
 ## 1. Esquema y crate
 
-- [ ] 1.1 Antes de crear el índice único, revisar que no haya pacientes duplicados por `(organization_id, user_id)` en Neon ni en el contenedor de pruebas, y corregirlos. Verificar con la consulta de duplicados, que debe devolver 0 filas.
-- [ ] 1.2 Escribir `backend/migrations/V8__agenda.sql`:
-  - en `administration`: `organization.timezone` con `'America/Lima'` por defecto, `patient.user_id` nulo, el índice único parcial y la tabla `patient_link`;
+- [x] 1.1 Antes de crear el índice único, revisar que no haya pacientes duplicados por `(organization_id, user_id)` en Neon ni en el contenedor de pruebas, y corregirlos. Verificar con la consulta de duplicados, que debe devolver 0 filas.
+- [x] 1.2 Escribir `backend/migrations/V8__agenda.sql`:
+  - en `administration`: `organization.timezone` con `'America/Lima'` por defecto, la tabla `patient_link` (`patient.user_id` ya es nulo desde `V6`; la unicidad por cuenta ya la da `uq_patient_org_user`, comprobado en 1.1: 0 duplicados en Neon);
   - el esquema `scheduling` con `btree_gist` y `network_id` en cada tabla: `schedule`, `schedule_block`, `schedule_exception`, `appointment` con su `EXCLUDE (network_id, practitioner_user_id, period)` y `reminder`.
 
-  Verificar: `cargo test -p clickcare --test user_api_test` migra el contenedor `clickcare-test`, y una prueba nueva lee `refinery_schema_history` en la versión 6.
-- [ ] 1.3 Crear `backend/crates/scheduling`:
+  Verificar: `cargo test -p clickcare --test user_api_test` migra el contenedor `clickcare-test`, y una prueba nueva lee `refinery_schema_history` en la versión 8.
+- [x] 1.3 Crear `backend/crates/scheduling`:
   - `Cargo.toml` como miembro del workspace, con `domain`, `application` e `infrastructure`;
   - `lib.rs` con la verificación de arquitectura que usan los demás crates.
 
@@ -16,14 +16,14 @@
 
 ## 2. Regla de acceso
 
-- [ ] 2.1 Agregar a `app_core::domain::access` las acciones `ManageSchedule`, `ViewClinicAgenda`, `BookForPatient`, `ManageAppointment`, `CheckIn`, `LinkPatientAccount` y `UnlinkPatientAccount`, con sus membresías, datos y estado de clínica según el diseño (decisión 5). Agregar una fila por cada caso a la matriz `rstest`. Verificar: `cargo test -p app_core` pasa con los casos nuevos.
-- [ ] 2.2 Sumar las acciones nuevas a `ProtectedAction` en `proto/api.proto` y a `action_to_proto`, y las etiquetas en `entities/profile` del frontend. Verificar: `cargo build -p clickcare` y `bun run check` sin errores.
+- [x] 2.1 Agregar a `app_core::domain::access` las acciones `ManageSchedule`, `ViewClinicAgenda`, `BookForPatient`, `ManageAppointment`, `CheckIn`, `LinkPatientAccount` y `UnlinkPatientAccount`, con sus membresías, datos y estado de clínica según el diseño (decisión 5). Agregar una fila por cada caso a la matriz `rstest`. Verificar: `cargo test -p app_core` pasa con los casos nuevos.
+- [x] 2.2 Sumar las acciones nuevas a `ProtectedAction` en `proto/api.proto` y a `action_to_proto`, y las etiquetas en `entities/profile` del frontend. Verificar: `cargo build -p clickcare` y `bun run check` sin errores.
 
 ## 3. Dominio de agenda
 
-- [ ] 3.1 Modelar `Schedule` (franjas semanales, duración, validación de franjas que se cruzan) y `ScheduleException`. Verificar con las pruebas unitarias «Médico define su horario» (8 cupos de 30 min de 09:00 a 13:00) y «Franjas que se cruzan».
-- [ ] 3.2 Implementar el cálculo de cupos libres: horario − excepciones − citas activas − pasado − ventana de 60 días, en la zona de la clínica, con `jiff` y un puerto `Clock`. Verificar con pruebas unitarias para «Cupo de hoy ya pasado», «Fuera de la ventana de reserva», «Vacaciones sin citas», «Se acorta el horario» y un día con cambio de horario de verano en una zona que lo tenga.
-- [ ] 3.3 Modelar `Appointment`:
+- [x] 3.1 Modelar `Schedule` (franjas semanales, duración, validación de franjas que se cruzan) y `ScheduleException`. Verificar con las pruebas unitarias «Médico define su horario» (8 cupos de 30 min de 09:00 a 13:00) y «Franjas que se cruzan».
+- [x] 3.2 Implementar el cálculo de cupos libres: horario − excepciones − citas activas − pasado − ventana de 60 días, en la zona de la clínica, con `jiff` y un puerto `Clock`. Verificar con pruebas unitarias para «Cupo de hoy ya pasado», «Fuera de la ventana de reserva», «Vacaciones sin citas», «Se acorta el horario» y un día con cambio de horario de verano en una zona que lo tenga.
+- [x] 3.3 Modelar `Appointment`:
   - estados `BOOKED`, `ARRIVED`, `CANCELLED` y `NOSHOW`, con sus transiciones permitidas y su auditoría (quién y cuándo);
   - las reglas «no cancelar ni reprogramar después del inicio» y «no se reprograma a otro médico»;
   - la regla de «no asistió».

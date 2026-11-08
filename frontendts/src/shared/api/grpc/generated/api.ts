@@ -1425,7 +1425,35 @@ export enum ProtectedAction {
     /**
      * @generated from protobuf enum value: ACTION_APPROVE_MEMBER = 17;
      */
-    ACTION_APPROVE_MEMBER = 17
+    ACTION_APPROVE_MEMBER = 17,
+    /**
+     * @generated from protobuf enum value: ACTION_MANAGE_SCHEDULE = 18;
+     */
+    ACTION_MANAGE_SCHEDULE = 18,
+    /**
+     * @generated from protobuf enum value: ACTION_VIEW_CLINIC_AGENDA = 19;
+     */
+    ACTION_VIEW_CLINIC_AGENDA = 19,
+    /**
+     * @generated from protobuf enum value: ACTION_BOOK_FOR_PATIENT = 20;
+     */
+    ACTION_BOOK_FOR_PATIENT = 20,
+    /**
+     * @generated from protobuf enum value: ACTION_MANAGE_APPOINTMENT = 21;
+     */
+    ACTION_MANAGE_APPOINTMENT = 21,
+    /**
+     * @generated from protobuf enum value: ACTION_CHECK_IN = 22;
+     */
+    ACTION_CHECK_IN = 22,
+    /**
+     * @generated from protobuf enum value: ACTION_LINK_PATIENT_ACCOUNT = 23;
+     */
+    ACTION_LINK_PATIENT_ACCOUNT = 23,
+    /**
+     * @generated from protobuf enum value: ACTION_UNLINK_PATIENT_ACCOUNT = 24;
+     */
+    ACTION_UNLINK_PATIENT_ACCOUNT = 24
 }
 /**
  * @generated from protobuf enum grpc.MembershipRole

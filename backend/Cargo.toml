@@ -8,6 +8,7 @@ members = [
     "crates/patient",
     "crates/clinic",
     "crates/clinic_admin",
+    "crates/scheduling",
 ]
 
 [workspace.package]
@@ -27,6 +28,7 @@ administration = { path = "crates/administration" }
 clinic = { path = "crates/clinic" }
 clinic_admin = { path = "crates/clinic_admin" }
 patient = { path = "crates/patient" }
+scheduling = { path = "crates/scheduling" }
 
 chrono = "0.4.45"
 bon = "3.9.3"

@@ -41,6 +41,13 @@ export const ACTION_PURPOSE: Record<ProtectedAction, string> = {
   [ProtectedAction.ACTION_REGISTER_PATIENT]: "registrar pacientes",
   [ProtectedAction.ACTION_REQUEST_MEMBERSHIP]: "pedir entrar a una clínica",
   [ProtectedAction.ACTION_APPROVE_MEMBER]: "aprobar solicitudes de ingreso",
+  [ProtectedAction.ACTION_MANAGE_SCHEDULE]: "publicar tu horario",
+  [ProtectedAction.ACTION_VIEW_CLINIC_AGENDA]: "ver la agenda de la clínica",
+  [ProtectedAction.ACTION_BOOK_FOR_PATIENT]: "reservar por un paciente",
+  [ProtectedAction.ACTION_MANAGE_APPOINTMENT]: "cambiar citas de la clínica",
+  [ProtectedAction.ACTION_CHECK_IN]: "registrar llegadas",
+  [ProtectedAction.ACTION_LINK_PATIENT_ACCOUNT]: "vincular pacientes con su cuenta",
+  [ProtectedAction.ACTION_UNLINK_PATIENT_ACCOUNT]: "deshacer vínculos de pacientes",
 };
 
 /** Lo que el rol hace habitualmente: alimenta el aviso al iniciar sesión. */

@@ -1,0 +1,27 @@
+[package]
+name = "scheduling"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+app_core = { path = "../core", package = "core" }
+thiserror.workspace = true
+async-trait.workspace = true
+uuid.workspace = true
+tracing.workspace = true
+jiff.workspace = true
+toasty.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+rstest.workspace = true
+
+[features]
+test-support = []

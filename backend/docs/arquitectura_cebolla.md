@@ -101,6 +101,7 @@ Lista de My Health Record (backend):
 | `strum_macros`   | Quita código repetitivo      | enums de dominio           | `Display` para enums, sin cambiar el significado del modelo |
 | `async_trait`    | Quita código repetitivo      | contratos asíncronos       | Solo mientras los traits se usen como `dyn`; si no, usar `async fn` nativo                                                                   |
 | `thiserror`      | Quita código repetitivo      | errores de casos de uso    | Deriva `Display` y `Error` para los errores de aplicación (equivalente a una excepción tipada); no cambia el significado del modelo          |
+| `jiff`           | Estándar (ISO 8601, zonas IANA) | `scheduling/src/domain/calendar.rs` | Expandir horarios locales a instantes UTC respetando el horario de verano. El resto del dominio usa los alias de `calendar.rs`; la zona la carga `infrastructure`, así que el dominio no hace I/O |
 
 Entrar en la lista es una decisión, no un descuido. Siguen prohibidas las que obligan a
 anotar el modelo (`serde`, JPA, Jackson) y las que contactan servicios externos o hacen I/O
