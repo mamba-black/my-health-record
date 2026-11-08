@@ -1,6 +1,7 @@
 use crate::domain::patient::Patient;
 use crate::domain::patient::patient_repository::PatientRepository;
 use app_core::domain::error::ClickCareError;
+use app_core::domain::fhir::Identifier;
 use app_core::infrastructure::transport::PersonDto;
 use async_trait::async_trait;
 use toasty::Db;
@@ -20,7 +21,8 @@ pub struct PatientRecord {
     pub id: uuid::Uuid,
     /// Discriminador de inquilino: la clínica dueña del expediente.
     pub organization_id: uuid::Uuid,
-    pub user_id: uuid::Uuid,
+    /// Vacío cuando recepción registró al paciente sin cuenta.
+    pub user_id: Option<uuid::Uuid>,
     pub active: bool,
     pub person: String,
     #[auto]
@@ -119,6 +121,38 @@ impl PatientRepository for PatientRepositoryImpl {
         rows.into_iter().map(map_patient_row).collect()
     }
 
+    async fn find_by_document(
+        &self,
+        organization_id: &Uuid,
+        identifier: &Identifier,
+    ) -> Result<Option<Patient>, ClickCareError> {
+        // La `Person` se guarda con la forma de `PersonDto`: el documento es un objeto
+        // con una sola clave, el nombre de la variante (`{"DNI": "12345678"}`).
+        let key = match identifier {
+            Identifier::DNI(_) => "DNI",
+            Identifier::CE(_) => "CE",
+            Identifier::Passport(_) => "Passport",
+        };
+        let rows = toasty::sql::query(
+            "select id, organization_id, user_id, active, person from administration.patient \
+             where organization_id = $1 and (person::jsonb -> 'identifier' ->> $2) = $3 \
+             order by created_at limit 1",
+        )
+        .bind(*organization_id)
+        .bind(key.to_string())
+        .bind(identifier.value().to_string())
+        .column_types(patient_column_types())
+        .exec(&mut self.db.clone())
+        .await
+        .map_err(|error| {
+            error!("Error al buscar por documento en la clínica {organization_id}: {error}");
+            ClickCareError::generic(format!(
+                "Error al buscar por documento en la clínica {organization_id} ({error})"
+            ))
+        })?;
+        rows.into_iter().next().map(map_patient_row).transpose()
+    }
+
     async fn find_by_id(
         &self,
         organization_id: &Uuid,
@@ -156,7 +190,10 @@ fn map_patient_row(row: Value) -> Result<Patient, ClickCareError> {
         |value: Value| Uuid::try_from(value).map_err(|e| ClickCareError::generic(e.to_string()));
     let id = uuid(next("id")?)?;
     let organization_id = uuid(next("organization_id")?)?;
-    let user_id = uuid(next("user_id")?)?;
+    let user_id = match next("user_id")? {
+        Value::Null => None,
+        value => Some(uuid(value)?),
+    };
     let active =
         bool::try_from(next("active")?).map_err(|e| ClickCareError::generic(e.to_string()))?;
     let person_json =
@@ -166,7 +203,8 @@ fn map_patient_row(row: Value) -> Result<Patient, ClickCareError> {
             "La Person del expediente {id} no es válida ({error})"
         ))
     })?;
-    let mut patient = Patient::new(id, organization_id, user_id, person.into());
+    let mut patient = Patient::without_account(id, organization_id, person.into());
+    patient.user_id = user_id;
     patient.active = active;
     Ok(patient)
 }

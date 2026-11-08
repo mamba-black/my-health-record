@@ -162,6 +162,11 @@ pub async fn build_services(
     );
     let patient_api = PatientApiImpl::new(
         Arc::clone(&administration.state.patient_repository),
+        Arc::new(
+            administration::application::patient_usecase::PatientUseCases::new(
+                administration.state.clone(),
+            ),
+        ),
         Arc::clone(&administration.membership_use_cases),
         Arc::clone(&access),
         subdomain_resolver,

@@ -38,6 +38,9 @@ export const ACTION_PURPOSE: Record<ProtectedAction, string> = {
   [ProtectedAction.ACTION_ISSUE_PRESCRIPTION]: "emitir recetas",
   [ProtectedAction.ACTION_SUSPEND_MEMBER]: "suspender a un miembro",
   [ProtectedAction.ACTION_CONFIRM_LICENSE]: "confirmar una colegiatura",
+  [ProtectedAction.ACTION_REGISTER_PATIENT]: "registrar pacientes",
+  [ProtectedAction.ACTION_REQUEST_MEMBERSHIP]: "pedir entrar a una clínica",
+  [ProtectedAction.ACTION_APPROVE_MEMBER]: "aprobar solicitudes de ingreso",
 };
 
 /** Lo que el rol hace habitualmente: alimenta el aviso al iniciar sesión. */
@@ -46,6 +49,7 @@ export const ROLE_HABITUAL_PURPOSE: Record<Role, string> = {
   [Role.PATIENT]: "confirmar citas",
   [Role.PRACTITIONER]: "activar tu perfil médico",
   [Role.CLINIC_OWNER]: "activar tu clínica",
+  [Role.RECEPTIONIST]: "pedir entrar a una clínica",
 };
 
 /** «a», «a y b», «a, b y c». */

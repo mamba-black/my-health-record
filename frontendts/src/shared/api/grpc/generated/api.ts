@@ -16,6 +16,37 @@ import { MessageType } from "@protobuf-ts/runtime";
 // ============================================================================
 
 /**
+ * / Paciente que recepción registra sin cuenta.
+ *
+ * @generated from protobuf message grpc.RegisterPatientRequest
+ */
+export interface RegisterPatientRequest {
+    /**
+     * @generated from protobuf field: string given_name = 1
+     */
+    givenName: string;
+    /**
+     * @generated from protobuf field: string family_name = 2
+     */
+    familyName: string;
+    /**
+     * @generated from protobuf field: optional string second_family_name = 3
+     */
+    secondFamilyName?: string;
+    /**
+     * @generated from protobuf field: grpc.Identifier identifier = 4
+     */
+    identifier?: Identifier;
+    /**
+     * @generated from protobuf field: string phone = 5
+     */
+    phone: string;
+    /**
+     * @generated from protobuf field: optional string birth_date = 6
+     */
+    birthDate?: string; // YYYY-MM-DD
+}
+/**
  * / Solicitud de búsqueda de pacientes.
  *
  * @generated from protobuf message grpc.SearchPatientRequest
@@ -453,6 +484,47 @@ export interface Membership {
      * @generated from protobuf field: bool license_confirmed = 8
      */
     licenseConfirmed: boolean;
+}
+/**
+ * @generated from protobuf message grpc.RequestMembershipRequest
+ */
+export interface RequestMembershipRequest {
+    /**
+     * @generated from protobuf field: string subdomain = 1
+     */
+    subdomain: string; // Enlace de la clínica, p. ej. "san-borja"
+    /**
+     * @generated from protobuf field: grpc.MembershipRole role = 2
+     */
+    role: MembershipRole; // PRACTITIONER o RECEPTIONIST
+}
+/**
+ * / Una persona del personal de la clínica.
+ *
+ * @generated from protobuf message grpc.ClinicMember
+ */
+export interface ClinicMember {
+    /**
+     * @generated from protobuf field: grpc.Membership membership = 1
+     */
+    membership?: Membership;
+    /**
+     * @generated from protobuf field: string display_name = 2
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: string email = 3
+     */
+    email: string;
+}
+/**
+ * @generated from protobuf message grpc.ClinicMembers
+ */
+export interface ClinicMembers {
+    /**
+     * @generated from protobuf field: repeated grpc.ClinicMember members = 1
+     */
+    members: ClinicMember[];
 }
 /**
  * @generated from protobuf message grpc.MembershipIdRequest
@@ -1105,7 +1177,13 @@ export enum SignUpIntent {
     /**
      * @generated from protobuf enum value: INTENT_PATIENT = 3;
      */
-    INTENT_PATIENT = 3
+    INTENT_PATIENT = 3,
+    /**
+     * Recepción de una clínica existente: no crea clínicas
+     *
+     * @generated from protobuf enum value: INTENT_RECEPTIONIST = 4;
+     */
+    INTENT_RECEPTIONIST = 4
 }
 /**
  * / Estado del resultado del registro de usuario.
@@ -1240,7 +1318,11 @@ export enum Role {
     /**
      * @generated from protobuf enum value: ROLE_CLINIC_OWNER = 3;
      */
-    CLINIC_OWNER = 3
+    CLINIC_OWNER = 3,
+    /**
+     * @generated from protobuf enum value: ROLE_RECEPTIONIST = 4;
+     */
+    RECEPTIONIST = 4
 }
 /**
  * / Sexo registrado (FHIR AdministrativeGender).
@@ -1330,7 +1412,19 @@ export enum ProtectedAction {
     /**
      * @generated from protobuf enum value: ACTION_CONFIRM_LICENSE = 14;
      */
-    ACTION_CONFIRM_LICENSE = 14
+    ACTION_CONFIRM_LICENSE = 14,
+    /**
+     * @generated from protobuf enum value: ACTION_REGISTER_PATIENT = 15;
+     */
+    ACTION_REGISTER_PATIENT = 15,
+    /**
+     * @generated from protobuf enum value: ACTION_REQUEST_MEMBERSHIP = 16;
+     */
+    ACTION_REQUEST_MEMBERSHIP = 16,
+    /**
+     * @generated from protobuf enum value: ACTION_APPROVE_MEMBER = 17;
+     */
+    ACTION_APPROVE_MEMBER = 17
 }
 /**
  * @generated from protobuf enum grpc.MembershipRole
@@ -1351,7 +1445,11 @@ export enum MembershipRole {
     /**
      * @generated from protobuf enum value: MEMBERSHIP_ROLE_PRACTITIONER = 3;
      */
-    PRACTITIONER = 3
+    PRACTITIONER = 3,
+    /**
+     * @generated from protobuf enum value: MEMBERSHIP_ROLE_RECEPTIONIST = 4;
+     */
+    RECEPTIONIST = 4
 }
 /**
  * @generated from protobuf enum grpc.MembershipStatus
@@ -1376,7 +1474,13 @@ export enum MembershipStatus {
     /**
      * @generated from protobuf enum value: MEMBERSHIP_STATUS_SUSPENDED = 4;
      */
-    SUSPENDED = 4
+    SUSPENDED = 4,
+    /**
+     * Pidió entrar; espera que el dueño o un administrador apruebe
+     *
+     * @generated from protobuf enum value: MEMBERSHIP_STATUS_REQUESTED = 5;
+     */
+    REQUESTED = 5
 }
 /**
  * @generated from protobuf enum grpc.ClinicStatus
@@ -1399,6 +1503,90 @@ export enum ClinicStatus {
      */
     SUSPENDED = 3
 }
+// @generated message type with reflection information, may provide speed optimized methods
+class RegisterPatientRequest$Type extends MessageType<RegisterPatientRequest> {
+    constructor() {
+        super("grpc.RegisterPatientRequest", [
+            { no: 1, name: "given_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "family_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "second_family_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "identifier", kind: "message", T: () => Identifier },
+            { no: 5, name: "phone", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "birth_date", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RegisterPatientRequest>): RegisterPatientRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.givenName = "";
+        message.familyName = "";
+        message.phone = "";
+        if (value !== undefined)
+            reflectionMergePartial<RegisterPatientRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RegisterPatientRequest): RegisterPatientRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string given_name */ 1:
+                    message.givenName = reader.string();
+                    break;
+                case /* string family_name */ 2:
+                    message.familyName = reader.string();
+                    break;
+                case /* optional string second_family_name */ 3:
+                    message.secondFamilyName = reader.string();
+                    break;
+                case /* grpc.Identifier identifier */ 4:
+                    message.identifier = Identifier.internalBinaryRead(reader, reader.uint32(), options, message.identifier);
+                    break;
+                case /* string phone */ 5:
+                    message.phone = reader.string();
+                    break;
+                case /* optional string birth_date */ 6:
+                    message.birthDate = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RegisterPatientRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string given_name = 1; */
+        if (message.givenName !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.givenName);
+        /* string family_name = 2; */
+        if (message.familyName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.familyName);
+        /* optional string second_family_name = 3; */
+        if (message.secondFamilyName !== undefined)
+            writer.tag(3, WireType.LengthDelimited).string(message.secondFamilyName);
+        /* grpc.Identifier identifier = 4; */
+        if (message.identifier)
+            Identifier.internalBinaryWrite(message.identifier, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* string phone = 5; */
+        if (message.phone !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.phone);
+        /* optional string birth_date = 6; */
+        if (message.birthDate !== undefined)
+            writer.tag(6, WireType.LengthDelimited).string(message.birthDate);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.RegisterPatientRequest
+ */
+export const RegisterPatientRequest = new RegisterPatientRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class SearchPatientRequest$Type extends MessageType<SearchPatientRequest> {
     constructor() {
@@ -2642,6 +2830,170 @@ class Membership$Type extends MessageType<Membership> {
  */
 export const Membership = new Membership$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class RequestMembershipRequest$Type extends MessageType<RequestMembershipRequest> {
+    constructor() {
+        super("grpc.RequestMembershipRequest", [
+            { no: 1, name: "subdomain", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "role", kind: "enum", T: () => ["grpc.MembershipRole", MembershipRole, "MEMBERSHIP_ROLE_"] }
+        ]);
+    }
+    create(value?: PartialMessage<RequestMembershipRequest>): RequestMembershipRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.subdomain = "";
+        message.role = 0;
+        if (value !== undefined)
+            reflectionMergePartial<RequestMembershipRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RequestMembershipRequest): RequestMembershipRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string subdomain */ 1:
+                    message.subdomain = reader.string();
+                    break;
+                case /* grpc.MembershipRole role */ 2:
+                    message.role = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RequestMembershipRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string subdomain = 1; */
+        if (message.subdomain !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.subdomain);
+        /* grpc.MembershipRole role = 2; */
+        if (message.role !== 0)
+            writer.tag(2, WireType.Varint).int32(message.role);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.RequestMembershipRequest
+ */
+export const RequestMembershipRequest = new RequestMembershipRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ClinicMember$Type extends MessageType<ClinicMember> {
+    constructor() {
+        super("grpc.ClinicMember", [
+            { no: 1, name: "membership", kind: "message", T: () => Membership },
+            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "email", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ClinicMember>): ClinicMember {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.displayName = "";
+        message.email = "";
+        if (value !== undefined)
+            reflectionMergePartial<ClinicMember>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ClinicMember): ClinicMember {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* grpc.Membership membership */ 1:
+                    message.membership = Membership.internalBinaryRead(reader, reader.uint32(), options, message.membership);
+                    break;
+                case /* string display_name */ 2:
+                    message.displayName = reader.string();
+                    break;
+                case /* string email */ 3:
+                    message.email = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ClinicMember, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* grpc.Membership membership = 1; */
+        if (message.membership)
+            Membership.internalBinaryWrite(message.membership, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string display_name = 2; */
+        if (message.displayName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.displayName);
+        /* string email = 3; */
+        if (message.email !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.email);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.ClinicMember
+ */
+export const ClinicMember = new ClinicMember$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ClinicMembers$Type extends MessageType<ClinicMembers> {
+    constructor() {
+        super("grpc.ClinicMembers", [
+            { no: 1, name: "members", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ClinicMember }
+        ]);
+    }
+    create(value?: PartialMessage<ClinicMembers>): ClinicMembers {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.members = [];
+        if (value !== undefined)
+            reflectionMergePartial<ClinicMembers>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ClinicMembers): ClinicMembers {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated grpc.ClinicMember members */ 1:
+                    message.members.push(ClinicMember.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ClinicMembers, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated grpc.ClinicMember members = 1; */
+        for (let i = 0; i < message.members.length; i++)
+            ClinicMember.internalBinaryWrite(message.members[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.ClinicMembers
+ */
+export const ClinicMembers = new ClinicMembers$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class MembershipIdRequest$Type extends MessageType<MembershipIdRequest> {
     constructor() {
         super("grpc.MembershipIdRequest", [
@@ -3840,7 +4192,8 @@ export const CreateClinicResponse = new CreateClinicResponse$Type();
 export const PatientApi = new ServiceType("grpc.PatientApi", [
     { name: "SearchPatient", options: {}, I: SearchPatientRequest, O: SearchPatientResponse },
     { name: "GetPatientById", options: {}, I: PatientIdRequest, O: Patient },
-    { name: "Save", options: {}, I: Patient, O: Patient }
+    { name: "Save", options: {}, I: Patient, O: Patient },
+    { name: "RegisterPatient", options: {}, I: RegisterPatientRequest, O: Patient }
 ]);
 /**
  * @generated ServiceType for protobuf service grpc.UserApi
@@ -3863,5 +4216,8 @@ export const ClinicApi = new ServiceType("grpc.ClinicApi", [
     { name: "JoinClinic", options: {}, I: MembershipIdRequest, O: Membership },
     { name: "ActivatePractitioner", options: {}, I: MembershipIdRequest, O: Membership },
     { name: "ConfirmLicense", options: {}, I: MembershipIdRequest, O: Membership },
-    { name: "SuspendMembership", options: {}, I: MembershipIdRequest, O: Membership }
+    { name: "SuspendMembership", options: {}, I: MembershipIdRequest, O: Membership },
+    { name: "RequestMembership", options: {}, I: RequestMembershipRequest, O: Membership },
+    { name: "ApproveMembership", options: {}, I: MembershipIdRequest, O: Membership },
+    { name: "ListClinicMembers", options: {}, I: ClinicIdRequest, O: ClinicMembers }
 ]);

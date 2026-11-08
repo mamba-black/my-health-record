@@ -160,9 +160,10 @@ impl ClinicApi for ClinicApiImpl {
         let role = match grpc::MembershipRole::try_from(request.role) {
             Ok(grpc::MembershipRole::Practitioner) => MembershipRole::Practitioner,
             Ok(grpc::MembershipRole::Admin) => MembershipRole::Admin,
+            Ok(grpc::MembershipRole::Receptionist) => MembershipRole::Receptionist,
             _ => {
                 return Err(Status::invalid_argument(
-                    "Solo se puede invitar como médico o administrador",
+                    "Solo se puede invitar como médico, administrador o recepcionista",
                 ));
             }
         };
@@ -256,6 +257,81 @@ impl ClinicApi for ClinicApiImpl {
             .await
             .map_err(|error| membership_error(error, None))?;
         self.done(entry)
+    }
+
+    async fn request_membership(
+        &self,
+        request: Request<grpc::RequestMembershipRequest>,
+    ) -> Result<Response<grpc::Membership>, Status> {
+        let (_user, ctx) = self.ctx(&request).await?;
+        let request = request.into_inner();
+        let role = match grpc::MembershipRole::try_from(request.role) {
+            Ok(grpc::MembershipRole::Practitioner) => MembershipRole::Practitioner,
+            Ok(grpc::MembershipRole::Receptionist) => MembershipRole::Receptionist,
+            _ => {
+                return Err(Status::invalid_argument(
+                    "Solo se puede pedir entrar como médico o recepcionista",
+                ));
+            }
+        };
+        let entry = self
+            .membership_use_cases
+            .request_membership(&ctx, &request.subdomain, role)
+            .await
+            .map_err(|error| membership_error(error, None))?;
+        self.done(entry)
+    }
+
+    async fn approve_membership(
+        &self,
+        request: Request<grpc::MembershipIdRequest>,
+    ) -> Result<Response<grpc::Membership>, Status> {
+        let (_user, ctx) = self.ctx(&request).await?;
+        let membership_id = parse_id(&request.get_ref().membership_id, "La membresía")?;
+        let entry = self
+            .membership_use_cases
+            .approve(&ctx, membership_id)
+            .await
+            .map_err(|error| membership_error(error, None))?;
+        self.done(entry)
+    }
+
+    async fn list_clinic_members(
+        &self,
+        request: Request<grpc::ClinicIdRequest>,
+    ) -> Result<Response<grpc::ClinicMembers>, Status> {
+        let (_user, ctx) = self.ctx(&request).await?;
+        let organization_id = parse_id(&request.get_ref().organization_id, "La clínica")?;
+        let organization = self
+            .membership_use_cases
+            .clinic(&organization_id)
+            .await
+            .map_err(|error| membership_error(error, Some(organization_id)))?;
+        let memberships = self
+            .membership_use_cases
+            .list_members(&ctx, organization_id)
+            .await
+            .map_err(|error| membership_error(error, Some(organization_id)))?;
+        let mut members = Vec::with_capacity(memberships.len());
+        for membership in memberships {
+            let person = self
+                .user_repository
+                .find_user_by_id(&membership.user_id)
+                .await
+                .map_err(|error| Status::internal(error.to_string()))?;
+            let (display_name, email) = person
+                .map(|user| (user.person.name().text().clone(), user.email()))
+                .unwrap_or_default();
+            members.push(grpc::ClinicMember {
+                membership: Some(membership_to_proto(&MembershipWithClinic {
+                    membership,
+                    organization: organization.clone(),
+                })),
+                display_name,
+                email,
+            });
+        }
+        Ok(Response::new(grpc::ClinicMembers { members }))
     }
 }
 

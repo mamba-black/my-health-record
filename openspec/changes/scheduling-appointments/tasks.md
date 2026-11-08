@@ -3,7 +3,7 @@
 ## 1. Esquema y crate
 
 - [ ] 1.1 Antes de crear el índice único, revisar que no haya pacientes duplicados por `(organization_id, user_id)` en Neon ni en el contenedor de pruebas, y corregirlos. Verificar con la consulta de duplicados, que debe devolver 0 filas.
-- [ ] 1.2 Escribir `backend/migrations/V6__agenda.sql`:
+- [ ] 1.2 Escribir `backend/migrations/V7__agenda.sql`:
   - en `administration`: `organization.timezone` con `'America/Lima'` por defecto, `patient.user_id` nulo, el índice único parcial y la tabla `patient_link`;
   - el esquema `scheduling` con `btree_gist` y `network_id` en cada tabla: `schedule`, `schedule_block`, `schedule_exception`, `appointment` con su `EXCLUDE (network_id, practitioner_user_id, period)` y `reminder`.
 
@@ -166,5 +166,5 @@
 
 ## Workflow follow-up
 
-- Aplicar `V6` en Neon al desplegar (se aplica sola al arrancar) y comprobar el historial de refinery.
+- Aplicar `V7` en Neon al desplegar (se aplica sola al arrancar) y comprobar el historial de refinery.
 - Archivar el change cuando esté revisado, y verificar que `openspec/specs/scheduling/` quedó con sus cuatro capacidades.

@@ -22,7 +22,7 @@ La motivación está en `proposal.md`, y los requisitos en `specs/`. Lo que cond
   - El subdominio se resuelve en `SubdomainResolver` con la cabecera `x-subdomain`.
   - En desarrollo no hay subdominios reales: todo corre en `localhost`.
 - **No hay zona horaria por clínica**: se asume Lima.
-- **Las migraciones son de refinery**: la próxima es `V6`.
+- **Las migraciones son de refinery**: `V6__recepcion_y_pacientes_sin_cuenta.sql` ya existe (rol recepcionista y `patient.user_id` nulo); la próxima es `V7`.
 
 ## Goals / Non-Goals
 
@@ -38,7 +38,7 @@ La motivación está en `proposal.md`, y los requisitos en `specs/`. Lo que cond
 - Lista de espera y sobrecupos.
 - Videoconsulta.
 - Agenda de recursos que no son personas, como salas o equipos.
-- Rol de recepcionista: lo cumplen el dueño y el administrador.
+- Crear el rol de recepcionista: ya existe (`MembershipRole::Receptionist`, `my-health-record-cvk.18`). Recepción la cumplen el dueño, el administrador y el recepcionista.
 - SMS y WhatsApp: solo se deja el puerto (`my-health-record-md1`). El servidor de correo real también queda fuera (`my-health-record-vxm`).
 - Plantillas de correo con la marca de cada clínica: el texto es fijo.
 - Políticas de cancelación con plazo mínimo: se puede cancelar hasta la hora de inicio.
@@ -76,7 +76,7 @@ Al reservar, la aplicación vuelve a comprobar que el cupo existe en el horario 
 - **Descartado**: la regla del `AGENTS.md` de scheduling que dice «`Slot` como unidad de exclusión». Se reemplaza por esta restricción, que es más fuerte porque también evita citas que se crucen con duraciones distintas. Se actualiza el `AGENTS.md`.
 - **`btree_gist` en Neon**: está disponible. Se crea en la migración.
 
-### 3. Modelo de datos (`V6__agenda.sql`, esquema `scheduling`)
+### 3. Modelo de datos (`V7__agenda.sql`, esquema `scheduling`)
 
 - **`schedule`**: `id`, `network_id`, `organization_id`, `practitioner_user_id`, `slot_minutes`. Un registro por médico y clínica, con `UNIQUE (organization_id, practitioner_user_id)`.
 - **`schedule_block`**: `schedule_id`, `weekday` (1–7), `start_time`, `end_time`, que son horas locales.
@@ -89,7 +89,7 @@ Al reservar, la aplicación vuelve a comprobar que el cupo existe en el horario 
 - **`reminder`**: `appointment_id` (único), `due_at`, `status` (`PENDING`, `SENDING`, `SENT`, `FAILED`, `NO_CHANNEL`, `CANCELLED`), `attempts`, `sent_at` y `last_error`.
 - **En `administration`**:
   - `organization.timezone text NOT NULL DEFAULT 'America/Lima'`.
-  - `patient.user_id` pasa a admitir nulos, para los pacientes registrados por recepción.
+  - `patient.user_id` ya admite nulos (`V6`), para los pacientes registrados por recepción (`RegisterPatient`, `my-health-record-cvk.17`).
   - Un índice único parcial `(organization_id, user_id) WHERE user_id IS NOT NULL` impide que un paciente con cuenta quede registrado dos veces en la misma clínica.
   - **`patient_link`**: `id`, `network_id`, `organization_id`, `patient_id` (el registro sin cuenta), `user_id`, `linked_by`, `linked_at`, `unlinked_by`, `unlinked_at` y `unlink_reason`. Hay un vínculo activo como máximo por registro.
 
@@ -113,9 +113,9 @@ Al reservar, la aplicación vuelve a comprobar que el cupo existe en el horario 
 |---|---|---|---|
 | `ConfirmAppointment` (ya existe) | — (paciente para sí) | Nombres, apellido paterno, documento, teléfono | `ACTIVE` |
 | `ManageSchedule` | Médico `ACTIVE` | Colegiatura confirmada | `ACTIVE` |
-| `ViewClinicAgenda` | Médico `ACTIVE`, dueño o administrador `ACTIVE` | — | `ACTIVE` |
-| `BookForPatient` | Médico `ACTIVE`, dueño o administrador `ACTIVE` | Del paciente: los de `ConfirmAppointment` | `ACTIVE` |
-| `ManageAppointment` (cancelar o reprogramar como clínica) | Médico `ACTIVE`, dueño o administrador `ACTIVE` | — | `ACTIVE` |
+| `ViewClinicAgenda` | Médico `ACTIVE`, dueño, administrador o recepcionista `ACTIVE` | — | `ACTIVE` |
+| `BookForPatient` | Médico `ACTIVE`, dueño, administrador o recepcionista `ACTIVE` | Del paciente: los de `ConfirmAppointment` | `ACTIVE` |
+| `ManageAppointment` (cancelar o reprogramar como clínica) | Médico `ACTIVE`, dueño, administrador o recepcionista `ACTIVE` | — | `ACTIVE` |
 | `CheckIn` (llegada, verificación, inasistencia) | Dueño o administrador `ACTIVE` | — | `ACTIVE` |
 | `LinkPatientAccount` (sugerir y vincular) | Dueño o administrador `ACTIVE` | — | `ACTIVE` |
 | `UnlinkPatientAccount` | Dueño `ACTIVE` | — | `ACTIVE` |
@@ -230,7 +230,7 @@ La clínica va como campo `subdomain` en los mensajes públicos, no solo en la c
 
 ## Migration Plan
 
-1. `V6__agenda.sql`:
+1. `V7__agenda.sql`:
    - en `administration`: la zona horaria de la clínica, `patient.user_id` nulo y el índice único parcial;
    - el esquema `scheduling` con `btree_gist`.
    Es un cambio aditivo, y en Neon se aplica solo al arrancar.

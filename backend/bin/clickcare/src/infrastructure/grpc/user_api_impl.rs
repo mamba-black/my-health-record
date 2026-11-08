@@ -367,6 +367,7 @@ fn role_from_proto(role: i32) -> Option<DomainRole> {
         Role::Patient => Some(DomainRole::Patient),
         Role::Practitioner => Some(DomainRole::Practitioner),
         Role::ClinicOwner => Some(DomainRole::ClinicOwner),
+        Role::Receptionist => Some(DomainRole::Receptionist),
         Role::Unspecified => None,
     }
 }
@@ -376,6 +377,7 @@ pub(crate) fn role_to_proto(role: DomainRole) -> Role {
         DomainRole::Patient => Role::Patient,
         DomainRole::Practitioner => Role::Practitioner,
         DomainRole::ClinicOwner => Role::ClinicOwner,
+        DomainRole::Receptionist => Role::Receptionist,
     }
 }
 
@@ -391,9 +393,11 @@ pub(crate) fn membership_to_proto(entry: &MembershipWithClinic) -> Membership {
             MembershipRole::Owner => grpc_gen::MembershipRole::Owner,
             MembershipRole::Admin => grpc_gen::MembershipRole::Admin,
             MembershipRole::Practitioner => grpc_gen::MembershipRole::Practitioner,
+            MembershipRole::Receptionist => grpc_gen::MembershipRole::Receptionist,
         } as i32,
         status: match membership.status {
             MembershipStatus::Invited => grpc_gen::MembershipStatus::Invited,
+            MembershipStatus::Requested => grpc_gen::MembershipStatus::Requested,
             MembershipStatus::Pending => grpc_gen::MembershipStatus::Pending,
             MembershipStatus::Active => grpc_gen::MembershipStatus::Active,
             MembershipStatus::Suspended => grpc_gen::MembershipStatus::Suspended,
@@ -436,6 +440,7 @@ mod mapper {
                 SignUpIntent::IntentClinicOwner => user::domain::user::SignUpIntent::ClinicOwner,
                 SignUpIntent::IntentPractitioner => user::domain::user::SignUpIntent::Practitioner,
                 SignUpIntent::IntentPatient => user::domain::user::SignUpIntent::Patient,
+                SignUpIntent::IntentReceptionist => user::domain::user::SignUpIntent::Receptionist,
                 SignUpIntent::IntentUnspecified => user::domain::user::SignUpIntent::Unspecified,
             };
 

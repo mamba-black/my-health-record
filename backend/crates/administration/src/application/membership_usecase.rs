@@ -117,7 +117,7 @@ impl MembershipUseCases {
         )?;
         if role == MembershipRole::Owner {
             return Err(MembershipError::InvalidInput(
-                "Solo se puede invitar como médico o administrador".to_string(),
+                "Solo se puede invitar como médico, administrador o recepcionista".to_string(),
             ));
         }
         if self
@@ -161,11 +161,7 @@ impl MembershipUseCases {
             ctx,
             &membership_target(&membership, &organization),
         )?;
-        membership.status = if membership.role == MembershipRole::Admin {
-            MembershipStatus::Active
-        } else {
-            MembershipStatus::Pending
-        };
+        membership.status = status_after_admission(membership.role);
         self.state
             .membership_repository
             .update(&membership, None)
@@ -270,6 +266,131 @@ impl MembershipUseCases {
         })
     }
 
+    /// Una persona que no pertenece a la clínica pide entrar como médico o recepcionista.
+    ///
+    /// La clínica se identifica por su subdominio y debe ser de la red de quien pide:
+    /// una clínica de otra red se trata como inexistente. La solicitud no concede nada
+    /// hasta que el dueño o un administrador la aprueba ([`Self::approve`]).
+    pub async fn request_membership(
+        &self,
+        ctx: &RequestContext,
+        subdomain: &str,
+        role: MembershipRole,
+    ) -> Result<MembershipWithClinic, MembershipError> {
+        let not_found = || MembershipError::NotFound("No existe una clínica con ese enlace".to_string());
+        let subdomain = subdomain.trim().to_lowercase();
+        if subdomain.is_empty() {
+            return Err(MembershipError::InvalidInput(
+                "Indica el enlace de la clínica".to_string(),
+            ));
+        }
+        let (organization_id, network_id) = self
+            .state
+            .organization_repository
+            .find_organization_and_network_by_subdomain(&subdomain)
+            .await?
+            .ok_or_else(not_found)?;
+        if network_id != ctx.network_id {
+            return Err(not_found());
+        }
+        let organization = self.clinic(&organization_id).await?;
+        authorize(
+            ProtectedAction::RequestMembership,
+            ctx,
+            &clinic_target(&organization),
+        )?;
+        if !matches!(
+            role,
+            MembershipRole::Practitioner | MembershipRole::Receptionist
+        ) {
+            return Err(MembershipError::InvalidInput(
+                "Solo se puede pedir entrar como médico o recepcionista".to_string(),
+            ));
+        }
+        if self
+            .state
+            .membership_repository
+            .find(&organization_id, &ctx.user_id, role)
+            .await?
+            .is_some()
+        {
+            return Err(MembershipError::AlreadyExists(
+                "Ya tienes ese rol en la clínica o una solicitud en curso".to_string(),
+            ));
+        }
+        let membership = Membership::new(
+            organization_id,
+            ctx.user_id,
+            role,
+            MembershipStatus::Requested,
+        );
+        self.state.membership_repository.insert(&membership).await?;
+        info!(
+            "Solicitud de ingreso: membership={} org={organization_id} rol={}",
+            membership.id,
+            role.code()
+        );
+        Ok(MembershipWithClinic {
+            membership,
+            organization,
+        })
+    }
+
+    /// El dueño o un administrador aprueba una solicitud de ingreso.
+    ///
+    /// El recepcionista queda activo. El médico queda pendiente: todavía debe activar
+    /// su perfil y la clínica confirmar su colegiatura, igual que si lo hubieran invitado.
+    pub async fn approve(
+        &self,
+        ctx: &RequestContext,
+        membership_id: Uuid,
+    ) -> Result<MembershipWithClinic, MembershipError> {
+        let (mut membership, organization) = self.any_membership(membership_id).await?;
+        authorize(
+            ProtectedAction::ApproveMember,
+            ctx,
+            &clinic_target(&organization),
+        )?;
+        if membership.status != MembershipStatus::Requested {
+            return Err(MembershipError::InvalidInput(
+                "Esa membresía no es una solicitud pendiente".to_string(),
+            ));
+        }
+        membership.status = status_after_admission(membership.role);
+        self.state
+            .membership_repository
+            .update(&membership, None)
+            .await?;
+        info!(
+            "Solicitud aprobada: membership={} por user={}",
+            membership.id, ctx.user_id
+        );
+        Ok(MembershipWithClinic {
+            membership,
+            organization,
+        })
+    }
+
+    /// Personal de la clínica (miembros, invitaciones y solicitudes), para el dueño o
+    /// un administrador.
+    pub async fn list_members(
+        &self,
+        ctx: &RequestContext,
+        organization_id: Uuid,
+    ) -> Result<Vec<Membership>, MembershipError> {
+        let organization = self.clinic(&organization_id).await?;
+        authorize(
+            ProtectedAction::ApproveMember,
+            ctx,
+            &clinic_target(&organization),
+        )?;
+        Ok(self
+            .state
+            .membership_repository
+            .find_by_organization(&organization_id)
+            .await?)
+    }
+
     /// Guarda los datos legales de la clínica mientras está pendiente de activación.
     pub async fn update_setup(
         &self,
@@ -367,6 +488,15 @@ impl MembershipUseCases {
     }
 }
 
+/// Estado de quien entra a la clínica, por invitación aceptada o por solicitud aprobada:
+/// el médico aún debe activar su perfil; los demás quedan activos.
+fn status_after_admission(role: MembershipRole) -> MembershipStatus {
+    match role {
+        MembershipRole::Practitioner => MembershipStatus::Pending,
+        _ => MembershipStatus::Active,
+    }
+}
+
 /// Objetivo de una acción sobre una clínica.
 pub fn clinic_target(organization: &Organization) -> AccessTarget {
     AccessTarget {
@@ -388,7 +518,9 @@ fn membership_target(membership: &Membership, organization: &Organization) -> Ac
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::{InMemoryMembershipRepository, InMemoryOrganizationRepository};
+    use crate::testing::{
+        InMemoryMembershipRepository, InMemoryOrganizationRepository, NoopRepository,
+    };
     use app_core::domain::access::{ProfileField, Role};
     use std::collections::HashSet;
     use std::sync::Arc;
@@ -701,71 +833,128 @@ mod tests {
         assert_eq!(active.status, ClinicStatus::Active);
     }
 
-    /// Repositorio que no se usa en estas pruebas.
-    struct NoopRepository;
+    const DATOS_DE_INGRESO: &[ProfileField] = &[
+        ProfileField::GivenName,
+        ProfileField::FamilyName,
+        ProfileField::Phone,
+        ProfileField::Document,
+    ];
 
-    #[async_trait::async_trait]
-    impl crate::domain::clinical_network::clinical_network_repository::ClinicalNetworkRepository
-        for NoopRepository
-    {
-        async fn find_by_id(
-            &self,
-            _id: &Uuid,
-        ) -> Result<Option<crate::domain::clinical_network::ClinicalNetwork>, ClickCareError>
-        {
-            Ok(None)
-        }
-        async fn save(
-            &self,
-            _network: &crate::domain::clinical_network::ClinicalNetwork,
-        ) -> Result<(), ClickCareError> {
-            Ok(())
-        }
+    #[tokio::test]
+    async fn recepcionista_pide_entrar_y_el_dueno_aprueba() {
+        let f = fixture(ClinicStatus::Active);
+        let person = Uuid::now_v7();
+        let request = f
+            .use_cases
+            .request_membership(
+                &f.ctx(person, DATOS_DE_INGRESO),
+                "San-Borja ",
+                MembershipRole::Receptionist,
+            )
+            .await
+            .expect("pide entrar");
+        assert_eq!(request.membership.status, MembershipStatus::Requested);
+
+        let members = f
+            .use_cases
+            .list_members(&f.ctx(f.owner, &[]), f.organization.id)
+            .await
+            .expect("el dueño ve al personal");
+        assert_eq!(members.len(), 2);
+
+        let approved = f
+            .use_cases
+            .approve(&f.ctx(f.owner, &[]), request.membership.id)
+            .await
+            .expect("el dueño aprueba");
+        assert_eq!(approved.membership.status, MembershipStatus::Active);
     }
 
-    #[async_trait::async_trait]
-    impl crate::domain::patient::patient_repository::PatientRepository for NoopRepository {
-        async fn exists_by_user_id(&self, _o: &Uuid, _u: &Uuid) -> Result<bool, ClickCareError> {
-            Ok(false)
-        }
-        async fn save(
-            &self,
-            _patient: &crate::domain::patient::Patient,
-        ) -> Result<(), ClickCareError> {
-            Ok(())
-        }
-        async fn search(
-            &self,
-            _o: &Uuid,
-            _n: &str,
-        ) -> Result<Vec<crate::domain::patient::Patient>, ClickCareError> {
-            Ok(vec![])
-        }
-        async fn find_by_id(
-            &self,
-            _o: &Uuid,
-            _i: &Uuid,
-        ) -> Result<Option<crate::domain::patient::Patient>, ClickCareError> {
-            Ok(None)
-        }
+    #[tokio::test]
+    async fn medico_aprobado_aun_debe_activar_su_perfil() {
+        let f = fixture(ClinicStatus::Active);
+        let doctor = Uuid::now_v7();
+        let request = f
+            .use_cases
+            .request_membership(
+                &f.ctx(doctor, DATOS_DE_INGRESO),
+                "san-borja",
+                MembershipRole::Practitioner,
+            )
+            .await
+            .expect("pide entrar");
+        let approved = f
+            .use_cases
+            .approve(&f.ctx(f.owner, &[]), request.membership.id)
+            .await
+            .expect("el dueño aprueba");
+        assert_eq!(approved.membership.status, MembershipStatus::Pending);
     }
 
-    #[async_trait::async_trait]
-    impl crate::domain::practitioner::practitioner_repository::PractitionerRepository
-        for NoopRepository
-    {
-        async fn find_id_by_user_id(
-            &self,
-            _o: &Uuid,
-            _u: &Uuid,
-        ) -> Result<Option<Uuid>, ClickCareError> {
-            Ok(None)
-        }
-        async fn save(
-            &self,
-            _p: &crate::domain::practitioner::Practitioner,
-        ) -> Result<(), ClickCareError> {
-            Ok(())
-        }
+    #[tokio::test]
+    async fn no_se_pide_entrar_como_dueno_ni_dos_veces() {
+        let f = fixture(ClinicStatus::Active);
+        let person = Uuid::now_v7();
+        let ctx = f.ctx(person, DATOS_DE_INGRESO);
+        assert!(matches!(
+            f.use_cases
+                .request_membership(&ctx, "san-borja", MembershipRole::Owner)
+                .await,
+            Err(MembershipError::InvalidInput(_))
+        ));
+        f.use_cases
+            .request_membership(&ctx, "san-borja", MembershipRole::Receptionist)
+            .await
+            .expect("primera solicitud");
+        assert!(matches!(
+            f.use_cases
+                .request_membership(&ctx, "san-borja", MembershipRole::Receptionist)
+                .await,
+            Err(MembershipError::AlreadyExists(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn clinica_de_otra_red_no_existe() {
+        let f = fixture(ClinicStatus::Active);
+        let mut ctx = f.ctx(Uuid::now_v7(), DATOS_DE_INGRESO);
+        ctx.network_id = Uuid::now_v7();
+        assert!(matches!(
+            f.use_cases
+                .request_membership(&ctx, "san-borja", MembershipRole::Receptionist)
+                .await,
+            Err(MembershipError::NotFound(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn un_recepcionista_no_aprueba_solicitudes() {
+        let f = fixture(ClinicStatus::Active);
+        let receptionist = Uuid::now_v7();
+        f.memberships
+            .memberships
+            .lock()
+            .unwrap()
+            .push(Membership::new(
+                f.organization.id,
+                receptionist,
+                MembershipRole::Receptionist,
+                MembershipStatus::Active,
+            ));
+        let request = f
+            .use_cases
+            .request_membership(
+                &f.ctx(Uuid::now_v7(), DATOS_DE_INGRESO),
+                "san-borja",
+                MembershipRole::Receptionist,
+            )
+            .await
+            .expect("pide entrar");
+        assert!(matches!(
+            f.use_cases
+                .approve(&f.ctx(receptionist, &[]), request.membership.id)
+                .await,
+            Err(MembershipError::Denied(AccessDenied::Forbidden))
+        ));
     }
 }

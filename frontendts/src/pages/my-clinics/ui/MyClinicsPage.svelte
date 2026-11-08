@@ -1,6 +1,13 @@
 <script lang="ts">
 import { onMount } from "svelte";
+import { page } from "$app/state";
+import {
+  CLINIC_STATUS_LABELS,
+  MEMBERSHIP_ROLE_LABELS as ROLE_LABELS,
+  MEMBERSHIP_STATUS_LABELS as STATUS_LABELS,
+} from "$entities/profile";
 import { loadProfileContext, profileContext } from "$entities/session";
+import { RequestMembershipForm, StaffPanel } from "$features/clinic-staff";
 import { runWithRequirements } from "$features/profile";
 import {
   ClinicStatus,
@@ -10,28 +17,6 @@ import {
   MembershipStatus,
 } from "$shared/api";
 import { log } from "$shared/lib";
-
-const ROLE_LABELS: Record<MembershipRole, string> = {
-  [MembershipRole.UNSPECIFIED]: "Miembro",
-  [MembershipRole.OWNER]: "Dueño",
-  [MembershipRole.ADMIN]: "Administrador",
-  [MembershipRole.PRACTITIONER]: "Médico",
-};
-
-const STATUS_LABELS: Record<MembershipStatus, string> = {
-  [MembershipStatus.UNSPECIFIED]: "",
-  [MembershipStatus.INVITED]: "Invitación pendiente",
-  [MembershipStatus.PENDING]: "Pendiente de activación",
-  [MembershipStatus.ACTIVE]: "Activo",
-  [MembershipStatus.SUSPENDED]: "Suspendido",
-};
-
-const CLINIC_STATUS_LABELS: Record<ClinicStatus, string> = {
-  [ClinicStatus.UNSPECIFIED]: "",
-  [ClinicStatus.PENDING_SETUP]: "Clínica pendiente de activación",
-  [ClinicStatus.ACTIVE]: "Clínica activa",
-  [ClinicStatus.SUSPENDED]: "Clínica suspendida",
-};
 
 interface MembershipAction {
   label: string;
@@ -43,6 +28,20 @@ let message = $state<string | null>(null);
 let errorMessage = $state<string | null>(null);
 
 const memberships = $derived($profileContext?.memberships ?? []);
+
+// Tras registrarse, el personal llega con la clínica a la que pide entrar.
+const requestedClinic = page.url.searchParams.get("solicitar") ?? "";
+const requestedRole =
+  page.url.searchParams.get("rol") === "medico"
+    ? MembershipRole.PRACTITIONER
+    : MembershipRole.RECEPTIONIST;
+
+/** Clínicas cuyo personal ve abierto el dueño o administrador. */
+let openStaff = $state<string | null>(null);
+
+const managesStaff = (membership: Membership) =>
+  (membership.role === MembershipRole.OWNER || membership.role === MembershipRole.ADMIN) &&
+  membership.status === MembershipStatus.ACTIVE;
 
 onMount(() => {
   void loadProfileContext();
@@ -101,7 +100,7 @@ async function start(membership: Membership, action: MembershipAction) {
 
 <div class="max-w-3xl mx-auto">
   <h1 class="text-2xl font-semibold text-gray-900">Mis clínicas</h1>
-  <p class="mt-1 text-sm text-gray-600">Tus invitaciones y tu rol en cada clínica.</p>
+  <p class="mt-1 text-sm text-gray-600">Tus invitaciones, tus solicitudes y tu rol en cada clínica.</p>
 
   {#if message}
     <div class="mt-4 p-3 rounded-md bg-emerald-50 border border-emerald-200 text-sm text-emerald-800" role="status">
@@ -128,6 +127,15 @@ async function start(membership: Membership, action: MembershipAction) {
             <p class="text-xs text-gray-500">{CLINIC_STATUS_LABELS[membership.organizationStatus]}</p>
           </div>
           <div class="flex gap-2">
+            {#if managesStaff(membership)}
+              <button
+                class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                onclick={() => (openStaff = openStaff === membership.organizationId ? null : membership.organizationId)}
+                type="button"
+              >
+                {openStaff === membership.organizationId ? "Ocultar personal" : "Personal y solicitudes"}
+              </button>
+            {/if}
             {#each actionsFor(membership) as action (action.label)}
               <button
                 class="rounded-md bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
@@ -139,8 +147,25 @@ async function start(membership: Membership, action: MembershipAction) {
               </button>
             {/each}
           </div>
+          {#if openStaff === membership.organizationId}
+            <div class="w-full">
+              <StaffPanel organizationId={membership.organizationId} />
+            </div>
+          {/if}
         </li>
       {/each}
     </ul>
   {/if}
+
+  <section class="mt-8 border-t border-gray-200 pt-6">
+    <h2 class="text-lg font-semibold text-gray-900">Pedir entrar a una clínica</h2>
+    <p class="text-sm text-gray-600">
+      Para trabajar en una clínica que ya existe. El dueño o un administrador aprueba tu ingreso.
+    </p>
+    <RequestMembershipForm
+      autoSubmit={requestedClinic !== ""}
+      initialRole={requestedRole}
+      initialSubdomain={requestedClinic}
+    />
+  </section>
 </div>

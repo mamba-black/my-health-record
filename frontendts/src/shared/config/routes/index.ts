@@ -6,6 +6,7 @@ export {
   LOGIN,
   MY_CLINICS,
   Page,
+  REGISTER_PATIENT,
   ROOT,
   SEARCH,
   SIGNUP,

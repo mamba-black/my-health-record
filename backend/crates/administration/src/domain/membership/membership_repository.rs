@@ -12,6 +12,12 @@ pub trait MembershipRepository: Send + Sync {
 
     async fn find_by_id(&self, id: &Uuid) -> Result<Option<Membership>, ClickCareError>;
 
+    /// Todas las membresías de una clínica, en cualquier estado: el personal de la clínica.
+    async fn find_by_organization(
+        &self,
+        organization_id: &Uuid,
+    ) -> Result<Vec<Membership>, ClickCareError>;
+
     /// Membresía de un usuario en una clínica con un rol, si existe.
     async fn find(
         &self,

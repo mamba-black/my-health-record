@@ -21,6 +21,8 @@ pub enum Role {
     Patient,
     Practitioner,
     ClinicOwner,
+    /// Recepción de una clínica existente: nunca crea clínicas.
+    Receptionist,
 }
 
 impl Role {
@@ -30,6 +32,7 @@ impl Role {
             Role::Patient => "PATIENT",
             Role::Practitioner => "PRACTITIONER",
             Role::ClinicOwner => "CLINIC_OWNER",
+            Role::Receptionist => "RECEPTIONIST",
         }
     }
 
@@ -38,6 +41,7 @@ impl Role {
         match code {
             "PRACTITIONER" => Role::Practitioner,
             "CLINIC_OWNER" => Role::ClinicOwner,
+            "RECEPTIONIST" => Role::Receptionist,
             _ => Role::Patient,
         }
     }
@@ -92,6 +96,12 @@ pub enum ProtectedAction {
     SuspendMember,
     ConfirmLicense,
     ActivateClinic,
+    /// Recepción registra en su clínica a un paciente, aunque no tenga cuenta.
+    RegisterPatient,
+    /// Un usuario pide entrar a una clínica existente como médico o recepcionista.
+    RequestMembership,
+    /// El dueño o un administrador aprueba una solicitud de ingreso.
+    ApproveMember,
 }
 
 /// Rol de un usuario dentro de una clínica.
@@ -100,6 +110,8 @@ pub enum MembershipRole {
     Owner,
     Admin,
     Practitioner,
+    /// Recepción: registra y busca pacientes. No ve la historia clínica ni configura la clínica.
+    Receptionist,
 }
 
 impl MembershipRole {
@@ -108,6 +120,7 @@ impl MembershipRole {
             MembershipRole::Owner => "OWNER",
             MembershipRole::Admin => "ADMIN",
             MembershipRole::Practitioner => "PRACTITIONER",
+            MembershipRole::Receptionist => "RECEPTIONIST",
         }
     }
 
@@ -116,6 +129,7 @@ impl MembershipRole {
             "OWNER" => Some(MembershipRole::Owner),
             "ADMIN" => Some(MembershipRole::Admin),
             "PRACTITIONER" => Some(MembershipRole::Practitioner),
+            "RECEPTIONIST" => Some(MembershipRole::Receptionist),
             _ => None,
         }
     }
@@ -125,6 +139,8 @@ impl MembershipRole {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MembershipStatus {
     Invited,
+    /// La persona pidió entrar y espera que el dueño o un administrador la apruebe.
+    Requested,
     Pending,
     Active,
     Suspended,
@@ -134,6 +150,7 @@ impl MembershipStatus {
     pub fn code(self) -> &'static str {
         match self {
             MembershipStatus::Invited => "INVITED",
+            MembershipStatus::Requested => "REQUESTED",
             MembershipStatus::Pending => "PENDING",
             MembershipStatus::Active => "ACTIVE",
             MembershipStatus::Suspended => "SUSPENDED",
@@ -143,6 +160,7 @@ impl MembershipStatus {
     pub fn from_code(code: &str) -> Option<Self> {
         match code {
             "INVITED" => Some(MembershipStatus::Invited),
+            "REQUESTED" => Some(MembershipStatus::Requested),
             "PENDING" => Some(MembershipStatus::Pending),
             "ACTIVE" => Some(MembershipStatus::Active),
             "SUSPENDED" => Some(MembershipStatus::Suspended),
@@ -191,7 +209,12 @@ pub struct FieldSpec {
     pub user_editable: bool,
 }
 
-const ALL_ROLES: &[Role] = &[Role::Patient, Role::Practitioner, Role::ClinicOwner];
+const ALL_ROLES: &[Role] = &[
+    Role::Patient,
+    Role::Practitioner,
+    Role::ClinicOwner,
+    Role::Receptionist,
+];
 
 /// Catálogo único de datos de perfil. Ver la tabla de `design.md` del cambio
 /// `role-based-access-by-profile-data`.
@@ -208,6 +231,7 @@ pub const CATALOG: &[FieldSpec] = {
                 A::CreateClinic,
                 A::ActivatePractitioner,
                 A::ActivateClinic,
+                A::RequestMembership,
             ],
             user_editable: true,
         },
@@ -219,6 +243,7 @@ pub const CATALOG: &[FieldSpec] = {
                 A::ConfirmAppointment,
                 A::ActivatePractitioner,
                 A::ActivateClinic,
+                A::RequestMembership,
             ],
             user_editable: true,
         },
@@ -244,6 +269,7 @@ pub const CATALOG: &[FieldSpec] = {
                 A::ConfirmAppointment,
                 A::ActivatePractitioner,
                 A::ActivateClinic,
+                A::RequestMembership,
             ],
             user_editable: true,
         },
@@ -255,6 +281,7 @@ pub const CATALOG: &[FieldSpec] = {
                 A::ConfirmAppointment,
                 A::ActivatePractitioner,
                 A::ActivateClinic,
+                A::RequestMembership,
             ],
             user_editable: true,
         },
@@ -355,6 +382,7 @@ pub fn habitual_action(role: Role) -> ProtectedAction {
         Role::Patient => ProtectedAction::ConfirmAppointment,
         Role::Practitioner => ProtectedAction::ActivatePractitioner,
         Role::ClinicOwner => ProtectedAction::ActivateClinic,
+        Role::Receptionist => ProtectedAction::RequestMembership,
     }
 }
 
@@ -408,6 +436,7 @@ impl RequestContext {
             match membership.role {
                 MembershipRole::Owner => push(Role::ClinicOwner),
                 MembershipRole::Practitioner => push(Role::Practitioner),
+                MembershipRole::Receptionist => push(Role::Receptionist),
                 MembershipRole::Admin => {}
             }
         }
@@ -467,13 +496,23 @@ pub fn authorize(
     use ProtectedAction as A;
 
     // 1. Rol y membresía.
+    // Una cuenta de recepción entra a clínicas existentes: nunca funda una.
+    if action == A::CreateClinic && ctx.preferred_role == Role::Receptionist {
+        return Err(AccessDenied::Forbidden);
+    }
     let membership = match action {
-        A::ConfirmAppointment | A::CreateClinic => None,
+        // Pedir el ingreso no exige membresía: que no tenga ya una en la clínica lo
+        // revisa el caso de uso.
+        A::ConfirmAppointment | A::CreateClinic | A::RequestMembership => None,
         A::JoinClinic => Some(own_membership(
             ctx,
             target,
             &[MembershipStatus::Invited],
-            &[MembershipRole::Practitioner, MembershipRole::Admin],
+            &[
+                MembershipRole::Practitioner,
+                MembershipRole::Admin,
+                MembershipRole::Receptionist,
+            ],
         )?),
         A::ActivatePractitioner => Some(own_membership(
             ctx,
@@ -481,27 +520,48 @@ pub fn authorize(
             &[MembershipStatus::Invited, MembershipStatus::Pending],
             &[MembershipRole::Practitioner],
         )?),
-        A::SearchPatients
-        | A::ViewPatient
-        | A::OpenFirstEncounter
+        // Buscar y ver los datos de contacto: el médico y recepción.
+        A::SearchPatients | A::ViewPatient => Some(active_membership(
+            ctx,
+            target,
+            &[MembershipRole::Practitioner, MembershipRole::Receptionist],
+        )?),
+        A::RegisterPatient => Some(active_membership(
+            ctx,
+            target,
+            &[
+                MembershipRole::Owner,
+                MembershipRole::Admin,
+                MembershipRole::Receptionist,
+            ],
+        )?),
+        A::OpenFirstEncounter
         | A::RecordEncounter
         | A::IssuePrescription => Some(active_membership(
             ctx,
             target,
             &[MembershipRole::Practitioner],
         )?),
-        A::ConfigureClinic | A::InviteStaff | A::SuspendMember | A::ConfirmLicense => Some(
-            active_membership(ctx, target, &[MembershipRole::Owner, MembershipRole::Admin])?,
-        ),
+        A::ConfigureClinic
+        | A::InviteStaff
+        | A::SuspendMember
+        | A::ConfirmLicense
+        | A::ApproveMember => Some(active_membership(
+            ctx,
+            target,
+            &[MembershipRole::Owner, MembershipRole::Admin],
+        )?),
         A::ActivateClinic => Some(active_membership(ctx, target, &[MembershipRole::Owner])?),
     };
 
     // 2. Estado de la clínica.
     let allowed: &[ClinicStatus] = match action {
         A::CreateClinic | A::JoinClinic => &[],
-        A::ConfigureClinic | A::InviteStaff | A::SuspendMember | A::ConfirmLicense => {
-            &[ClinicStatus::PendingSetup, ClinicStatus::Active]
-        }
+        A::ConfigureClinic
+        | A::InviteStaff
+        | A::SuspendMember
+        | A::ConfirmLicense
+        | A::ApproveMember => &[ClinicStatus::PendingSetup, ClinicStatus::Active],
         A::ActivateClinic => &[ClinicStatus::PendingSetup],
         _ => &[ClinicStatus::Active],
     };
@@ -647,7 +707,7 @@ mod tests {
     }
 
     use ClinicStatus::{Active as ClinicActive, PendingSetup};
-    use MembershipRole::{Admin, Owner, Practitioner};
+    use MembershipRole::{Admin, Owner, Practitioner, Receptionist};
     use MembershipStatus::{Active, Invited, Pending, Suspended};
 
     /// Una fila de la matriz de `design.md` por caso, más los órdenes de error.
@@ -686,6 +746,32 @@ mod tests {
         vec![membership(Practitioner, Suspended, false)], Some(ClinicActive), Err(AccessDenied::Forbidden))]
     #[case::ver_paciente_ok(A::ViewPatient, fields(&[]),
         vec![membership(Practitioner, Active, false)], Some(ClinicActive), Ok(()))]
+    // Recepcionista
+    #[case::pedir_ingreso_ok(A::RequestMembership,
+        fields(&[F::GivenName, F::FamilyName, F::Phone, F::Document]), vec![], Some(ClinicActive), Ok(()))]
+    #[case::pedir_ingreso_sin_documento(A::RequestMembership,
+        fields(&[F::GivenName, F::FamilyName, F::Phone]), vec![], Some(ClinicActive),
+        Err(AccessDenied::MissingData { action: A::RequestMembership, fields: vec![F::Document] }))]
+    #[case::pedir_ingreso_clinica_pendiente(A::RequestMembership, all_person_fields(), vec![],
+        Some(PendingSetup), Err(AccessDenied::ClinicNotActive))]
+    #[case::recepcion_registra_paciente(A::RegisterPatient, fields(&[]),
+        vec![membership(Receptionist, Active, false)], Some(ClinicActive), Ok(()))]
+    #[case::recepcion_pendiente_no_registra(A::RegisterPatient, fields(&[]),
+        vec![membership(Receptionist, Pending, false)], Some(ClinicActive), Err(AccessDenied::Forbidden))]
+    #[case::admin_registra_paciente(A::RegisterPatient, fields(&[]),
+        vec![membership(Admin, Active, false)], Some(ClinicActive), Ok(()))]
+    #[case::medico_no_registra_paciente(A::RegisterPatient, fields(&[]),
+        vec![membership(Practitioner, Active, false)], Some(ClinicActive), Err(AccessDenied::Forbidden))]
+    #[case::recepcion_busca_pacientes(A::SearchPatients, fields(&[]),
+        vec![membership(Receptionist, Active, false)], Some(ClinicActive), Ok(()))]
+    #[case::recepcion_no_abre_historia(A::RecordEncounter, all_person_fields(),
+        vec![membership(Receptionist, Active, false)], Some(ClinicActive), Err(AccessDenied::Forbidden))]
+    #[case::recepcion_no_invita(A::InviteStaff, fields(&[]),
+        vec![membership(Receptionist, Active, false)], Some(ClinicActive), Err(AccessDenied::Forbidden))]
+    #[case::recepcion_no_aprueba(A::ApproveMember, fields(&[]),
+        vec![membership(Receptionist, Active, false)], Some(ClinicActive), Err(AccessDenied::Forbidden))]
+    #[case::dueno_aprueba(A::ApproveMember, fields(&[]),
+        vec![membership(Owner, Active, false)], Some(ClinicActive), Ok(()))]
     #[case::receta_sin_confirmar(A::IssuePrescription, all_person_fields(),
         vec![membership(Practitioner, Active, false)], Some(ClinicActive),
         Err(AccessDenied::MissingData { action: A::IssuePrescription, fields: vec![F::LicenseConfirmed] }))]
@@ -726,6 +812,16 @@ mod tests {
     }
 
     #[test]
+    fn una_cuenta_de_recepcion_no_crea_clinicas() {
+        let mut receptionist = ctx(all_person_fields(), vec![]);
+        receptionist.preferred_role = Role::Receptionist;
+        assert_eq!(
+            authorize(A::CreateClinic, &receptionist, &AccessTarget::default()),
+            Err(AccessDenied::Forbidden)
+        );
+    }
+
+    #[test]
     fn la_membresia_de_otra_clinica_no_autoriza() {
         let mut m = membership(Practitioner, Active, false);
         m.organization_id = OTHER_ORG;
@@ -755,12 +851,12 @@ mod tests {
 
     /// Cada fila de la tabla del catálogo de `design.md`.
     #[rstest::rstest]
-    #[case(F::GivenName, &[A::ConfirmAppointment, A::JoinClinic, A::CreateClinic, A::ActivatePractitioner, A::ActivateClinic][..])]
-    #[case(F::FamilyName, &[A::ConfirmAppointment, A::ActivatePractitioner, A::ActivateClinic][..])]
+    #[case(F::GivenName, &[A::ConfirmAppointment, A::JoinClinic, A::CreateClinic, A::ActivatePractitioner, A::ActivateClinic, A::RequestMembership][..])]
+    #[case(F::FamilyName, &[A::ConfirmAppointment, A::ActivatePractitioner, A::ActivateClinic, A::RequestMembership][..])]
     #[case(F::SecondFamilyName, &[][..])]
     #[case(F::Email, &[][..])]
-    #[case(F::Phone, &[A::ConfirmAppointment, A::ActivatePractitioner, A::ActivateClinic][..])]
-    #[case(F::Document, &[A::ConfirmAppointment, A::ActivatePractitioner, A::ActivateClinic][..])]
+    #[case(F::Phone, &[A::ConfirmAppointment, A::ActivatePractitioner, A::ActivateClinic, A::RequestMembership][..])]
+    #[case(F::Document, &[A::ConfirmAppointment, A::ActivatePractitioner, A::ActivateClinic, A::RequestMembership][..])]
     #[case(F::BirthDate, &[A::OpenFirstEncounter][..])]
     #[case(F::Sex, &[A::OpenFirstEncounter][..])]
     #[case(F::Address, &[][..])]

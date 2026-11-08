@@ -3,24 +3,29 @@ use crate::infrastructure::grpc::patient_api_server::*;
 use crate::infrastructure::grpc::subdomain_resolver::SubdomainResolver;
 use crate::infrastructure::grpc::user_api_impl::identifier_to_proto;
 use crate::infrastructure::grpc::*;
-use administration::application::membership_usecase::{MembershipUseCases, clinic_target};
+use administration::application::membership_usecase::{
+    MembershipError, MembershipUseCases, clinic_target,
+};
+use administration::application::patient_usecase::{NewPatient, PatientUseCases};
 use administration::domain::patient::Patient as DomainPatient;
 use administration::domain::patient::patient_repository::PatientRepository;
 use app_core::domain::access::{
-    AccessDenied, MembershipRole, MembershipStatus, ProtectedAction, RequestContext, authorize,
+    AccessDenied, MembershipStatus, ProtectedAction, RequestContext, authorize,
 };
-use app_core::domain::fhir::ContactPointSystem;
+use app_core::domain::fhir::{ContactPointSystem, Identifier};
 use std::sync::Arc;
 use tonic::*;
 use uuid::Uuid;
 
 /// Adaptador del servicio gRPC `PatientApi`.
 ///
-/// Solo responde a un médico con membresía activa en una clínica activa, y siempre
+/// Busca y muestra pacientes al médico o a recepción con membresía activa en una
+/// clínica activa, y deja que recepción registre pacientes sin cuenta. Siempre
 /// limitado a los expedientes de esa clínica: un expediente de otra clínica se trata
 /// como inexistente (`openspec/specs/access-control/action-authorization`).
 pub struct PatientApiImpl {
     patient_repository: Arc<dyn PatientRepository>,
+    patient_use_cases: Arc<PatientUseCases>,
     membership_use_cases: Arc<MembershipUseCases>,
     access: Arc<AccessContextBuilder>,
     subdomain_resolver: Arc<SubdomainResolver>,
@@ -29,12 +34,14 @@ pub struct PatientApiImpl {
 impl PatientApiImpl {
     pub fn new(
         patient_repository: Arc<dyn PatientRepository>,
+        patient_use_cases: Arc<PatientUseCases>,
         membership_use_cases: Arc<MembershipUseCases>,
         access: Arc<AccessContextBuilder>,
         subdomain_resolver: Arc<SubdomainResolver>,
     ) -> Self {
         Self {
             patient_repository,
+            patient_use_cases,
             membership_use_cases,
             access,
             subdomain_resolver,
@@ -44,7 +51,7 @@ impl PatientApiImpl {
     /// Autoriza la acción y devuelve la clínica en la que se actúa.
     ///
     /// La clínica sale del subdominio de la petición. Sin subdominio, se usa la única
-    /// clínica donde el médico está activo; con varias, debe indicar el subdominio.
+    /// clínica donde la persona está activa; con varias, debe indicar el subdominio.
     async fn authorize<T>(
         &self,
         request: &Request<T>,
@@ -57,10 +64,10 @@ impl PatientApiImpl {
         let active_clinics: Vec<Uuid> = ctx
             .memberships
             .iter()
-            .filter(|m| {
-                m.role == MembershipRole::Practitioner && m.status == MembershipStatus::Active
-            })
+            .filter(|m| m.status == MembershipStatus::Active)
             .map(|m| m.organization_id)
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
             .collect();
         let organization_id = if ctx
             .memberships
@@ -141,6 +148,49 @@ impl PatientApi for PatientApiImpl {
             .map_err(|error| Status::internal(error.to_string()))?
             .map(|patient| Response::new(patient_to_proto(&patient)))
             .ok_or_else(not_found)
+    }
+
+    async fn register_patient(
+        &self,
+        request: Request<RegisterPatientRequest>,
+    ) -> Result<Response<Patient>, Status> {
+        let (ctx, organization_id) = self
+            .authorize(&request, ProtectedAction::RegisterPatient)
+            .await?;
+        let request = request.into_inner();
+        let identifier = request
+            .identifier
+            .and_then(|identifier| identifier.identifier_type)
+            .map(|kind| match kind {
+                identifier::IdentifierType::Dni(value) => Identifier::DNI(value.trim().to_string()),
+                identifier::IdentifierType::Ce(value) => Identifier::CE(value.trim().to_string()),
+                identifier::IdentifierType::Passport(value) => {
+                    Identifier::Passport(value.trim().to_string())
+                }
+            });
+        let patient = self
+            .patient_use_cases
+            .register(
+                &ctx,
+                organization_id,
+                NewPatient {
+                    given_name: request.given_name,
+                    family_name: request.family_name,
+                    second_family_name: request.second_family_name,
+                    identifier,
+                    phone: request.phone,
+                    birth_date: request.birth_date,
+                },
+            )
+            .await
+            .map_err(|error| match error {
+                MembershipError::Denied(denied) => denied_to_status(denied, Some(organization_id)),
+                MembershipError::NotFound(message) => Status::not_found(message),
+                MembershipError::AlreadyExists(message) => Status::already_exists(message),
+                MembershipError::InvalidInput(message) => Status::invalid_argument(message),
+                other => Status::internal(other.to_string()),
+            })?;
+        Ok(Response::new(patient_to_proto(&patient)))
     }
 
     /// Todavía no persiste: solo exige el mismo permiso que ver un paciente.

@@ -1,6 +1,7 @@
 export {
   type AuthState,
   authStore,
+  canRegisterPatients,
   canSearchPatients,
   clearAuth,
   clearPendingRegistration,
@@ -12,4 +13,5 @@ export {
   setAuthSession,
   setSessionUser,
   setPendingRegistration,
+  showsClinics,
 } from "./model/session.store";

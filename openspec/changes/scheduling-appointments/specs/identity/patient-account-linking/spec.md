@@ -23,7 +23,7 @@ Cuando una cuenta y un registro sin cuenta de la misma red clínica tengan el mi
 - **THEN** no se sugiere ningún vínculo, porque las redes no se comparan entre sí
 
 ### Requirement: Vinculación confirmada en persona
-Solo el dueño o un administrador con membresía activa SHALL poder vincular un registro de paciente con una cuenta, y solo tras declarar que comprobó el documento físico de la persona. La vinculación SHALL registrar quién la hizo, cuándo y en qué clínica, y SHALL dejar verificado el documento de la cuenta. El paciente SHALL NOT poder vincularse a sí mismo un registro existente.
+Solo el dueño, un administrador o un recepcionista con membresía activa SHALL poder vincular un registro de paciente con una cuenta, y solo tras declarar que comprobó el documento físico de la persona. La vinculación SHALL registrar quién la hizo, cuándo y en qué clínica, y SHALL dejar verificado el documento de la cuenta. El paciente SHALL NOT poder vincularse a sí mismo un registro existente.
 
 #### Scenario: Recepción vincula con el DNI a la vista
 - **WHEN** un administrador confirma la vinculación con el DNI físico del paciente a la vista

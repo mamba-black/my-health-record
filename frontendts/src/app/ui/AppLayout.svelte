@@ -3,7 +3,12 @@ import "../styles/app.css";
 import { onMount, type Snippet } from "svelte";
 import { goto } from "$app/navigation";
 import { page } from "$app/state";
-import { authStore, canSearchPatients, profileContext } from "$entities/session";
+import {
+  authStore,
+  canRegisterPatients,
+  canSearchPatients,
+  profileContext,
+} from "$entities/session";
 import { RequirementsDialog } from "$features/profile";
 import {
   ACCESS_DENIED,
@@ -11,6 +16,7 @@ import {
   HISTORY,
   LOGIN,
   Page,
+  REGISTER_PATIENT,
   ROOT,
   SEARCH,
   SIGNUP,
@@ -25,14 +31,20 @@ const isPublicRoute = $derived(
   PUBLIC_ROUTES.some((route) => page.url.pathname === route),
 );
 
-// Rutas solo para médicos activos en una clínica activa. Es solo presentación: el
-// servidor aplica la autorización de todos modos.
-const PRACTITIONER_ROUTES = [SEARCH, HISTORY];
+// Rutas por rol. Es solo presentación: el servidor aplica la autorización de todos modos.
+// Registrar pacientes: dueño, administrador o recepcionista activos.
+const needsReception = $derived(page.url.pathname.startsWith(REGISTER_PATIENT));
+// Buscar y ver pacientes: médico o recepcionista activos en una clínica activa.
+const PATIENT_ROUTES = [SEARCH, HISTORY];
 const needsPractitioner = $derived(
-  PRACTITIONER_ROUTES.some((route) => page.url.pathname.startsWith(route)),
+  !needsReception && PATIENT_ROUTES.some((route) => page.url.pathname.startsWith(route)),
 );
-const roleResolved = $derived(!needsPractitioner || $profileContext !== null);
-const allowedByRole = $derived(!needsPractitioner || $canSearchPatients);
+const roleResolved = $derived(
+  (!needsPractitioner && !needsReception) || $profileContext !== null,
+);
+const allowedByRole = $derived(
+  needsReception ? $canRegisterPatients : !needsPractitioner || $canSearchPatients,
+);
 
 $effect(() => {
   if ($authStore.isAuthenticated && roleResolved && !allowedByRole) {

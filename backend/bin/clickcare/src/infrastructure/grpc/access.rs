@@ -230,5 +230,8 @@ pub fn action_to_proto(action: ProtectedAction) -> grpc::ProtectedAction {
         ProtectedAction::SuspendMember => P::ActionSuspendMember,
         ProtectedAction::ConfirmLicense => P::ActionConfirmLicense,
         ProtectedAction::ActivateClinic => P::ActionActivateClinic,
+        ProtectedAction::RegisterPatient => P::ActionRegisterPatient,
+        ProtectedAction::RequestMembership => P::ActionRequestMembership,
+        ProtectedAction::ApproveMember => P::ActionApproveMember,
     }
 }

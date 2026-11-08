@@ -188,15 +188,41 @@ export async function loadProfileContext(): Promise<ProfileRequirements | null> 
   }
 }
 
-const isActiveClinicPractitioner = (membership: Membership) =>
-  membership.role === MembershipRole.PRACTITIONER &&
-  membership.status === MembershipStatus.ACTIVE &&
-  membership.organizationStatus === ClinicStatus.ACTIVE;
+/** Membresía activa en una clínica activa con alguno de los roles. */
+const activeIn =
+  (...roles: MembershipRole[]) =>
+  (membership: Membership) =>
+    roles.includes(membership.role) &&
+    membership.status === MembershipStatus.ACTIVE &&
+    membership.organizationStatus === ClinicStatus.ACTIVE;
 
-/** Puede buscar y ver pacientes: es médico activo en una clínica activa. */
+/** Puede buscar y ver pacientes: es médico o recepcionista activo en una clínica activa. */
 export const canSearchPatients = derived(
   profileContext,
-  ($context) => $context?.memberships.some(isActiveClinicPractitioner) ?? false,
+  ($context) =>
+    $context?.memberships.some(
+      activeIn(MembershipRole.PRACTITIONER, MembershipRole.RECEPTIONIST),
+    ) ?? false,
+);
+
+/** Puede registrar pacientes sin cuenta: dueño, administrador o recepcionista activo. */
+export const canRegisterPatients = derived(
+  profileContext,
+  ($context) =>
+    $context?.memberships.some(
+      activeIn(MembershipRole.OWNER, MembershipRole.ADMIN, MembershipRole.RECEPTIONIST),
+    ) ?? false,
+);
+
+/** Ve «Mis clínicas»: tiene membresías o su cuenta es de personal (puede pedir entrar). */
+export const showsClinics = derived(
+  profileContext,
+  ($context) =>
+    ($context?.memberships.some(
+      (membership) => membership.status !== MembershipStatus.SUSPENDED,
+    ) ??
+      false) ||
+    ($context?.preferredRole ?? Role.PATIENT) !== Role.PATIENT,
 );
 
 /** Tiene alguna membresía (no suspendida) en una clínica. */

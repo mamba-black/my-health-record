@@ -775,6 +775,17 @@ pub mod support {
 
     /// Registra una cuenta (en la red por defecto) y devuelve su sesión.
     pub async fn sign_up(test_env: &TestEnv, given_name: &str, intent: SignUpIntent) -> Account {
+        sign_up_in(test_env, given_name, intent, None).await
+    }
+
+    /// Registra una cuenta entrando por el enlace de una clínica: queda en la red de esa
+    /// clínica. Sin subdominio, en la red por defecto.
+    pub async fn sign_up_in(
+        test_env: &TestEnv,
+        given_name: &str,
+        intent: SignUpIntent,
+        subdomain: Option<&str>,
+    ) -> Account {
         let user_id = Uuid::now_v7();
         let email = format!(
             "{}-{}@example.com",
@@ -784,17 +795,23 @@ pub mod support {
         let mut client = UserApiClient::connect(test_env.grpc_addr.clone())
             .await
             .expect("Fallo al conectar con el servidor gRPC");
+        let mut request = tonic::Request::new(SignUpRequest {
+            id_token: id_token(&email),
+            user_id: user_id.to_string(),
+            provider_id: "google.com".into(),
+            provider_name: "Google".into(),
+            email: email.clone(),
+            given_name: given_name.into(),
+            intent: intent as i32,
+            ..Default::default()
+        });
+        if let Some(subdomain) = subdomain {
+            request
+                .metadata_mut()
+                .insert("x-subdomain", subdomain.parse().expect("subdominio válido"));
+        }
         let session = client
-            .sign_up(tonic::Request::new(SignUpRequest {
-                id_token: id_token(&email),
-                user_id: user_id.to_string(),
-                provider_id: "google.com".into(),
-                provider_name: "Google".into(),
-                email: email.clone(),
-                given_name: given_name.into(),
-                intent: intent as i32,
-                ..Default::default()
-            }))
+            .sign_up(request)
             .await
             .expect("El registro debió tener éxito")
             .into_inner()
@@ -1596,6 +1613,186 @@ mod access_control {
             .await
             .expect_err("suspendido");
         assert_eq!(suspended.code(), Code::PermissionDenied);
+    }
+
+    /// Rol recepcionista: pide entrar a una clínica existente, el dueño aprueba y registra
+    /// pacientes sin cuenta (`identity/patient-account-linking`, «Paciente sin cuenta»).
+    #[rstest]
+    #[tokio::test]
+    async fn recepcionista_pide_entrar_y_registra_pacientes_sin_cuenta(
+        #[future(awt)] test_env: &'static TestEnv,
+    ) {
+        let env = test_env;
+        let owner = sign_up(env, "DuenaRecepcion", SignUpIntent::IntentClinicOwner).await;
+        let subdomain = format!("recep-{}", owner.user_id.simple());
+        let created = clinics(env)
+            .await
+            .create_clinic(authed(
+                CreateClinicRequest {
+                    name: "Clínica Recepción".into(),
+                    subdomain: subdomain.clone(),
+                    given_name: "Dueña".into(),
+                    ..Default::default()
+                },
+                &owner.access_token,
+            ))
+            .await
+            .expect("crear clínica")
+            .into_inner();
+        let organization_id = created.organization_id.clone();
+        sql(
+            env,
+            format!(
+                "update administration.organization set status = 'ACTIVE' where id = '{organization_id}'"
+            ),
+        )
+        .await;
+        // El personal se registra entrando por el enlace de la clínica: queda en su red.
+        let receptionist = crate::support::sign_up_in(
+            env,
+            "Recepcion",
+            SignUpIntent::IntentReceptionist,
+            Some(&subdomain),
+        )
+        .await;
+
+        // La cuenta de recepción no funda clínicas.
+        let no_clinic = clinics(env)
+            .await
+            .create_clinic(authed(
+                CreateClinicRequest {
+                    name: "Otra".into(),
+                    subdomain: format!("recep-otra-{}", receptionist.user_id.simple()),
+                    given_name: "Recepción".into(),
+                    ..Default::default()
+                },
+                &receptionist.access_token,
+            ))
+            .await
+            .expect_err("recepción no crea clínicas");
+        assert_eq!(no_clinic.code(), Code::PermissionDenied);
+
+        // Sin sus datos no puede pedir entrar; con ellos queda como solicitud.
+        let request = || RequestMembershipRequest {
+            subdomain: subdomain.clone(),
+            role: MembershipRole::Receptionist as i32,
+        };
+        let status = clinics(env)
+            .await
+            .request_membership(authed(request(), &receptionist.access_token))
+            .await
+            .expect_err("faltan datos");
+        assert_eq!(
+            missing(&status),
+            vec![
+                ProfileField::FamilyName,
+                ProfileField::Phone,
+                ProfileField::Document
+            ]
+        );
+        complete(env, &receptionist, full_person_profile(&unique_dni())).await;
+        let requested = clinics(env)
+            .await
+            .request_membership(authed(request(), &receptionist.access_token))
+            .await
+            .expect("pedir entrar")
+            .into_inner();
+        assert_eq!(requested.status(), MembershipStatus::Requested);
+
+        let new_patient = |dni: &str| RegisterPatientRequest {
+            given_name: "Rosa".into(),
+            family_name: "Quispe".into(),
+            identifier: Some(Identifier {
+                identifier_type: Some(identifier::IdentifierType::Dni(dni.into())),
+            }),
+            phone: "987654321".into(),
+            ..Default::default()
+        };
+        let patient_dni = unique_dni();
+        let not_yet = patients(env)
+            .await
+            .register_patient(authed(new_patient(&patient_dni), &receptionist.access_token))
+            .await
+            .expect_err("sin aprobar no registra");
+        assert_eq!(not_yet.code(), Code::PermissionDenied);
+
+        // El dueño ve la solicitud con el correo y la aprueba.
+        let members = clinics(env)
+            .await
+            .list_clinic_members(authed(
+                ClinicIdRequest {
+                    organization_id: organization_id.clone(),
+                },
+                &owner.access_token,
+            ))
+            .await
+            .expect("lista de personal")
+            .into_inner()
+            .members;
+        let request_row = members
+            .iter()
+            .find(|member| member.email == receptionist.email)
+            .expect("la solicitud aparece en el personal");
+        let membership_id = request_row
+            .membership
+            .as_ref()
+            .expect("membresía")
+            .id
+            .clone();
+        let approved = clinics(env)
+            .await
+            .approve_membership(authed(
+                MembershipIdRequest { membership_id },
+                &owner.access_token,
+            ))
+            .await
+            .expect("aprobar")
+            .into_inner();
+        assert_eq!(approved.status(), MembershipStatus::Active);
+
+        // Ya aprobada, registra al paciente sin cuenta, una sola vez por documento.
+        let patient = patients(env)
+            .await
+            .register_patient(authed(new_patient(&patient_dni), &receptionist.access_token))
+            .await
+            .expect("registrar paciente")
+            .into_inner();
+        let repeated = patients(env)
+            .await
+            .register_patient(authed(new_patient(&patient_dni), &receptionist.access_token))
+            .await
+            .expect_err("documento repetido");
+        assert_eq!(repeated.code(), Code::AlreadyExists);
+        let conn = env.pg_connection_string.clone();
+        let patient_id = Uuid::parse_str(&patient.id).expect("uuid del paciente");
+        let without_account: i64 = tokio::task::spawn_blocking(move || {
+            ::postgres::Client::connect(&conn, ::postgres::NoTls)
+                .expect("conexión")
+                .query_one(
+                    "select count(*) from administration.patient where id = $1 and user_id is null",
+                    &[&patient_id],
+                )
+                .expect("contar")
+                .get(0)
+        })
+        .await
+        .expect("tarea bloqueante");
+        assert_eq!(without_account, 1, "el expediente queda sin cuenta");
+
+        // Recepción lo encuentra en la búsqueda de pacientes.
+        let found = patients(env)
+            .await
+            .search_patient(authed(
+                SearchPatientRequest {
+                    name: Some("Quispe".into()),
+                },
+                &receptionist.access_token,
+            ))
+            .await
+            .expect("buscar")
+            .into_inner()
+            .patients;
+        assert!(found.iter().any(|p| p.id == patient.id));
     }
 
     /// Escenarios «Paciente de otra clínica», «Misma persona en dos clínicas» y

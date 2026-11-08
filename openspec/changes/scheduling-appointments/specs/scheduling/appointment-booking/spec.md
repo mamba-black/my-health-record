@@ -38,7 +38,7 @@ Un cupo SHALL tener como máximo una cita activa, y un médico SHALL NOT tener d
 - **THEN** el servidor responde que el cupo ya no está disponible y no crea la cita
 
 ### Requirement: La clínica reserva en nombre del paciente
-El dueño o un administrador con membresía activa (recepción) SHALL poder reservar cualquier cupo libre de su clínica en nombre de un paciente. Un médico activo SHALL poder hacerlo solo en su propia agenda. El paciente SHALL elegirse entre los de la clínica o registrarse en ese momento con nombres, apellido paterno, documento y teléfono, aunque no tenga cuenta.
+El dueño, un administrador o un recepcionista con membresía activa (recepción) SHALL poder reservar cualquier cupo libre de su clínica en nombre de un paciente. Un médico activo SHALL poder hacerlo solo en su propia agenda. El paciente SHALL elegirse entre los de la clínica o registrarse en ese momento con nombres, apellido paterno, documento y teléfono, aunque no tenga cuenta.
 
 #### Scenario: Recepción reserva para un paciente sin cuenta
 - **WHEN** un administrador registra a un paciente que llamó por teléfono con nombres, apellido, DNI y teléfono, y le reserva un cupo

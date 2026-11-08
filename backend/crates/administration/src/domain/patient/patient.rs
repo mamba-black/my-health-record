@@ -18,7 +18,10 @@ pub struct Patient {
     /// uno por cada una, que comparten el `user_id` global pero nada más.
     pub organization_id: Uuid,
     /// Apuntador débil al usuario global (UUID v7).
-    pub user_id: Uuid,
+    ///
+    /// `None` cuando recepción registró al paciente sin cuenta: el expediente queda a
+    /// la espera de vincularse con la cuenta que cree después.
+    pub user_id: Option<Uuid>,
     /// Estado activo/inactivo del expediente en la clínica.
     pub active: bool,
 
@@ -42,7 +45,19 @@ impl Patient {
         Self {
             id,
             organization_id,
-            user_id,
+            user_id: Some(user_id),
+            active: true,
+            person,
+            referenced_patient_ids: Vec::new(),
+        }
+    }
+
+    /// Crea el expediente de un paciente que la clínica registra sin cuenta de usuario.
+    pub fn without_account(id: Uuid, organization_id: Uuid, person: Person) -> Self {
+        Self {
+            id,
+            organization_id,
+            user_id: None,
             active: true,
             person,
             referenced_patient_ids: Vec::new(),
@@ -67,7 +82,7 @@ impl Patient {
         Self {
             id,
             organization_id,
-            user_id,
+            user_id: Some(user_id),
             active: true,
             person,
             referenced_patient_ids,

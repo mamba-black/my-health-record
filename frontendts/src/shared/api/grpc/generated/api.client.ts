@@ -2,6 +2,8 @@
 // @generated from protobuf file "api.proto" (package "grpc", syntax proto3)
 // tslint:disable
 import { ClinicApi } from "./api";
+import type { ClinicMembers } from "./api";
+import type { RequestMembershipRequest } from "./api";
 import type { MembershipIdRequest } from "./api";
 import type { Membership } from "./api";
 import type { InviteMemberRequest } from "./api";
@@ -23,6 +25,7 @@ import type { SignUpRequest } from "./api";
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { PatientApi } from "./api";
+import type { RegisterPatientRequest } from "./api";
 import type { Patient } from "./api";
 import type { PatientIdRequest } from "./api";
 import { stackIntercept } from "@protobuf-ts/runtime-rpc";
@@ -59,6 +62,13 @@ export interface IPatientApiClient {
      * @generated from protobuf rpc: Save
      */
     save(input: Patient, options?: RpcOptions): UnaryCall<Patient, Patient>;
+    /**
+     * / Recepción (dueño, administrador o recepcionista) registra en su clínica a un
+     * / paciente sin cuenta. Rechaza un documento ya registrado en la clínica.
+     *
+     * @generated from protobuf rpc: RegisterPatient
+     */
+    registerPatient(input: RegisterPatientRequest, options?: RpcOptions): UnaryCall<RegisterPatientRequest, Patient>;
 }
 // ============================================================================
 // SERVICIOS (SERVICES)
@@ -102,6 +112,16 @@ export class PatientApiClient implements IPatientApiClient, ServiceInfo {
     save(input: Patient, options?: RpcOptions): UnaryCall<Patient, Patient> {
         const method = this.methods[2], opt = this._transport.mergeOptions(options);
         return stackIntercept<Patient, Patient>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * / Recepción (dueño, administrador o recepcionista) registra en su clínica a un
+     * / paciente sin cuenta. Rechaza un documento ya registrado en la clínica.
+     *
+     * @generated from protobuf rpc: RegisterPatient
+     */
+    registerPatient(input: RegisterPatientRequest, options?: RpcOptions): UnaryCall<RegisterPatientRequest, Patient> {
+        const method = this.methods[3], opt = this._transport.mergeOptions(options);
+        return stackIntercept<RegisterPatientRequest, Patient>("unary", this._transport, method, opt, input);
     }
 }
 /**
@@ -252,11 +272,32 @@ export interface IClinicApiClient {
      */
     confirmLicense(input: MembershipIdRequest, options?: RpcOptions): UnaryCall<MembershipIdRequest, Membership>;
     /**
-     * / Un dueño o administrador suspende una membresía de su clínica.
+     * / Un dueño o administrador suspende una membresía de su clínica. También sirve
+     * / para rechazar una solicitud de ingreso.
      *
      * @generated from protobuf rpc: SuspendMembership
      */
     suspendMembership(input: MembershipIdRequest, options?: RpcOptions): UnaryCall<MembershipIdRequest, Membership>;
+    /**
+     * / Quien no pertenece a la clínica pide entrar como médico o recepcionista, con el
+     * / enlace (subdominio) de una clínica activa de su red. Queda como solicitud.
+     *
+     * @generated from protobuf rpc: RequestMembership
+     */
+    requestMembership(input: RequestMembershipRequest, options?: RpcOptions): UnaryCall<RequestMembershipRequest, Membership>;
+    /**
+     * / Un dueño o administrador aprueba una solicitud de ingreso.
+     *
+     * @generated from protobuf rpc: ApproveMembership
+     */
+    approveMembership(input: MembershipIdRequest, options?: RpcOptions): UnaryCall<MembershipIdRequest, Membership>;
+    /**
+     * / Personal de la clínica (miembros, invitaciones y solicitudes) para el dueño o un
+     * / administrador.
+     *
+     * @generated from protobuf rpc: ListClinicMembers
+     */
+    listClinicMembers(input: ClinicIdRequest, options?: RpcOptions): UnaryCall<ClinicIdRequest, ClinicMembers>;
 }
 /**
  * / Servicio de gestión de clínicas (FHIR R4 Organization).
@@ -336,12 +377,42 @@ export class ClinicApiClient implements IClinicApiClient, ServiceInfo {
         return stackIntercept<MembershipIdRequest, Membership>("unary", this._transport, method, opt, input);
     }
     /**
-     * / Un dueño o administrador suspende una membresía de su clínica.
+     * / Un dueño o administrador suspende una membresía de su clínica. También sirve
+     * / para rechazar una solicitud de ingreso.
      *
      * @generated from protobuf rpc: SuspendMembership
      */
     suspendMembership(input: MembershipIdRequest, options?: RpcOptions): UnaryCall<MembershipIdRequest, Membership> {
         const method = this.methods[7], opt = this._transport.mergeOptions(options);
         return stackIntercept<MembershipIdRequest, Membership>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * / Quien no pertenece a la clínica pide entrar como médico o recepcionista, con el
+     * / enlace (subdominio) de una clínica activa de su red. Queda como solicitud.
+     *
+     * @generated from protobuf rpc: RequestMembership
+     */
+    requestMembership(input: RequestMembershipRequest, options?: RpcOptions): UnaryCall<RequestMembershipRequest, Membership> {
+        const method = this.methods[8], opt = this._transport.mergeOptions(options);
+        return stackIntercept<RequestMembershipRequest, Membership>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * / Un dueño o administrador aprueba una solicitud de ingreso.
+     *
+     * @generated from protobuf rpc: ApproveMembership
+     */
+    approveMembership(input: MembershipIdRequest, options?: RpcOptions): UnaryCall<MembershipIdRequest, Membership> {
+        const method = this.methods[9], opt = this._transport.mergeOptions(options);
+        return stackIntercept<MembershipIdRequest, Membership>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * / Personal de la clínica (miembros, invitaciones y solicitudes) para el dueño o un
+     * / administrador.
+     *
+     * @generated from protobuf rpc: ListClinicMembers
+     */
+    listClinicMembers(input: ClinicIdRequest, options?: RpcOptions): UnaryCall<ClinicIdRequest, ClinicMembers> {
+        const method = this.methods[10], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ClinicIdRequest, ClinicMembers>("unary", this._transport, method, opt, input);
     }
 }

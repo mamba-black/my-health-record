@@ -107,6 +107,8 @@ pub enum SignUpIntent {
     Practitioner,
     /// Paciente o receptor de atención de salud.
     Patient,
+    /// Recepción de una clínica existente. No crea clínicas: pide entrar a una.
+    Receptionist,
 }
 
 impl SignUpIntent {
@@ -117,6 +119,7 @@ impl SignUpIntent {
             SignUpIntent::ClinicOwner => Role::ClinicOwner,
             SignUpIntent::Practitioner => Role::Practitioner,
             SignUpIntent::Patient => Role::Patient,
+            SignUpIntent::Receptionist => Role::Receptionist,
             SignUpIntent::Unspecified if create_clinic => Role::ClinicOwner,
             SignUpIntent::Unspecified => Role::Patient,
         }
@@ -303,5 +306,9 @@ mod tests {
             Role::ClinicOwner
         );
         assert_eq!(SignUpIntent::Patient.preferred_role(true), Role::Patient);
+        assert_eq!(
+            SignUpIntent::Receptionist.preferred_role(true),
+            Role::Receptionist
+        );
     }
 }

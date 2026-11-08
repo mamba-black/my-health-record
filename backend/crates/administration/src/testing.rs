@@ -29,6 +29,20 @@ impl MembershipRepository for InMemoryMembershipRepository {
             .collect())
     }
 
+    async fn find_by_organization(
+        &self,
+        organization_id: &Uuid,
+    ) -> Result<Vec<Membership>, ClickCareError> {
+        Ok(self
+            .memberships
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|m| m.organization_id == *organization_id)
+            .cloned()
+            .collect())
+    }
+
     async fn find_by_id(&self, id: &Uuid) -> Result<Option<Membership>, ClickCareError> {
         Ok(self
             .memberships
@@ -146,5 +160,153 @@ impl OrganizationRepository for InMemoryOrganizationRepository {
             *stored = organization.clone();
         }
         Ok(())
+    }
+}
+
+/// Repositorio que no hace nada, para los puertos que una prueba no usa.
+pub struct NoopRepository;
+
+#[async_trait::async_trait]
+impl crate::domain::clinical_network::clinical_network_repository::ClinicalNetworkRepository
+    for NoopRepository
+{
+    async fn find_by_id(
+        &self,
+        _id: &Uuid,
+    ) -> Result<Option<crate::domain::clinical_network::ClinicalNetwork>, ClickCareError>
+    {
+        Ok(None)
+    }
+    async fn save(
+        &self,
+        _network: &crate::domain::clinical_network::ClinicalNetwork,
+    ) -> Result<(), ClickCareError> {
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
+impl crate::domain::patient::patient_repository::PatientRepository for NoopRepository {
+    async fn exists_by_user_id(&self, _o: &Uuid, _u: &Uuid) -> Result<bool, ClickCareError> {
+        Ok(false)
+    }
+    async fn save(
+        &self,
+        _patient: &crate::domain::patient::Patient,
+    ) -> Result<(), ClickCareError> {
+        Ok(())
+    }
+    async fn search(
+        &self,
+        _o: &Uuid,
+        _n: &str,
+    ) -> Result<Vec<crate::domain::patient::Patient>, ClickCareError> {
+        Ok(vec![])
+    }
+    async fn find_by_id(
+        &self,
+        _o: &Uuid,
+        _i: &Uuid,
+    ) -> Result<Option<crate::domain::patient::Patient>, ClickCareError> {
+        Ok(None)
+    }
+    async fn find_by_document(
+        &self,
+        _o: &Uuid,
+        _i: &app_core::domain::fhir::Identifier,
+    ) -> Result<Option<crate::domain::patient::Patient>, ClickCareError> {
+        Ok(None)
+    }
+}
+
+#[async_trait::async_trait]
+impl crate::domain::practitioner::practitioner_repository::PractitionerRepository
+    for NoopRepository
+{
+    async fn find_id_by_user_id(
+        &self,
+        _o: &Uuid,
+        _u: &Uuid,
+    ) -> Result<Option<Uuid>, ClickCareError> {
+        Ok(None)
+    }
+    async fn save(
+        &self,
+        _p: &crate::domain::practitioner::Practitioner,
+    ) -> Result<(), ClickCareError> {
+        Ok(())
+    }
+}
+
+/// Expedientes de pacientes en memoria.
+#[derive(Default)]
+pub struct InMemoryPatientRepository {
+    pub patients: Mutex<Vec<crate::domain::patient::Patient>>,
+}
+
+#[async_trait]
+impl crate::domain::patient::patient_repository::PatientRepository for InMemoryPatientRepository {
+    async fn exists_by_user_id(
+        &self,
+        organization_id: &Uuid,
+        user_id: &Uuid,
+    ) -> Result<bool, ClickCareError> {
+        Ok(self
+            .patients
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|p| p.organization_id == *organization_id && p.user_id == Some(*user_id)))
+    }
+
+    async fn save(&self, patient: &crate::domain::patient::Patient) -> Result<(), ClickCareError> {
+        self.patients.lock().unwrap().push(patient.clone());
+        Ok(())
+    }
+
+    async fn search(
+        &self,
+        organization_id: &Uuid,
+        _name: &str,
+    ) -> Result<Vec<crate::domain::patient::Patient>, ClickCareError> {
+        Ok(self
+            .patients
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|p| p.organization_id == *organization_id)
+            .cloned()
+            .collect())
+    }
+
+    async fn find_by_document(
+        &self,
+        organization_id: &Uuid,
+        identifier: &app_core::domain::fhir::Identifier,
+    ) -> Result<Option<crate::domain::patient::Patient>, ClickCareError> {
+        Ok(self
+            .patients
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|p| {
+                p.organization_id == *organization_id
+                    && p.person.identifier().as_ref() == Some(identifier)
+            })
+            .cloned())
+    }
+
+    async fn find_by_id(
+        &self,
+        organization_id: &Uuid,
+        id: &Uuid,
+    ) -> Result<Option<crate::domain::patient::Patient>, ClickCareError> {
+        Ok(self
+            .patients
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|p| p.organization_id == *organization_id && p.id == *id)
+            .cloned())
     }
 }

@@ -5,7 +5,7 @@ Define qué hace recepción cuando el paciente llega a la clínica, o no llega, 
 ## ADDED Requirements
 
 ### Requirement: Registrar la llegada
-El dueño o un administrador con membresía activa SHALL poder marcar como «llegó» una cita confirmada de su clínica el mismo día de la cita. Se SHALL registrar quién marcó la llegada y a qué hora. El médico de la cita SHALL ver que el paciente llegó.
+El dueño, un administrador o un recepcionista con membresía activa SHALL poder marcar como «llegó» una cita confirmada de su clínica el mismo día de la cita. Se SHALL registrar quién marcó la llegada y a qué hora. El médico de la cita SHALL ver que el paciente llegó.
 
 #### Scenario: Paciente llega
 - **WHEN** un administrador marca la llegada del paciente de la cita de las 10:00 de hoy

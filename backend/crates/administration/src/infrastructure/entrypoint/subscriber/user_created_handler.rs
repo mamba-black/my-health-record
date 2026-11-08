@@ -322,6 +322,14 @@ mod test {
             Ok(None)
         }
 
+        async fn find_by_document(
+            &self,
+            _organization_id: &Uuid,
+            _identifier: &app_core::domain::fhir::Identifier,
+        ) -> Result<Option<Patient>, ClickCareError> {
+            Ok(None)
+        }
+
         async fn exists_by_user_id(
             &self,
             _organization_id: &Uuid,

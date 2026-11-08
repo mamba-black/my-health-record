@@ -1,7 +1,7 @@
 <script lang="ts">
-import { authStore, canSearchPatients, hasClinicMemberships } from "$entities/session";
+import { authStore, canRegisterPatients, canSearchPatients, showsClinics } from "$entities/session";
 import { LogoutButton } from "$features/auth";
-import { COMPLETE_PROFILE, LOGIN, MY_CLINICS, ROOT, SEARCH } from "$shared/config";
+import { COMPLETE_PROFILE, LOGIN, MY_CLINICS, REGISTER_PATIENT, ROOT, SEARCH } from "$shared/config";
 
 const linkClass =
   "block py-2 px-3 text-gray-900 rounded-sm hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent";
@@ -47,7 +47,10 @@ let isMenuOpen = $state(false);
         {#if $authStore.isAuthenticated && $canSearchPatients}
           <li><a class={linkClass} href="{SEARCH}">Busqueda</a></li>
         {/if}
-        {#if $authStore.isAuthenticated && $hasClinicMemberships}
+        {#if $authStore.isAuthenticated && $canRegisterPatients}
+          <li><a class={linkClass} href="{REGISTER_PATIENT}">Registrar paciente</a></li>
+        {/if}
+        {#if $authStore.isAuthenticated && $showsClinics}
           <li><a class={linkClass} href="{MY_CLINICS}">Mis clínicas</a></li>
         {/if}
         {#if $authStore.isAuthenticated}

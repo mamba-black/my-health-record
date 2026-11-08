@@ -16,7 +16,7 @@ La agenda es el siguiente paso porque da uso real a todo lo construido y cierra 
 - **Disponibilidad pública por clínica**: el paciente entra por el enlace o subdominio de la clínica y ve solo a sus médicos activos y sus cupos libres. Una clínica pendiente no muestra nada.
 - **Reservar una cita**, de dos maneras:
   - El paciente reserva para sí mismo. Si le faltan datos, se abre la ventana «Completa tus datos» con `ConfirmAppointment`.
-  - Recepción reserva en nombre del paciente. Recepción es el dueño o un administrador. El médico también puede reservar, pero solo en su propia agenda.
+  - Recepción reserva en nombre del paciente. Recepción es el dueño, un administrador o un recepcionista. El médico también puede reservar, pero solo en su propia agenda.
 - **La cita nace confirmada** (`booked`), siempre, aunque la identidad del paciente aún no esté verificada.
 - **Dos citas nunca ocupan el mismo cupo**, y un médico nunca tiene dos citas que se crucen entre las clínicas de su misma red. Esto lo garantiza la base de datos.
 - **Aislamiento por red clínica**: ninguna regla de agenda consulta ni compara datos de otra red, para que cada red pueda operar aislada, incluso en otra base de datos.
@@ -37,7 +37,7 @@ La agenda es el siguiente paso porque da uso real a todo lo construido y cierra 
   - Cuando esa persona crea su cuenta, recepción la vincula en persona, con el documento físico a la vista. Desde ese momento, la cuenta ve sus citas anteriores y su historia clínica.
   - El sistema sugiere el vínculo cuando coincide el documento, pero nunca vincula solo.
 - **Nuevas acciones protegidas** en `app_core::domain::access`, con su regla y sus datos exigidos: gestionar la agenda propia, reservar en nombre de otro, cancelar, reprogramar y hacer check-in y vincular pacientes.
-- **API**: el servicio gRPC `SchedulingApi` en `proto/api.proto` y la migración `V6` con el esquema `scheduling`.
+- **API**: el servicio gRPC `SchedulingApi` en `proto/api.proto` y la migración `V7` con el esquema `scheduling`.
 - **Frontend**:
   - Para el paciente: «Reservar cita» desde el enlace de la clínica y «Mis citas».
   - Para el médico: «Mi agenda» (horario, excepciones y citas).
@@ -65,7 +65,7 @@ La agenda es el siguiente paso porque da uso real a todo lo construido y cierra 
   - En `bin/clickcare`: `SchedulingApi`, el arranque del worker de recordatorios y la DI.
 - **Contrato**: `proto/api.proto` suma un servicio y mensajes nuevos, sin cambios que rompan los existentes.
 - **Base de datos**:
-  - Migración `V6__agenda.sql`, con el esquema `scheduling` y la extensión `btree_gist` para la exclusión de horarios que se cruzan dentro de la red.
+  - Migración `V7__agenda.sql`, con el esquema `scheduling` y la extensión `btree_gist` para la exclusión de horarios que se cruzan dentro de la red.
   - Tabla de vínculos de pacientes en `administration`.
   - Tablas de recordatorios en la cola de apalis.
 - **Dependencias**: un cliente SMTP (por ejemplo `lettre`) detrás del puerto de notificación. En desarrollo y pruebas, el aviso solo se registra en el log.

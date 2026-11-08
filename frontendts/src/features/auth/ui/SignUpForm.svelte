@@ -7,7 +7,7 @@ import {
 } from "$entities/session";
 import { SignUpIntent, UserApiError } from "$shared/api";
 import { signUpAccount } from "../api/auth.api";
-import { LOGIN } from "$shared/config";
+import { LOGIN, MY_CLINICS } from "$shared/config";
 import { generateUuidV7, log } from "$shared/lib";
 
 const pending = $derived($authStore.pendingRegistration);
@@ -21,6 +21,23 @@ let birthDate = $state("");
 let address = $state("");
 let dni = $state("");
 let selectedIntent = $state<SignUpIntent>(SignUpIntent.INTENT_PATIENT);
+/** Enlace (subdominio) de la clínica existente a la que pide entrar el personal. */
+let clinicLink = $state("");
+
+const isReceptionist = $derived(selectedIntent === SignUpIntent.INTENT_RECEPTIONIST);
+const asksForClinic = $derived(
+  isReceptionist || selectedIntent === SignUpIntent.INTENT_PRACTITIONER,
+);
+
+/** Acepta «san-borja», «san-borja.midominio.com» o la URL completa de la clínica. */
+function subdomainOf(link: string): string {
+  const host = link
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .split("/")[0];
+  return host.split(".")[0] ?? "";
+}
 let isSubmitting = $state(false);
 let errorMessage = $state<string | null>(null);
 
@@ -50,6 +67,12 @@ const handleSignUpSubmit = async (event: Event) => {
   if (!trimmedEmail || !trimmedGivenName || !trimmedPhone || !trimmedBirthDate) {
     errorMessage =
       "Por favor completa los campos obligatorios (nombres, correo, teléfono y fecha de nacimiento).";
+    return;
+  }
+  const clinicSubdomain = subdomainOf(clinicLink);
+  if (asksForClinic && clinicSubdomain && (!familyName.trim() || !trimmedDni)) {
+    errorMessage =
+      "Para pedir entrar a una clínica indica tu apellido paterno y tu DNI: la clínica los revisa para aprobar tu ingreso.";
     return;
   }
 
@@ -90,7 +113,15 @@ const handleSignUpSubmit = async (event: Event) => {
     if (!response.session) {
       throw new Error("El servidor no abrió la sesión tras el registro.");
     }
-    setAuthSession(response.session, trimmedGivenName);
+    // El personal que indicó una clínica sigue en «Mis clínicas», donde se envía su
+    // solicitud de ingreso y queda a la espera de que el dueño la apruebe.
+    const redirectTo =
+      asksForClinic && clinicSubdomain
+        ? `${MY_CLINICS}?solicitar=${encodeURIComponent(clinicSubdomain)}&rol=${
+            isReceptionist ? "recepcionista" : "medico"
+          }`
+        : undefined;
+    setAuthSession(response.session, trimmedGivenName, redirectTo);
   } catch (error) {
     log.error("Error al registrar usuario:", error);
     if (error instanceof UserApiError && error.code === "ALREADY_EXISTS") {
@@ -143,9 +174,32 @@ const handleSignUpSubmit = async (event: Event) => {
       >
         <option value={SignUpIntent.INTENT_PATIENT}>Paciente</option>
         <option value={SignUpIntent.INTENT_PRACTITIONER}>Profesional de Salud (Médico / Especialista)</option>
-        <option value={SignUpIntent.INTENT_CLINIC_OWNER}>Administrador / Fundador de Clínica</option>
+        <option value={SignUpIntent.INTENT_RECEPTIONIST}>Recepcionista de una clínica existente</option>
+        <option value={SignUpIntent.INTENT_CLINIC_OWNER}>Dueño / Fundador de una clínica nueva</option>
       </select>
     </div>
+
+    {#if asksForClinic}
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="signup-clinic">
+          Enlace de la clínica
+        </label>
+        <input
+          bind:value={clinicLink}
+          class="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-cyan-600 focus:outline-none"
+          id="signup-clinic"
+          placeholder="san-borja"
+          type="text"
+        />
+        <p class="mt-1 text-xs text-gray-500">
+          {#if isReceptionist}
+            La recepción no crea clínicas: entras a una que ya existe.
+          {/if}
+          Pides entrar y el dueño o un administrador aprueba tu ingreso. Si te invitaron por
+          correo, déjalo vacío: verás la invitación en «Mis clínicas».
+        </p>
+      </div>
+    {/if}
 
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-1" for="signup-email">

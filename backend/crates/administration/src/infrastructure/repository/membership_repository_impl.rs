@@ -108,6 +108,17 @@ impl MembershipRepository for MembershipRepositoryImpl {
         .await
     }
 
+    async fn find_by_organization(
+        &self,
+        organization_id: &Uuid,
+    ) -> Result<Vec<Membership>, ClickCareError> {
+        self.query(
+            format!("{COLUMNS} where organization_id = $1 order by created_at"),
+            vec![Value::from(*organization_id)],
+        )
+        .await
+    }
+
     async fn find_by_id(&self, id: &Uuid) -> Result<Option<Membership>, ClickCareError> {
         Ok(self
             .query(format!("{COLUMNS} where id = $1"), vec![Value::from(*id)])

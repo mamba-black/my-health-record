@@ -116,10 +116,10 @@ fn violations_in(content: &str, ctx: &Context) -> BTreeSet<String> {
         if line.trim_start().starts_with("//") {
             continue;
         }
-        if let Some(path) = use_path(line) {
-            if let Some(key) = classify_use(path, ctx) {
-                found.insert(key);
-            }
+        if let Some(path) = use_path(line)
+            && let Some(key) = classify_use(path, ctx)
+        {
+            found.insert(key);
         }
         let derives_serde = line.trim_start().starts_with("#[derive(")
             && (line.contains("Serialize") || line.contains("Deserialize"));

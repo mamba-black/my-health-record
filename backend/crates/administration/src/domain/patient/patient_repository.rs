@@ -1,5 +1,6 @@
 use crate::domain::patient::Patient;
 use app_core::domain::error::ClickCareError;
+use app_core::domain::fhir::Identifier;
 use async_trait::async_trait;
 use uuid::Uuid;
 
@@ -32,6 +33,14 @@ pub trait PatientRepository: Send + Sync {
         organization_id: &Uuid,
         name: &str,
     ) -> Result<Vec<Patient>, ClickCareError>;
+
+    /// Expediente de **esa** clínica con el mismo tipo y número de documento, tenga o
+    /// no cuenta. Sirve para no registrar dos veces a la misma persona en la clínica.
+    async fn find_by_document(
+        &self,
+        organization_id: &Uuid,
+        identifier: &Identifier,
+    ) -> Result<Option<Patient>, ClickCareError>;
 
     /// Expediente por su id, solo si pertenece a esa clínica.
     async fn find_by_id(
