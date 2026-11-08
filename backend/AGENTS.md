@@ -476,6 +476,12 @@ cargo clippy --workspace -- -D warnings
 
 * **Sesión**: `SESSION_SECRET` firma los tokens de sesión (definirla fuera de desarrollo); `SESSION_ACCESS_TTL_SECS` y `SESSION_REFRESH_TTL_SECS` ajustan su vida.
 * **Variable requerida**: `DATABASE_URL` (URL de conexión a PostgreSQL), cargada desde `.env` vía `dotenvy`. `PG_URL` se acepta como respaldo. Si ninguna está definida, el DI cae al valor por defecto `postgres://user:password@localhost:5432`.
+* **Recordatorios de citas** (`crates/scheduling`):
+  * `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` y `SMTP_FROM` configuran el correo (lettre, STARTTLS). **Sin `SMTP_HOST` no se envía correo**: los avisos solo se registran en el log, sin datos personales (desarrollo y pruebas).
+  * `REMINDER_LEAD_HOURS` (24 por defecto): anticipación del aviso.
+  * `REMINDER_MAX_ATTEMPTS` (3): intentos de envío antes de darlo por fallido.
+  * `REMINDER_SENDING_TIMEOUT` (5 minutos): un envío que quedó en `SENDING` más tiempo se da por caído y se reenvía (antes repetido que perdido).
+* **Aislamiento por organización**: ninguna consulta ni restricción cruza la Organization raíz del dueño (`network_id`). Toda tabla de agenda lleva `network_id` y la exclusión de citas (`EXCLUDE … network_id WITH =`) también: cada organización debe poder vivir en su propia base.
 * **Secretos**: **no commitear credenciales**. Usar un `.env.example` como plantilla y mantener `.env` fuera del control de versiones.
 * **Servicios locales**: `backend/devops/postgres.yaml` y `backend/devops/tempo.yaml` levantan los servicios; `backend/devops/simulate_telemetry.nu` genera telemetría de prueba.
 * **Esquema SQL — migraciones con [refinery](https://docs.rs/refinery)**:

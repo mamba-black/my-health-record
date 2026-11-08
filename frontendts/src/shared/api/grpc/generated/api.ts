@@ -1157,6 +1157,538 @@ export interface CreateClinicResponse {
      */
     alreadyExisted: boolean; // La clínica ya existía y se devolvió sin recrearla
 }
+// ============================================================================
+// AGENDA Y CITAS
+// ============================================================================
+
+/**
+ * @generated from protobuf message grpc.ClinicLinkRequest
+ */
+export interface ClinicLinkRequest {
+    /**
+     * @generated from protobuf field: string subdomain = 1
+     */
+    subdomain: string;
+}
+/**
+ * @generated from protobuf message grpc.PublicClinic
+ */
+export interface PublicClinic {
+    /**
+     * @generated from protobuf field: string organization_id = 1
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: string name = 2
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: grpc.ClinicStatus status = 3
+     */
+    status: ClinicStatus;
+    /**
+     * @generated from protobuf field: string timezone = 4
+     */
+    timezone: string;
+    /**
+     * @generated from protobuf field: optional string address = 5
+     */
+    address?: string;
+}
+/**
+ * @generated from protobuf message grpc.PublicPractitioner
+ */
+export interface PublicPractitioner {
+    /**
+     * @generated from protobuf field: string user_id = 1
+     */
+    userId: string;
+    /**
+     * @generated from protobuf field: string name = 2
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: optional string specialty = 3
+     */
+    specialty?: string;
+}
+/**
+ * @generated from protobuf message grpc.PublicPractitioners
+ */
+export interface PublicPractitioners {
+    /**
+     * @generated from protobuf field: repeated grpc.PublicPractitioner practitioners = 1
+     */
+    practitioners: PublicPractitioner[];
+}
+/**
+ * @generated from protobuf message grpc.AvailabilityRequest
+ */
+export interface AvailabilityRequest {
+    /**
+     * @generated from protobuf field: string subdomain = 1
+     */
+    subdomain: string;
+    /**
+     * @generated from protobuf field: string practitioner_user_id = 2
+     */
+    practitionerUserId: string;
+    /**
+     * @generated from protobuf field: string from = 3
+     */
+    from: string;
+    /**
+     * @generated from protobuf field: string to = 4
+     */
+    to: string;
+}
+/**
+ * @generated from protobuf message grpc.SlotInfo
+ */
+export interface SlotInfo {
+    /**
+     * @generated from protobuf field: string id = 1
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: string start = 2
+     */
+    start: string;
+    /**
+     * @generated from protobuf field: string end = 3
+     */
+    end: string;
+}
+/**
+ * @generated from protobuf message grpc.Availability
+ */
+export interface Availability {
+    /**
+     * @generated from protobuf field: repeated grpc.SlotInfo slots = 1
+     */
+    slots: SlotInfo[];
+}
+/**
+ * @generated from protobuf message grpc.TimeBlockInfo
+ */
+export interface TimeBlockInfo {
+    /**
+     * @generated from protobuf field: int32 weekday = 1
+     */
+    weekday: number; // 1 = lunes … 7 = domingo
+    /**
+     * @generated from protobuf field: string start = 2
+     */
+    start: string; // HH:MM local
+    /**
+     * @generated from protobuf field: string end = 3
+     */
+    end: string; // HH:MM local
+}
+/**
+ * @generated from protobuf message grpc.SetWeeklyScheduleRequest
+ */
+export interface SetWeeklyScheduleRequest {
+    /**
+     * @generated from protobuf field: string organization_id = 1
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: int32 slot_minutes = 2
+     */
+    slotMinutes: number;
+    /**
+     * @generated from protobuf field: repeated grpc.TimeBlockInfo blocks = 3
+     */
+    blocks: TimeBlockInfo[];
+}
+/**
+ * @generated from protobuf message grpc.ScheduleExceptionInfo
+ */
+export interface ScheduleExceptionInfo {
+    /**
+     * @generated from protobuf field: string id = 1
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: string start = 2
+     */
+    start: string;
+    /**
+     * @generated from protobuf field: string end = 3
+     */
+    end: string;
+    /**
+     * @generated from protobuf field: optional string reason = 4
+     */
+    reason?: string;
+}
+/**
+ * @generated from protobuf message grpc.ScheduleResponse
+ */
+export interface ScheduleResponse {
+    /**
+     * @generated from protobuf field: bool defined = 1
+     */
+    defined: boolean;
+    /**
+     * @generated from protobuf field: int32 slot_minutes = 2
+     */
+    slotMinutes: number;
+    /**
+     * @generated from protobuf field: repeated grpc.TimeBlockInfo blocks = 3
+     */
+    blocks: TimeBlockInfo[];
+    /**
+     * @generated from protobuf field: repeated grpc.ScheduleExceptionInfo exceptions = 4
+     */
+    exceptions: ScheduleExceptionInfo[];
+    /**
+     * @generated from protobuf field: string timezone = 5
+     */
+    timezone: string;
+}
+/**
+ * @generated from protobuf message grpc.AddScheduleExceptionRequest
+ */
+export interface AddScheduleExceptionRequest {
+    /**
+     * @generated from protobuf field: string organization_id = 1
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: string start = 2
+     */
+    start: string;
+    /**
+     * @generated from protobuf field: string end = 3
+     */
+    end: string;
+    /**
+     * @generated from protobuf field: optional string reason = 4
+     */
+    reason?: string;
+}
+/**
+ * @generated from protobuf message grpc.RemoveScheduleExceptionRequest
+ */
+export interface RemoveScheduleExceptionRequest {
+    /**
+     * @generated from protobuf field: string organization_id = 1
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: string exception_id = 2
+     */
+    exceptionId: string;
+}
+/**
+ * @generated from protobuf message grpc.BookAppointmentRequest
+ */
+export interface BookAppointmentRequest {
+    /**
+     * @generated from protobuf field: string organization_id = 1
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: string practitioner_user_id = 2
+     */
+    practitionerUserId: string;
+    /**
+     * @generated from protobuf field: string start = 3
+     */
+    start: string;
+}
+/**
+ * @generated from protobuf message grpc.NewPatientInfo
+ */
+export interface NewPatientInfo {
+    /**
+     * @generated from protobuf field: string given_name = 1
+     */
+    givenName: string;
+    /**
+     * @generated from protobuf field: string family_name = 2
+     */
+    familyName: string;
+    /**
+     * @generated from protobuf field: optional string second_family_name = 3
+     */
+    secondFamilyName?: string;
+    /**
+     * @generated from protobuf field: grpc.Identifier identifier = 4
+     */
+    identifier?: Identifier;
+    /**
+     * @generated from protobuf field: string phone = 5
+     */
+    phone: string;
+    /**
+     * @generated from protobuf field: optional string birth_date = 6
+     */
+    birthDate?: string;
+}
+/**
+ * @generated from protobuf message grpc.BookForPatientRequest
+ */
+export interface BookForPatientRequest {
+    /**
+     * @generated from protobuf field: string organization_id = 1
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: string practitioner_user_id = 2
+     */
+    practitionerUserId: string;
+    /**
+     * @generated from protobuf field: string start = 3
+     */
+    start: string;
+    /**
+     * @generated from protobuf oneof: patient
+     */
+    patient: {
+        oneofKind: "patientId";
+        /**
+         * @generated from protobuf field: string patient_id = 4
+         */
+        patientId: string;
+    } | {
+        oneofKind: "newPatient";
+        /**
+         * @generated from protobuf field: grpc.NewPatientInfo new_patient = 5
+         */
+        newPatient: NewPatientInfo;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message grpc.AppointmentInfo
+ */
+export interface AppointmentInfo {
+    /**
+     * @generated from protobuf field: string id = 1
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: string organization_id = 2
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: string clinic_name = 3
+     */
+    clinicName: string;
+    /**
+     * @generated from protobuf field: string clinic_subdomain = 4
+     */
+    clinicSubdomain: string;
+    /**
+     * @generated from protobuf field: string practitioner_user_id = 5
+     */
+    practitionerUserId: string;
+    /**
+     * @generated from protobuf field: string practitioner_name = 6
+     */
+    practitionerName: string;
+    /**
+     * @generated from protobuf field: string patient_id = 7
+     */
+    patientId: string;
+    /**
+     * @generated from protobuf field: optional string patient_name = 8
+     */
+    patientName?: string;
+    /**
+     * @generated from protobuf field: string start = 9
+     */
+    start: string;
+    /**
+     * @generated from protobuf field: string end = 10
+     */
+    end: string;
+    /**
+     * @generated from protobuf field: grpc.AppointmentStatus status = 11
+     */
+    status: AppointmentStatus;
+    /**
+     * @generated from protobuf field: grpc.DocumentCheck document_check = 12
+     */
+    documentCheck: DocumentCheck;
+}
+/**
+ * @generated from protobuf message grpc.AppointmentList
+ */
+export interface AppointmentList {
+    /**
+     * @generated from protobuf field: repeated grpc.AppointmentInfo appointments = 1
+     */
+    appointments: AppointmentInfo[];
+}
+/**
+ * @generated from protobuf message grpc.ListMyAppointmentsRequest
+ */
+export interface ListMyAppointmentsRequest {
+}
+/**
+ * @generated from protobuf message grpc.ListClinicAppointmentsRequest
+ */
+export interface ListClinicAppointmentsRequest {
+    /**
+     * @generated from protobuf field: string organization_id = 1
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: string from = 2
+     */
+    from: string;
+    /**
+     * @generated from protobuf field: string to = 3
+     */
+    to: string;
+}
+/**
+ * @generated from protobuf message grpc.AppointmentIdRequest
+ */
+export interface AppointmentIdRequest {
+    /**
+     * @generated from protobuf field: string appointment_id = 1
+     */
+    appointmentId: string;
+}
+/**
+ * @generated from protobuf message grpc.RescheduleAppointmentRequest
+ */
+export interface RescheduleAppointmentRequest {
+    /**
+     * @generated from protobuf field: string appointment_id = 1
+     */
+    appointmentId: string;
+    /**
+     * @generated from protobuf field: string practitioner_user_id = 2
+     */
+    practitionerUserId: string;
+    /**
+     * @generated from protobuf field: string start = 3
+     */
+    start: string;
+}
+/**
+ * @generated from protobuf message grpc.CheckInRequest
+ */
+export interface CheckInRequest {
+    /**
+     * @generated from protobuf field: string appointment_id = 1
+     */
+    appointmentId: string;
+    /**
+     * @generated from protobuf field: grpc.DocumentCheck document_check = 2
+     */
+    documentCheck: DocumentCheck;
+}
+/**
+ * @generated from protobuf message grpc.LinkSuggestionInfo
+ */
+export interface LinkSuggestionInfo {
+    /**
+     * @generated from protobuf field: string user_id = 1
+     */
+    userId: string;
+    /**
+     * @generated from protobuf field: string name = 2
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: string email = 3
+     */
+    email: string;
+}
+/**
+ * @generated from protobuf message grpc.CheckInResponse
+ */
+export interface CheckInResponse {
+    /**
+     * @generated from protobuf field: grpc.AppointmentInfo appointment = 1
+     */
+    appointment?: AppointmentInfo;
+    /**
+     * @generated from protobuf field: bool account_verified = 2
+     */
+    accountVerified: boolean;
+    /**
+     * @generated from protobuf field: repeated grpc.LinkSuggestionInfo link_suggestions = 3
+     */
+    linkSuggestions: LinkSuggestionInfo[];
+}
+/**
+ * @generated from protobuf message grpc.PatientLinkRequest
+ */
+export interface PatientLinkRequest {
+    /**
+     * @generated from protobuf field: string organization_id = 1
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: string patient_id = 2
+     */
+    patientId: string;
+}
+/**
+ * @generated from protobuf message grpc.LinkSuggestions
+ */
+export interface LinkSuggestions {
+    /**
+     * @generated from protobuf field: repeated grpc.LinkSuggestionInfo suggestions = 1
+     */
+    suggestions: LinkSuggestionInfo[];
+}
+/**
+ * @generated from protobuf message grpc.LinkPatientAccountRequest
+ */
+export interface LinkPatientAccountRequest {
+    /**
+     * @generated from protobuf field: string organization_id = 1
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: string patient_id = 2
+     */
+    patientId: string;
+    /**
+     * @generated from protobuf field: string user_id = 3
+     */
+    userId: string;
+    /**
+     * @generated from protobuf field: bool document_seen = 4
+     */
+    documentSeen: boolean;
+}
+/**
+ * @generated from protobuf message grpc.PatientLinkResponse
+ */
+export interface PatientLinkResponse {
+    /**
+     * @generated from protobuf field: string link_id = 1
+     */
+    linkId: string;
+}
+/**
+ * @generated from protobuf message grpc.UnlinkPatientAccountRequest
+ */
+export interface UnlinkPatientAccountRequest {
+    /**
+     * @generated from protobuf field: string organization_id = 1
+     */
+    organizationId: string;
+    /**
+     * @generated from protobuf field: string link_id = 2
+     */
+    linkId: string;
+    /**
+     * @generated from protobuf field: string reason = 3
+     */
+    reason: string;
+}
 /**
  * / Intención inicial declarada por el usuario durante el registro inicial (perfilado progresivo).
  *
@@ -1531,6 +2063,48 @@ export enum ClinicStatus {
      * @generated from protobuf enum value: CLINIC_STATUS_SUSPENDED = 3;
      */
     SUSPENDED = 3
+}
+/**
+ * @generated from protobuf enum grpc.AppointmentStatus
+ */
+export enum AppointmentStatus {
+    /**
+     * @generated from protobuf enum value: APPOINTMENT_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: APPOINTMENT_STATUS_BOOKED = 1;
+     */
+    BOOKED = 1,
+    /**
+     * @generated from protobuf enum value: APPOINTMENT_STATUS_ARRIVED = 2;
+     */
+    ARRIVED = 2,
+    /**
+     * @generated from protobuf enum value: APPOINTMENT_STATUS_CANCELLED = 3;
+     */
+    CANCELLED = 3,
+    /**
+     * @generated from protobuf enum value: APPOINTMENT_STATUS_NOSHOW = 4;
+     */
+    NOSHOW = 4
+}
+/**
+ * @generated from protobuf enum grpc.DocumentCheck
+ */
+export enum DocumentCheck {
+    /**
+     * @generated from protobuf enum value: DOCUMENT_CHECK_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: DOCUMENT_CHECK_MATCH = 1;
+     */
+    MATCH = 1,
+    /**
+     * @generated from protobuf enum value: DOCUMENT_CHECK_MISMATCH = 2;
+     */
+    MISMATCH = 2
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class RegisterPatientRequest$Type extends MessageType<RegisterPatientRequest> {
@@ -4215,6 +4789,1907 @@ class CreateClinicResponse$Type extends MessageType<CreateClinicResponse> {
  * @generated MessageType for protobuf message grpc.CreateClinicResponse
  */
 export const CreateClinicResponse = new CreateClinicResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ClinicLinkRequest$Type extends MessageType<ClinicLinkRequest> {
+    constructor() {
+        super("grpc.ClinicLinkRequest", [
+            { no: 1, name: "subdomain", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ClinicLinkRequest>): ClinicLinkRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.subdomain = "";
+        if (value !== undefined)
+            reflectionMergePartial<ClinicLinkRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ClinicLinkRequest): ClinicLinkRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string subdomain */ 1:
+                    message.subdomain = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ClinicLinkRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string subdomain = 1; */
+        if (message.subdomain !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.subdomain);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.ClinicLinkRequest
+ */
+export const ClinicLinkRequest = new ClinicLinkRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PublicClinic$Type extends MessageType<PublicClinic> {
+    constructor() {
+        super("grpc.PublicClinic", [
+            { no: 1, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "status", kind: "enum", T: () => ["grpc.ClinicStatus", ClinicStatus, "CLINIC_STATUS_"] },
+            { no: 4, name: "timezone", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "address", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<PublicClinic>): PublicClinic {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.organizationId = "";
+        message.name = "";
+        message.status = 0;
+        message.timezone = "";
+        if (value !== undefined)
+            reflectionMergePartial<PublicClinic>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PublicClinic): PublicClinic {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string organization_id */ 1:
+                    message.organizationId = reader.string();
+                    break;
+                case /* string name */ 2:
+                    message.name = reader.string();
+                    break;
+                case /* grpc.ClinicStatus status */ 3:
+                    message.status = reader.int32();
+                    break;
+                case /* string timezone */ 4:
+                    message.timezone = reader.string();
+                    break;
+                case /* optional string address */ 5:
+                    message.address = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PublicClinic, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string organization_id = 1; */
+        if (message.organizationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.organizationId);
+        /* string name = 2; */
+        if (message.name !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.name);
+        /* grpc.ClinicStatus status = 3; */
+        if (message.status !== 0)
+            writer.tag(3, WireType.Varint).int32(message.status);
+        /* string timezone = 4; */
+        if (message.timezone !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.timezone);
+        /* optional string address = 5; */
+        if (message.address !== undefined)
+            writer.tag(5, WireType.LengthDelimited).string(message.address);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.PublicClinic
+ */
+export const PublicClinic = new PublicClinic$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PublicPractitioner$Type extends MessageType<PublicPractitioner> {
+    constructor() {
+        super("grpc.PublicPractitioner", [
+            { no: 1, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "specialty", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<PublicPractitioner>): PublicPractitioner {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.userId = "";
+        message.name = "";
+        if (value !== undefined)
+            reflectionMergePartial<PublicPractitioner>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PublicPractitioner): PublicPractitioner {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string user_id */ 1:
+                    message.userId = reader.string();
+                    break;
+                case /* string name */ 2:
+                    message.name = reader.string();
+                    break;
+                case /* optional string specialty */ 3:
+                    message.specialty = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PublicPractitioner, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string user_id = 1; */
+        if (message.userId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.userId);
+        /* string name = 2; */
+        if (message.name !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.name);
+        /* optional string specialty = 3; */
+        if (message.specialty !== undefined)
+            writer.tag(3, WireType.LengthDelimited).string(message.specialty);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.PublicPractitioner
+ */
+export const PublicPractitioner = new PublicPractitioner$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PublicPractitioners$Type extends MessageType<PublicPractitioners> {
+    constructor() {
+        super("grpc.PublicPractitioners", [
+            { no: 1, name: "practitioners", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => PublicPractitioner }
+        ]);
+    }
+    create(value?: PartialMessage<PublicPractitioners>): PublicPractitioners {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.practitioners = [];
+        if (value !== undefined)
+            reflectionMergePartial<PublicPractitioners>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PublicPractitioners): PublicPractitioners {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated grpc.PublicPractitioner practitioners */ 1:
+                    message.practitioners.push(PublicPractitioner.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PublicPractitioners, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated grpc.PublicPractitioner practitioners = 1; */
+        for (let i = 0; i < message.practitioners.length; i++)
+            PublicPractitioner.internalBinaryWrite(message.practitioners[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.PublicPractitioners
+ */
+export const PublicPractitioners = new PublicPractitioners$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AvailabilityRequest$Type extends MessageType<AvailabilityRequest> {
+    constructor() {
+        super("grpc.AvailabilityRequest", [
+            { no: 1, name: "subdomain", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "practitioner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "from", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "to", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AvailabilityRequest>): AvailabilityRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.subdomain = "";
+        message.practitionerUserId = "";
+        message.from = "";
+        message.to = "";
+        if (value !== undefined)
+            reflectionMergePartial<AvailabilityRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AvailabilityRequest): AvailabilityRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string subdomain */ 1:
+                    message.subdomain = reader.string();
+                    break;
+                case /* string practitioner_user_id */ 2:
+                    message.practitionerUserId = reader.string();
+                    break;
+                case /* string from */ 3:
+                    message.from = reader.string();
+                    break;
+                case /* string to */ 4:
+                    message.to = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AvailabilityRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string subdomain = 1; */
+        if (message.subdomain !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.subdomain);
+        /* string practitioner_user_id = 2; */
+        if (message.practitionerUserId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.practitionerUserId);
+        /* string from = 3; */
+        if (message.from !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.from);
+        /* string to = 4; */
+        if (message.to !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.to);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.AvailabilityRequest
+ */
+export const AvailabilityRequest = new AvailabilityRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SlotInfo$Type extends MessageType<SlotInfo> {
+    constructor() {
+        super("grpc.SlotInfo", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "start", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "end", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<SlotInfo>): SlotInfo {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.id = "";
+        message.start = "";
+        message.end = "";
+        if (value !== undefined)
+            reflectionMergePartial<SlotInfo>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SlotInfo): SlotInfo {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string id */ 1:
+                    message.id = reader.string();
+                    break;
+                case /* string start */ 2:
+                    message.start = reader.string();
+                    break;
+                case /* string end */ 3:
+                    message.end = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SlotInfo, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string id = 1; */
+        if (message.id !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.id);
+        /* string start = 2; */
+        if (message.start !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.start);
+        /* string end = 3; */
+        if (message.end !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.end);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.SlotInfo
+ */
+export const SlotInfo = new SlotInfo$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class Availability$Type extends MessageType<Availability> {
+    constructor() {
+        super("grpc.Availability", [
+            { no: 1, name: "slots", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => SlotInfo }
+        ]);
+    }
+    create(value?: PartialMessage<Availability>): Availability {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.slots = [];
+        if (value !== undefined)
+            reflectionMergePartial<Availability>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: Availability): Availability {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated grpc.SlotInfo slots */ 1:
+                    message.slots.push(SlotInfo.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: Availability, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated grpc.SlotInfo slots = 1; */
+        for (let i = 0; i < message.slots.length; i++)
+            SlotInfo.internalBinaryWrite(message.slots[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.Availability
+ */
+export const Availability = new Availability$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TimeBlockInfo$Type extends MessageType<TimeBlockInfo> {
+    constructor() {
+        super("grpc.TimeBlockInfo", [
+            { no: 1, name: "weekday", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 2, name: "start", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "end", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TimeBlockInfo>): TimeBlockInfo {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.weekday = 0;
+        message.start = "";
+        message.end = "";
+        if (value !== undefined)
+            reflectionMergePartial<TimeBlockInfo>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TimeBlockInfo): TimeBlockInfo {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* int32 weekday */ 1:
+                    message.weekday = reader.int32();
+                    break;
+                case /* string start */ 2:
+                    message.start = reader.string();
+                    break;
+                case /* string end */ 3:
+                    message.end = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TimeBlockInfo, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* int32 weekday = 1; */
+        if (message.weekday !== 0)
+            writer.tag(1, WireType.Varint).int32(message.weekday);
+        /* string start = 2; */
+        if (message.start !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.start);
+        /* string end = 3; */
+        if (message.end !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.end);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.TimeBlockInfo
+ */
+export const TimeBlockInfo = new TimeBlockInfo$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class SetWeeklyScheduleRequest$Type extends MessageType<SetWeeklyScheduleRequest> {
+    constructor() {
+        super("grpc.SetWeeklyScheduleRequest", [
+            { no: 1, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "slot_minutes", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 3, name: "blocks", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TimeBlockInfo }
+        ]);
+    }
+    create(value?: PartialMessage<SetWeeklyScheduleRequest>): SetWeeklyScheduleRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.organizationId = "";
+        message.slotMinutes = 0;
+        message.blocks = [];
+        if (value !== undefined)
+            reflectionMergePartial<SetWeeklyScheduleRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SetWeeklyScheduleRequest): SetWeeklyScheduleRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string organization_id */ 1:
+                    message.organizationId = reader.string();
+                    break;
+                case /* int32 slot_minutes */ 2:
+                    message.slotMinutes = reader.int32();
+                    break;
+                case /* repeated grpc.TimeBlockInfo blocks */ 3:
+                    message.blocks.push(TimeBlockInfo.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: SetWeeklyScheduleRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string organization_id = 1; */
+        if (message.organizationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.organizationId);
+        /* int32 slot_minutes = 2; */
+        if (message.slotMinutes !== 0)
+            writer.tag(2, WireType.Varint).int32(message.slotMinutes);
+        /* repeated grpc.TimeBlockInfo blocks = 3; */
+        for (let i = 0; i < message.blocks.length; i++)
+            TimeBlockInfo.internalBinaryWrite(message.blocks[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.SetWeeklyScheduleRequest
+ */
+export const SetWeeklyScheduleRequest = new SetWeeklyScheduleRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ScheduleExceptionInfo$Type extends MessageType<ScheduleExceptionInfo> {
+    constructor() {
+        super("grpc.ScheduleExceptionInfo", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "start", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "end", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "reason", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ScheduleExceptionInfo>): ScheduleExceptionInfo {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.id = "";
+        message.start = "";
+        message.end = "";
+        if (value !== undefined)
+            reflectionMergePartial<ScheduleExceptionInfo>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ScheduleExceptionInfo): ScheduleExceptionInfo {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string id */ 1:
+                    message.id = reader.string();
+                    break;
+                case /* string start */ 2:
+                    message.start = reader.string();
+                    break;
+                case /* string end */ 3:
+                    message.end = reader.string();
+                    break;
+                case /* optional string reason */ 4:
+                    message.reason = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ScheduleExceptionInfo, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string id = 1; */
+        if (message.id !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.id);
+        /* string start = 2; */
+        if (message.start !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.start);
+        /* string end = 3; */
+        if (message.end !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.end);
+        /* optional string reason = 4; */
+        if (message.reason !== undefined)
+            writer.tag(4, WireType.LengthDelimited).string(message.reason);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.ScheduleExceptionInfo
+ */
+export const ScheduleExceptionInfo = new ScheduleExceptionInfo$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ScheduleResponse$Type extends MessageType<ScheduleResponse> {
+    constructor() {
+        super("grpc.ScheduleResponse", [
+            { no: 1, name: "defined", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "slot_minutes", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 3, name: "blocks", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TimeBlockInfo },
+            { no: 4, name: "exceptions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScheduleExceptionInfo },
+            { no: 5, name: "timezone", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ScheduleResponse>): ScheduleResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.defined = false;
+        message.slotMinutes = 0;
+        message.blocks = [];
+        message.exceptions = [];
+        message.timezone = "";
+        if (value !== undefined)
+            reflectionMergePartial<ScheduleResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ScheduleResponse): ScheduleResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool defined */ 1:
+                    message.defined = reader.bool();
+                    break;
+                case /* int32 slot_minutes */ 2:
+                    message.slotMinutes = reader.int32();
+                    break;
+                case /* repeated grpc.TimeBlockInfo blocks */ 3:
+                    message.blocks.push(TimeBlockInfo.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated grpc.ScheduleExceptionInfo exceptions */ 4:
+                    message.exceptions.push(ScheduleExceptionInfo.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string timezone */ 5:
+                    message.timezone = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ScheduleResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool defined = 1; */
+        if (message.defined !== false)
+            writer.tag(1, WireType.Varint).bool(message.defined);
+        /* int32 slot_minutes = 2; */
+        if (message.slotMinutes !== 0)
+            writer.tag(2, WireType.Varint).int32(message.slotMinutes);
+        /* repeated grpc.TimeBlockInfo blocks = 3; */
+        for (let i = 0; i < message.blocks.length; i++)
+            TimeBlockInfo.internalBinaryWrite(message.blocks[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* repeated grpc.ScheduleExceptionInfo exceptions = 4; */
+        for (let i = 0; i < message.exceptions.length; i++)
+            ScheduleExceptionInfo.internalBinaryWrite(message.exceptions[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* string timezone = 5; */
+        if (message.timezone !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.timezone);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.ScheduleResponse
+ */
+export const ScheduleResponse = new ScheduleResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AddScheduleExceptionRequest$Type extends MessageType<AddScheduleExceptionRequest> {
+    constructor() {
+        super("grpc.AddScheduleExceptionRequest", [
+            { no: 1, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "start", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "end", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "reason", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AddScheduleExceptionRequest>): AddScheduleExceptionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.organizationId = "";
+        message.start = "";
+        message.end = "";
+        if (value !== undefined)
+            reflectionMergePartial<AddScheduleExceptionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AddScheduleExceptionRequest): AddScheduleExceptionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string organization_id */ 1:
+                    message.organizationId = reader.string();
+                    break;
+                case /* string start */ 2:
+                    message.start = reader.string();
+                    break;
+                case /* string end */ 3:
+                    message.end = reader.string();
+                    break;
+                case /* optional string reason */ 4:
+                    message.reason = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AddScheduleExceptionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string organization_id = 1; */
+        if (message.organizationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.organizationId);
+        /* string start = 2; */
+        if (message.start !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.start);
+        /* string end = 3; */
+        if (message.end !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.end);
+        /* optional string reason = 4; */
+        if (message.reason !== undefined)
+            writer.tag(4, WireType.LengthDelimited).string(message.reason);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.AddScheduleExceptionRequest
+ */
+export const AddScheduleExceptionRequest = new AddScheduleExceptionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RemoveScheduleExceptionRequest$Type extends MessageType<RemoveScheduleExceptionRequest> {
+    constructor() {
+        super("grpc.RemoveScheduleExceptionRequest", [
+            { no: 1, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "exception_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RemoveScheduleExceptionRequest>): RemoveScheduleExceptionRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.organizationId = "";
+        message.exceptionId = "";
+        if (value !== undefined)
+            reflectionMergePartial<RemoveScheduleExceptionRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RemoveScheduleExceptionRequest): RemoveScheduleExceptionRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string organization_id */ 1:
+                    message.organizationId = reader.string();
+                    break;
+                case /* string exception_id */ 2:
+                    message.exceptionId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RemoveScheduleExceptionRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string organization_id = 1; */
+        if (message.organizationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.organizationId);
+        /* string exception_id = 2; */
+        if (message.exceptionId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.exceptionId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.RemoveScheduleExceptionRequest
+ */
+export const RemoveScheduleExceptionRequest = new RemoveScheduleExceptionRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class BookAppointmentRequest$Type extends MessageType<BookAppointmentRequest> {
+    constructor() {
+        super("grpc.BookAppointmentRequest", [
+            { no: 1, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "practitioner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "start", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<BookAppointmentRequest>): BookAppointmentRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.organizationId = "";
+        message.practitionerUserId = "";
+        message.start = "";
+        if (value !== undefined)
+            reflectionMergePartial<BookAppointmentRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: BookAppointmentRequest): BookAppointmentRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string organization_id */ 1:
+                    message.organizationId = reader.string();
+                    break;
+                case /* string practitioner_user_id */ 2:
+                    message.practitionerUserId = reader.string();
+                    break;
+                case /* string start */ 3:
+                    message.start = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: BookAppointmentRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string organization_id = 1; */
+        if (message.organizationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.organizationId);
+        /* string practitioner_user_id = 2; */
+        if (message.practitionerUserId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.practitionerUserId);
+        /* string start = 3; */
+        if (message.start !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.start);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.BookAppointmentRequest
+ */
+export const BookAppointmentRequest = new BookAppointmentRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class NewPatientInfo$Type extends MessageType<NewPatientInfo> {
+    constructor() {
+        super("grpc.NewPatientInfo", [
+            { no: 1, name: "given_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "family_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "second_family_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "identifier", kind: "message", T: () => Identifier },
+            { no: 5, name: "phone", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "birth_date", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<NewPatientInfo>): NewPatientInfo {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.givenName = "";
+        message.familyName = "";
+        message.phone = "";
+        if (value !== undefined)
+            reflectionMergePartial<NewPatientInfo>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: NewPatientInfo): NewPatientInfo {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string given_name */ 1:
+                    message.givenName = reader.string();
+                    break;
+                case /* string family_name */ 2:
+                    message.familyName = reader.string();
+                    break;
+                case /* optional string second_family_name */ 3:
+                    message.secondFamilyName = reader.string();
+                    break;
+                case /* grpc.Identifier identifier */ 4:
+                    message.identifier = Identifier.internalBinaryRead(reader, reader.uint32(), options, message.identifier);
+                    break;
+                case /* string phone */ 5:
+                    message.phone = reader.string();
+                    break;
+                case /* optional string birth_date */ 6:
+                    message.birthDate = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: NewPatientInfo, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string given_name = 1; */
+        if (message.givenName !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.givenName);
+        /* string family_name = 2; */
+        if (message.familyName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.familyName);
+        /* optional string second_family_name = 3; */
+        if (message.secondFamilyName !== undefined)
+            writer.tag(3, WireType.LengthDelimited).string(message.secondFamilyName);
+        /* grpc.Identifier identifier = 4; */
+        if (message.identifier)
+            Identifier.internalBinaryWrite(message.identifier, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* string phone = 5; */
+        if (message.phone !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.phone);
+        /* optional string birth_date = 6; */
+        if (message.birthDate !== undefined)
+            writer.tag(6, WireType.LengthDelimited).string(message.birthDate);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.NewPatientInfo
+ */
+export const NewPatientInfo = new NewPatientInfo$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class BookForPatientRequest$Type extends MessageType<BookForPatientRequest> {
+    constructor() {
+        super("grpc.BookForPatientRequest", [
+            { no: 1, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "practitioner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "start", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "patient_id", kind: "scalar", oneof: "patient", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "new_patient", kind: "message", oneof: "patient", T: () => NewPatientInfo }
+        ]);
+    }
+    create(value?: PartialMessage<BookForPatientRequest>): BookForPatientRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.organizationId = "";
+        message.practitionerUserId = "";
+        message.start = "";
+        message.patient = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<BookForPatientRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: BookForPatientRequest): BookForPatientRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string organization_id */ 1:
+                    message.organizationId = reader.string();
+                    break;
+                case /* string practitioner_user_id */ 2:
+                    message.practitionerUserId = reader.string();
+                    break;
+                case /* string start */ 3:
+                    message.start = reader.string();
+                    break;
+                case /* string patient_id */ 4:
+                    message.patient = {
+                        oneofKind: "patientId",
+                        patientId: reader.string()
+                    };
+                    break;
+                case /* grpc.NewPatientInfo new_patient */ 5:
+                    message.patient = {
+                        oneofKind: "newPatient",
+                        newPatient: NewPatientInfo.internalBinaryRead(reader, reader.uint32(), options, (message.patient as any).newPatient)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: BookForPatientRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string organization_id = 1; */
+        if (message.organizationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.organizationId);
+        /* string practitioner_user_id = 2; */
+        if (message.practitionerUserId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.practitionerUserId);
+        /* string start = 3; */
+        if (message.start !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.start);
+        /* string patient_id = 4; */
+        if (message.patient.oneofKind === "patientId")
+            writer.tag(4, WireType.LengthDelimited).string(message.patient.patientId);
+        /* grpc.NewPatientInfo new_patient = 5; */
+        if (message.patient.oneofKind === "newPatient")
+            NewPatientInfo.internalBinaryWrite(message.patient.newPatient, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.BookForPatientRequest
+ */
+export const BookForPatientRequest = new BookForPatientRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppointmentInfo$Type extends MessageType<AppointmentInfo> {
+    constructor() {
+        super("grpc.AppointmentInfo", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "clinic_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "clinic_subdomain", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "practitioner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "practitioner_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "patient_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "patient_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "start", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "end", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "status", kind: "enum", T: () => ["grpc.AppointmentStatus", AppointmentStatus, "APPOINTMENT_STATUS_"] },
+            { no: 12, name: "document_check", kind: "enum", T: () => ["grpc.DocumentCheck", DocumentCheck, "DOCUMENT_CHECK_"] }
+        ]);
+    }
+    create(value?: PartialMessage<AppointmentInfo>): AppointmentInfo {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.id = "";
+        message.organizationId = "";
+        message.clinicName = "";
+        message.clinicSubdomain = "";
+        message.practitionerUserId = "";
+        message.practitionerName = "";
+        message.patientId = "";
+        message.start = "";
+        message.end = "";
+        message.status = 0;
+        message.documentCheck = 0;
+        if (value !== undefined)
+            reflectionMergePartial<AppointmentInfo>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppointmentInfo): AppointmentInfo {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string id */ 1:
+                    message.id = reader.string();
+                    break;
+                case /* string organization_id */ 2:
+                    message.organizationId = reader.string();
+                    break;
+                case /* string clinic_name */ 3:
+                    message.clinicName = reader.string();
+                    break;
+                case /* string clinic_subdomain */ 4:
+                    message.clinicSubdomain = reader.string();
+                    break;
+                case /* string practitioner_user_id */ 5:
+                    message.practitionerUserId = reader.string();
+                    break;
+                case /* string practitioner_name */ 6:
+                    message.practitionerName = reader.string();
+                    break;
+                case /* string patient_id */ 7:
+                    message.patientId = reader.string();
+                    break;
+                case /* optional string patient_name */ 8:
+                    message.patientName = reader.string();
+                    break;
+                case /* string start */ 9:
+                    message.start = reader.string();
+                    break;
+                case /* string end */ 10:
+                    message.end = reader.string();
+                    break;
+                case /* grpc.AppointmentStatus status */ 11:
+                    message.status = reader.int32();
+                    break;
+                case /* grpc.DocumentCheck document_check */ 12:
+                    message.documentCheck = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppointmentInfo, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string id = 1; */
+        if (message.id !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.id);
+        /* string organization_id = 2; */
+        if (message.organizationId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.organizationId);
+        /* string clinic_name = 3; */
+        if (message.clinicName !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.clinicName);
+        /* string clinic_subdomain = 4; */
+        if (message.clinicSubdomain !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.clinicSubdomain);
+        /* string practitioner_user_id = 5; */
+        if (message.practitionerUserId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.practitionerUserId);
+        /* string practitioner_name = 6; */
+        if (message.practitionerName !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.practitionerName);
+        /* string patient_id = 7; */
+        if (message.patientId !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.patientId);
+        /* optional string patient_name = 8; */
+        if (message.patientName !== undefined)
+            writer.tag(8, WireType.LengthDelimited).string(message.patientName);
+        /* string start = 9; */
+        if (message.start !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.start);
+        /* string end = 10; */
+        if (message.end !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.end);
+        /* grpc.AppointmentStatus status = 11; */
+        if (message.status !== 0)
+            writer.tag(11, WireType.Varint).int32(message.status);
+        /* grpc.DocumentCheck document_check = 12; */
+        if (message.documentCheck !== 0)
+            writer.tag(12, WireType.Varint).int32(message.documentCheck);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.AppointmentInfo
+ */
+export const AppointmentInfo = new AppointmentInfo$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppointmentList$Type extends MessageType<AppointmentList> {
+    constructor() {
+        super("grpc.AppointmentList", [
+            { no: 1, name: "appointments", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AppointmentInfo }
+        ]);
+    }
+    create(value?: PartialMessage<AppointmentList>): AppointmentList {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appointments = [];
+        if (value !== undefined)
+            reflectionMergePartial<AppointmentList>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppointmentList): AppointmentList {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated grpc.AppointmentInfo appointments */ 1:
+                    message.appointments.push(AppointmentInfo.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppointmentList, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated grpc.AppointmentInfo appointments = 1; */
+        for (let i = 0; i < message.appointments.length; i++)
+            AppointmentInfo.internalBinaryWrite(message.appointments[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.AppointmentList
+ */
+export const AppointmentList = new AppointmentList$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListMyAppointmentsRequest$Type extends MessageType<ListMyAppointmentsRequest> {
+    constructor() {
+        super("grpc.ListMyAppointmentsRequest", []);
+    }
+    create(value?: PartialMessage<ListMyAppointmentsRequest>): ListMyAppointmentsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListMyAppointmentsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListMyAppointmentsRequest): ListMyAppointmentsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListMyAppointmentsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.ListMyAppointmentsRequest
+ */
+export const ListMyAppointmentsRequest = new ListMyAppointmentsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListClinicAppointmentsRequest$Type extends MessageType<ListClinicAppointmentsRequest> {
+    constructor() {
+        super("grpc.ListClinicAppointmentsRequest", [
+            { no: 1, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "from", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "to", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListClinicAppointmentsRequest>): ListClinicAppointmentsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.organizationId = "";
+        message.from = "";
+        message.to = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListClinicAppointmentsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListClinicAppointmentsRequest): ListClinicAppointmentsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string organization_id */ 1:
+                    message.organizationId = reader.string();
+                    break;
+                case /* string from */ 2:
+                    message.from = reader.string();
+                    break;
+                case /* string to */ 3:
+                    message.to = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListClinicAppointmentsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string organization_id = 1; */
+        if (message.organizationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.organizationId);
+        /* string from = 2; */
+        if (message.from !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.from);
+        /* string to = 3; */
+        if (message.to !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.to);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.ListClinicAppointmentsRequest
+ */
+export const ListClinicAppointmentsRequest = new ListClinicAppointmentsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppointmentIdRequest$Type extends MessageType<AppointmentIdRequest> {
+    constructor() {
+        super("grpc.AppointmentIdRequest", [
+            { no: 1, name: "appointment_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppointmentIdRequest>): AppointmentIdRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appointmentId = "";
+        if (value !== undefined)
+            reflectionMergePartial<AppointmentIdRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppointmentIdRequest): AppointmentIdRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string appointment_id */ 1:
+                    message.appointmentId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppointmentIdRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string appointment_id = 1; */
+        if (message.appointmentId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appointmentId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.AppointmentIdRequest
+ */
+export const AppointmentIdRequest = new AppointmentIdRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RescheduleAppointmentRequest$Type extends MessageType<RescheduleAppointmentRequest> {
+    constructor() {
+        super("grpc.RescheduleAppointmentRequest", [
+            { no: 1, name: "appointment_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "practitioner_user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "start", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RescheduleAppointmentRequest>): RescheduleAppointmentRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appointmentId = "";
+        message.practitionerUserId = "";
+        message.start = "";
+        if (value !== undefined)
+            reflectionMergePartial<RescheduleAppointmentRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RescheduleAppointmentRequest): RescheduleAppointmentRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string appointment_id */ 1:
+                    message.appointmentId = reader.string();
+                    break;
+                case /* string practitioner_user_id */ 2:
+                    message.practitionerUserId = reader.string();
+                    break;
+                case /* string start */ 3:
+                    message.start = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RescheduleAppointmentRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string appointment_id = 1; */
+        if (message.appointmentId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appointmentId);
+        /* string practitioner_user_id = 2; */
+        if (message.practitionerUserId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.practitionerUserId);
+        /* string start = 3; */
+        if (message.start !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.start);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.RescheduleAppointmentRequest
+ */
+export const RescheduleAppointmentRequest = new RescheduleAppointmentRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CheckInRequest$Type extends MessageType<CheckInRequest> {
+    constructor() {
+        super("grpc.CheckInRequest", [
+            { no: 1, name: "appointment_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "document_check", kind: "enum", T: () => ["grpc.DocumentCheck", DocumentCheck, "DOCUMENT_CHECK_"] }
+        ]);
+    }
+    create(value?: PartialMessage<CheckInRequest>): CheckInRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appointmentId = "";
+        message.documentCheck = 0;
+        if (value !== undefined)
+            reflectionMergePartial<CheckInRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CheckInRequest): CheckInRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string appointment_id */ 1:
+                    message.appointmentId = reader.string();
+                    break;
+                case /* grpc.DocumentCheck document_check */ 2:
+                    message.documentCheck = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CheckInRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string appointment_id = 1; */
+        if (message.appointmentId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appointmentId);
+        /* grpc.DocumentCheck document_check = 2; */
+        if (message.documentCheck !== 0)
+            writer.tag(2, WireType.Varint).int32(message.documentCheck);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.CheckInRequest
+ */
+export const CheckInRequest = new CheckInRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LinkSuggestionInfo$Type extends MessageType<LinkSuggestionInfo> {
+    constructor() {
+        super("grpc.LinkSuggestionInfo", [
+            { no: 1, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "email", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LinkSuggestionInfo>): LinkSuggestionInfo {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.userId = "";
+        message.name = "";
+        message.email = "";
+        if (value !== undefined)
+            reflectionMergePartial<LinkSuggestionInfo>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LinkSuggestionInfo): LinkSuggestionInfo {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string user_id */ 1:
+                    message.userId = reader.string();
+                    break;
+                case /* string name */ 2:
+                    message.name = reader.string();
+                    break;
+                case /* string email */ 3:
+                    message.email = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LinkSuggestionInfo, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string user_id = 1; */
+        if (message.userId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.userId);
+        /* string name = 2; */
+        if (message.name !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.name);
+        /* string email = 3; */
+        if (message.email !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.email);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.LinkSuggestionInfo
+ */
+export const LinkSuggestionInfo = new LinkSuggestionInfo$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CheckInResponse$Type extends MessageType<CheckInResponse> {
+    constructor() {
+        super("grpc.CheckInResponse", [
+            { no: 1, name: "appointment", kind: "message", T: () => AppointmentInfo },
+            { no: 2, name: "account_verified", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "link_suggestions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LinkSuggestionInfo }
+        ]);
+    }
+    create(value?: PartialMessage<CheckInResponse>): CheckInResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.accountVerified = false;
+        message.linkSuggestions = [];
+        if (value !== undefined)
+            reflectionMergePartial<CheckInResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CheckInResponse): CheckInResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* grpc.AppointmentInfo appointment */ 1:
+                    message.appointment = AppointmentInfo.internalBinaryRead(reader, reader.uint32(), options, message.appointment);
+                    break;
+                case /* bool account_verified */ 2:
+                    message.accountVerified = reader.bool();
+                    break;
+                case /* repeated grpc.LinkSuggestionInfo link_suggestions */ 3:
+                    message.linkSuggestions.push(LinkSuggestionInfo.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CheckInResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* grpc.AppointmentInfo appointment = 1; */
+        if (message.appointment)
+            AppointmentInfo.internalBinaryWrite(message.appointment, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* bool account_verified = 2; */
+        if (message.accountVerified !== false)
+            writer.tag(2, WireType.Varint).bool(message.accountVerified);
+        /* repeated grpc.LinkSuggestionInfo link_suggestions = 3; */
+        for (let i = 0; i < message.linkSuggestions.length; i++)
+            LinkSuggestionInfo.internalBinaryWrite(message.linkSuggestions[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.CheckInResponse
+ */
+export const CheckInResponse = new CheckInResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PatientLinkRequest$Type extends MessageType<PatientLinkRequest> {
+    constructor() {
+        super("grpc.PatientLinkRequest", [
+            { no: 1, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "patient_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<PatientLinkRequest>): PatientLinkRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.organizationId = "";
+        message.patientId = "";
+        if (value !== undefined)
+            reflectionMergePartial<PatientLinkRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PatientLinkRequest): PatientLinkRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string organization_id */ 1:
+                    message.organizationId = reader.string();
+                    break;
+                case /* string patient_id */ 2:
+                    message.patientId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PatientLinkRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string organization_id = 1; */
+        if (message.organizationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.organizationId);
+        /* string patient_id = 2; */
+        if (message.patientId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.patientId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.PatientLinkRequest
+ */
+export const PatientLinkRequest = new PatientLinkRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LinkSuggestions$Type extends MessageType<LinkSuggestions> {
+    constructor() {
+        super("grpc.LinkSuggestions", [
+            { no: 1, name: "suggestions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LinkSuggestionInfo }
+        ]);
+    }
+    create(value?: PartialMessage<LinkSuggestions>): LinkSuggestions {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.suggestions = [];
+        if (value !== undefined)
+            reflectionMergePartial<LinkSuggestions>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LinkSuggestions): LinkSuggestions {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated grpc.LinkSuggestionInfo suggestions */ 1:
+                    message.suggestions.push(LinkSuggestionInfo.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LinkSuggestions, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated grpc.LinkSuggestionInfo suggestions = 1; */
+        for (let i = 0; i < message.suggestions.length; i++)
+            LinkSuggestionInfo.internalBinaryWrite(message.suggestions[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.LinkSuggestions
+ */
+export const LinkSuggestions = new LinkSuggestions$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LinkPatientAccountRequest$Type extends MessageType<LinkPatientAccountRequest> {
+    constructor() {
+        super("grpc.LinkPatientAccountRequest", [
+            { no: 1, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "patient_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "document_seen", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LinkPatientAccountRequest>): LinkPatientAccountRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.organizationId = "";
+        message.patientId = "";
+        message.userId = "";
+        message.documentSeen = false;
+        if (value !== undefined)
+            reflectionMergePartial<LinkPatientAccountRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LinkPatientAccountRequest): LinkPatientAccountRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string organization_id */ 1:
+                    message.organizationId = reader.string();
+                    break;
+                case /* string patient_id */ 2:
+                    message.patientId = reader.string();
+                    break;
+                case /* string user_id */ 3:
+                    message.userId = reader.string();
+                    break;
+                case /* bool document_seen */ 4:
+                    message.documentSeen = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LinkPatientAccountRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string organization_id = 1; */
+        if (message.organizationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.organizationId);
+        /* string patient_id = 2; */
+        if (message.patientId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.patientId);
+        /* string user_id = 3; */
+        if (message.userId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.userId);
+        /* bool document_seen = 4; */
+        if (message.documentSeen !== false)
+            writer.tag(4, WireType.Varint).bool(message.documentSeen);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.LinkPatientAccountRequest
+ */
+export const LinkPatientAccountRequest = new LinkPatientAccountRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PatientLinkResponse$Type extends MessageType<PatientLinkResponse> {
+    constructor() {
+        super("grpc.PatientLinkResponse", [
+            { no: 1, name: "link_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<PatientLinkResponse>): PatientLinkResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.linkId = "";
+        if (value !== undefined)
+            reflectionMergePartial<PatientLinkResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PatientLinkResponse): PatientLinkResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string link_id */ 1:
+                    message.linkId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PatientLinkResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string link_id = 1; */
+        if (message.linkId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.linkId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.PatientLinkResponse
+ */
+export const PatientLinkResponse = new PatientLinkResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UnlinkPatientAccountRequest$Type extends MessageType<UnlinkPatientAccountRequest> {
+    constructor() {
+        super("grpc.UnlinkPatientAccountRequest", [
+            { no: 1, name: "organization_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "link_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<UnlinkPatientAccountRequest>): UnlinkPatientAccountRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.organizationId = "";
+        message.linkId = "";
+        message.reason = "";
+        if (value !== undefined)
+            reflectionMergePartial<UnlinkPatientAccountRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UnlinkPatientAccountRequest): UnlinkPatientAccountRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string organization_id */ 1:
+                    message.organizationId = reader.string();
+                    break;
+                case /* string link_id */ 2:
+                    message.linkId = reader.string();
+                    break;
+                case /* string reason */ 3:
+                    message.reason = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UnlinkPatientAccountRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string organization_id = 1; */
+        if (message.organizationId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.organizationId);
+        /* string link_id = 2; */
+        if (message.linkId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.linkId);
+        /* string reason = 3; */
+        if (message.reason !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.reason);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message grpc.UnlinkPatientAccountRequest
+ */
+export const UnlinkPatientAccountRequest = new UnlinkPatientAccountRequest$Type();
 /**
  * @generated ServiceType for protobuf service grpc.PatientApi
  */
@@ -4249,4 +6724,32 @@ export const ClinicApi = new ServiceType("grpc.ClinicApi", [
     { name: "RequestMembership", options: {}, I: RequestMembershipRequest, O: Membership },
     { name: "ApproveMembership", options: {}, I: MembershipIdRequest, O: Membership },
     { name: "ListClinicMembers", options: {}, I: ClinicIdRequest, O: ClinicMembers }
+]);
+/**
+ * @generated ServiceType for protobuf service grpc.PublicSchedulingApi
+ */
+export const PublicSchedulingApi = new ServiceType("grpc.PublicSchedulingApi", [
+    { name: "GetClinic", options: {}, I: ClinicLinkRequest, O: PublicClinic },
+    { name: "ListPractitioners", options: {}, I: ClinicLinkRequest, O: PublicPractitioners },
+    { name: "GetAvailability", options: {}, I: AvailabilityRequest, O: Availability }
+]);
+/**
+ * @generated ServiceType for protobuf service grpc.SchedulingApi
+ */
+export const SchedulingApi = new ServiceType("grpc.SchedulingApi", [
+    { name: "SetWeeklySchedule", options: {}, I: SetWeeklyScheduleRequest, O: ScheduleResponse },
+    { name: "GetSchedule", options: {}, I: ClinicIdRequest, O: ScheduleResponse },
+    { name: "AddScheduleException", options: {}, I: AddScheduleExceptionRequest, O: ScheduleResponse },
+    { name: "RemoveScheduleException", options: {}, I: RemoveScheduleExceptionRequest, O: ScheduleResponse },
+    { name: "BookAppointment", options: {}, I: BookAppointmentRequest, O: AppointmentInfo },
+    { name: "BookForPatient", options: {}, I: BookForPatientRequest, O: AppointmentInfo },
+    { name: "ListMyAppointments", options: {}, I: ListMyAppointmentsRequest, O: AppointmentList },
+    { name: "ListClinicAppointments", options: {}, I: ListClinicAppointmentsRequest, O: AppointmentList },
+    { name: "CancelAppointment", options: {}, I: AppointmentIdRequest, O: AppointmentInfo },
+    { name: "RescheduleAppointment", options: {}, I: RescheduleAppointmentRequest, O: AppointmentInfo },
+    { name: "CheckIn", options: {}, I: CheckInRequest, O: CheckInResponse },
+    { name: "MarkNoShow", options: {}, I: AppointmentIdRequest, O: AppointmentInfo },
+    { name: "SuggestPatientLinks", options: {}, I: PatientLinkRequest, O: LinkSuggestions },
+    { name: "LinkPatientAccount", options: {}, I: LinkPatientAccountRequest, O: PatientLinkResponse },
+    { name: "UnlinkPatientAccount", options: {}, I: UnlinkPatientAccountRequest, O: PatientLinkResponse }
 ]);

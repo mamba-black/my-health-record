@@ -52,6 +52,30 @@ impl UserRepository for MockUserRepositoryImpl {
         Ok(exists)
     }
 
+    async fn find_users_by_document(
+        &self,
+        network_id: &uuid::Uuid,
+        identifier: &Identifier,
+    ) -> Result<Vec<User>, ClickCareError> {
+        let users = self.saved_users.lock().await;
+        Ok(users
+            .iter()
+            .filter(|user| {
+                user.network_id == *network_id
+                    && user.person.identifier.as_ref() == Some(identifier)
+            })
+            .cloned()
+            .collect())
+    }
+
+    async fn set_document_verified(&self, user_id: &uuid::Uuid) -> Result<(), ClickCareError> {
+        let mut users = self.saved_users.lock().await;
+        if let Some(user) = users.iter_mut().find(|user| user.id == *user_id) {
+            user.document_verified = true;
+        }
+        Ok(())
+    }
+
     async fn find_users_by_email(&self, email: &str) -> Result<Vec<User>, ClickCareError> {
         let users = self.saved_users.lock().await;
         Ok(users

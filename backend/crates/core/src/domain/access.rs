@@ -510,96 +510,10 @@ pub fn authorize(
     use ProtectedAction as A;
 
     // 1. Rol y membresía.
-    // Una cuenta de recepción entra a clínicas existentes: nunca funda una.
-    if action == A::CreateClinic && ctx.preferred_role == Role::Receptionist {
-        return Err(AccessDenied::Forbidden);
-    }
-    let membership = match action {
-        // Pedir el ingreso no exige membresía: que no tenga ya una en la clínica lo
-        // revisa el caso de uso.
-        A::ConfirmAppointment | A::CreateClinic | A::RequestMembership => None,
-        A::JoinClinic => Some(own_membership(
-            ctx,
-            target,
-            &[MembershipStatus::Invited],
-            &[
-                MembershipRole::Practitioner,
-                MembershipRole::Admin,
-                MembershipRole::Receptionist,
-            ],
-        )?),
-        A::ActivatePractitioner => Some(own_membership(
-            ctx,
-            target,
-            &[MembershipStatus::Invited, MembershipStatus::Pending],
-            &[MembershipRole::Practitioner],
-        )?),
-        // Buscar y ver los datos de contacto: el médico y recepción.
-        A::SearchPatients | A::ViewPatient => Some(active_membership(
-            ctx,
-            target,
-            &[MembershipRole::Practitioner, MembershipRole::Receptionist],
-        )?),
-        A::RegisterPatient => Some(active_membership(
-            ctx,
-            target,
-            &[
-                MembershipRole::Owner,
-                MembershipRole::Admin,
-                MembershipRole::Receptionist,
-            ],
-        )?),
-        A::ManageSchedule => Some(active_membership(
-            ctx,
-            target,
-            &[MembershipRole::Practitioner],
-        )?),
-        A::ViewClinicAgenda | A::BookForPatient | A::ManageAppointment => Some(active_membership(
-            ctx,
-            target,
-            &[
-                MembershipRole::Practitioner,
-                MembershipRole::Owner,
-                MembershipRole::Admin,
-                MembershipRole::Receptionist,
-            ],
-        )?),
-        A::CheckIn | A::LinkPatientAccount => Some(active_membership(
-            ctx,
-            target,
-            &[
-                MembershipRole::Owner,
-                MembershipRole::Admin,
-                MembershipRole::Receptionist,
-            ],
-        )?),
-        A::UnlinkPatientAccount => Some(active_membership(ctx, target, &[MembershipRole::Owner])?),
-        A::OpenFirstEncounter | A::RecordEncounter | A::IssuePrescription => Some(
-            active_membership(ctx, target, &[MembershipRole::Practitioner])?,
-        ),
-        A::ConfigureClinic
-        | A::InviteStaff
-        | A::SuspendMember
-        | A::ConfirmLicense
-        | A::ApproveMember => Some(active_membership(
-            ctx,
-            target,
-            &[MembershipRole::Owner, MembershipRole::Admin],
-        )?),
-        A::ActivateClinic => Some(active_membership(ctx, target, &[MembershipRole::Owner])?),
-    };
+    let membership = required_membership(action, ctx, target)?;
 
     // 2. Estado de la clínica.
-    let allowed: &[ClinicStatus] = match action {
-        A::CreateClinic | A::JoinClinic => &[],
-        A::ConfigureClinic
-        | A::InviteStaff
-        | A::SuspendMember
-        | A::ConfirmLicense
-        | A::ApproveMember => &[ClinicStatus::PendingSetup, ClinicStatus::Active],
-        A::ActivateClinic => &[ClinicStatus::PendingSetup],
-        _ => &[ClinicStatus::Active],
-    };
+    let allowed = allowed_clinic_statuses(action);
     if !allowed.is_empty() {
         match target.clinic_status {
             Some(status) if allowed.contains(&status) => {}
@@ -629,6 +543,72 @@ pub fn authorize(
             action,
             fields: missing,
         })
+    }
+}
+
+/// Membresía que exige la acción (o ninguna). Falla con `Forbidden` si no la tiene.
+fn required_membership<'a>(
+    action: ProtectedAction,
+    ctx: &'a RequestContext,
+    target: &AccessTarget,
+) -> Result<Option<&'a MembershipView>, AccessDenied> {
+    use MembershipRole::{Admin, Owner, Practitioner, Receptionist};
+    use ProtectedAction as A;
+    // Una cuenta de recepción entra a clínicas existentes: nunca funda una.
+    if action == A::CreateClinic && ctx.preferred_role == Role::Receptionist {
+        return Err(AccessDenied::Forbidden);
+    }
+    let active = |roles: &[MembershipRole]| active_membership(ctx, target, roles).map(Some);
+    match action {
+        // Pedir el ingreso no exige membresía: que no tenga ya una en la clínica lo
+        // revisa el caso de uso.
+        A::ConfirmAppointment | A::CreateClinic | A::RequestMembership => Ok(None),
+        A::JoinClinic => own_membership(
+            ctx,
+            target,
+            &[MembershipStatus::Invited],
+            &[Practitioner, Admin, Receptionist],
+        )
+        .map(Some),
+        A::ActivatePractitioner => own_membership(
+            ctx,
+            target,
+            &[MembershipStatus::Invited, MembershipStatus::Pending],
+            &[Practitioner],
+        )
+        .map(Some),
+        // Buscar y ver los datos de contacto: el médico y recepción.
+        A::SearchPatients | A::ViewPatient => active(&[Practitioner, Receptionist]),
+        A::RegisterPatient | A::CheckIn | A::LinkPatientAccount => {
+            active(&[Owner, Admin, Receptionist])
+        }
+        A::ManageSchedule | A::OpenFirstEncounter | A::RecordEncounter | A::IssuePrescription => {
+            active(&[Practitioner])
+        }
+        A::ViewClinicAgenda | A::BookForPatient | A::ManageAppointment => {
+            active(&[Practitioner, Owner, Admin, Receptionist])
+        }
+        A::ConfigureClinic
+        | A::InviteStaff
+        | A::SuspendMember
+        | A::ConfirmLicense
+        | A::ApproveMember => active(&[Owner, Admin]),
+        A::ActivateClinic | A::UnlinkPatientAccount => active(&[Owner]),
+    }
+}
+
+/// Estados de clínica en que procede la acción (vacío: no depende de la clínica).
+fn allowed_clinic_statuses(action: ProtectedAction) -> &'static [ClinicStatus] {
+    use ProtectedAction as A;
+    match action {
+        A::CreateClinic | A::JoinClinic => &[],
+        A::ConfigureClinic
+        | A::InviteStaff
+        | A::SuspendMember
+        | A::ConfirmLicense
+        | A::ApproveMember => &[ClinicStatus::PendingSetup, ClinicStatus::Active],
+        A::ActivateClinic => &[ClinicStatus::PendingSetup],
+        _ => &[ClinicStatus::Active],
     }
 }
 

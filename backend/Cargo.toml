@@ -47,6 +47,7 @@ serde = { version = "1.0", features = ["derive"] }
 clap = { version = "4.5", features = ["derive", "env"] }
 apalis = "1.0.0-rc.8"
 apalis-postgres = "1.0.0-rc.8"
+lettre = { version = "0.11", default-features = false, features = ["builder", "smtp-transport", "tokio1", "tokio1-rustls-tls", "hostname"] }
 apalis-board = { version = "1.0.0-rc.8", features = ["axum", "ui"] }
 
 

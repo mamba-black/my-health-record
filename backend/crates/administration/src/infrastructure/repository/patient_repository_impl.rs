@@ -105,6 +105,11 @@ impl PatientRepository for PatientRepositoryImpl {
         let rows = toasty::sql::query(
             "select id, organization_id, user_id, active, person from administration.patient \
              where organization_id = $1 and active and lower(person) like $2 \
+               and not exists ( \
+                 select 1 from administration.patient_link l \
+                   join administration.patient own \
+                     on own.organization_id = l.organization_id and own.user_id = l.user_id \
+                 where l.patient_id = patient.id and l.unlinked_at is null) \
              order by created_at limit 100",
         )
         .bind(*organization_id)

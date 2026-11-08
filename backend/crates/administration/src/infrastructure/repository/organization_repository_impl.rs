@@ -138,7 +138,8 @@ impl OrganizationRepository for OrganizationRepositoryImpl {
     async fn find_by_id(&self, id: &Uuid) -> Result<Option<Organization>, ClickCareError> {
         let rows = toasty::sql::query(
             "select id, network_id, subdomain, name, coalesce(tax_id, ''), owner_user_id, status, \
-             coalesce(legal_name, ''), coalesce(trade_name, ''), coalesce(ipress_code, '') \
+             coalesce(legal_name, ''), coalesce(trade_name, ''), coalesce(ipress_code, ''), \
+             timezone, coalesce(address, '') \
              from administration.organization where id = $1 limit 1",
         )
         .bind(*id)
@@ -149,6 +150,8 @@ impl OrganizationRepository for OrganizationRepositoryImpl {
             Type::String,
             Type::String,
             Type::Uuid,
+            Type::String,
+            Type::String,
             Type::String,
             Type::String,
             Type::String,
@@ -193,6 +196,8 @@ impl OrganizationRepository for OrganizationRepositoryImpl {
         let legal_name = optional(text(next("legal_name")?)?);
         let trade_name = optional(text(next("trade_name")?)?);
         let ipress_code = optional(text(next("ipress_code")?)?);
+        let timezone = text(next("timezone")?)?;
+        let address = optional(text(next("address")?)?);
 
         Ok(Some(Organization {
             id,
@@ -205,6 +210,8 @@ impl OrganizationRepository for OrganizationRepositoryImpl {
             legal_name,
             trade_name,
             ipress_code,
+            timezone,
+            address,
         }))
     }
 

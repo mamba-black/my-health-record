@@ -159,6 +159,43 @@ impl UserRepository for UserRepositoryImpl {
         rows.into_iter().next().map(map_row_to_user).transpose()
     }
 
+    async fn find_users_by_document(
+        &self,
+        network_id: &Uuid,
+        identifier: &Identifier,
+    ) -> Result<Vec<User>, ClickCareError> {
+        let rows = toasty::sql::query(format!(
+            "{USER_COLUMNS} from identity.user_account \
+             where network_id = $1 and document_type = $2 and document_value = $3 and active"
+        ))
+        .bind(*network_id)
+        .bind(identifier.type_code().to_string())
+        .bind(identifier.value().to_string())
+        .column_types(user_column_types())
+        .exec(&mut self.db.clone())
+        .await
+        .map_err(|error| {
+            error!("Error al buscar cuentas por documento en network_id:{network_id} ({error})");
+            ClickCareError::generic(error.to_string())
+        })?;
+        rows.into_iter().map(map_row_to_user).collect()
+    }
+
+    async fn set_document_verified(&self, user_id: &Uuid) -> Result<(), ClickCareError> {
+        toasty::sql::query(
+            "update identity.user_account set document_verified = true, \
+             updated_at = current_timestamp where id = $1",
+        )
+        .bind(*user_id)
+        .exec(&mut self.db.clone())
+        .await
+        .map_err(|error| {
+            error!("Error al verificar el documento de user_account {user_id}: {error}");
+            ClickCareError::generic(error.to_string())
+        })?;
+        Ok(())
+    }
+
     async fn set_license_verified(&self, user_id: &Uuid) -> Result<(), ClickCareError> {
         toasty::sql::query(
             "update identity.user_account set license_verified = true, \

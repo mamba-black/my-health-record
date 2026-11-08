@@ -84,6 +84,53 @@ service ClinicApi {
 }
 
 
+/// Agenda pública de una clínica activa: no exige sesión. Las fechas son RFC 3339 en UTC.
+service PublicSchedulingApi {
+    /// Clínica por su enlace (subdominio), en cualquier estado.
+    rpc GetClinic (ClinicLinkRequest) returns (PublicClinic) {}
+
+    /// Médicos activos con horario. Una clínica pendiente o suspendida no muestra a nadie.
+    rpc ListPractitioners (ClinicLinkRequest) returns (PublicPractitioners) {}
+
+    /// Cupos libres de un médico: futuros y dentro de la ventana de reserva.
+    rpc GetAvailability (AvailabilityRequest) returns (Availability) {}
+}
+
+/// Agenda y citas con sesión. Las fechas son RFC 3339 en UTC; las horas del horario,
+/// `HH:MM` locales de la clínica.
+service SchedulingApi {
+    /// El médico guarda su horario semanal en la clínica.
+    rpc SetWeeklySchedule (SetWeeklyScheduleRequest) returns (ScheduleResponse) {}
+    /// Horario y excepciones del médico de la sesión en la clínica.
+    rpc GetSchedule (ClinicIdRequest) returns (ScheduleResponse) {}
+    rpc AddScheduleException (AddScheduleExceptionRequest) returns (ScheduleResponse) {}
+    rpc RemoveScheduleException (RemoveScheduleExceptionRequest) returns (ScheduleResponse) {}
+
+    /// El paciente reserva para sí mismo (exige sus datos: `ACTION_CONFIRM_APPOINTMENT`).
+    rpc BookAppointment (BookAppointmentRequest) returns (AppointmentInfo) {}
+    /// La clínica reserva en nombre de un paciente, aunque no tenga cuenta.
+    rpc BookForPatient (BookForPatientRequest) returns (AppointmentInfo) {}
+
+    /// Citas del paciente de la sesión en las clínicas de su organización.
+    rpc ListMyAppointments (ListMyAppointmentsRequest) returns (AppointmentList) {}
+    /// Agenda de la clínica (el médico ve solo la suya).
+    rpc ListClinicAppointments (ListClinicAppointmentsRequest) returns (AppointmentList) {}
+
+    rpc CancelAppointment (AppointmentIdRequest) returns (AppointmentInfo) {}
+    rpc RescheduleAppointment (RescheduleAppointmentRequest) returns (AppointmentInfo) {}
+
+    /// Recepción registra la llegada y, opcionalmente, la verificación del documento.
+    rpc CheckIn (CheckInRequest) returns (CheckInResponse) {}
+    rpc MarkNoShow (AppointmentIdRequest) returns (AppointmentInfo) {}
+
+    /// Cuentas con el mismo documento que un paciente registrado sin cuenta.
+    rpc SuggestPatientLinks (PatientLinkRequest) returns (LinkSuggestions) {}
+    /// Vincula, con el documento físico a la vista, un paciente sin cuenta con su cuenta.
+    rpc LinkPatientAccount (LinkPatientAccountRequest) returns (PatientLinkResponse) {}
+    /// El dueño deshace un vínculo equivocado, con su motivo.
+    rpc UnlinkPatientAccount (UnlinkPatientAccountRequest) returns (PatientLinkResponse) {}
+}
+
 // ============================================================================
 // MENSAJES DE SOLICITUD Y RESPUESTA DE PACIENTE Y USUARIOS
 // ============================================================================
@@ -593,4 +640,206 @@ message CreateClinicResponse {
     string network_id = 2;        // UUID v7 de la red clínica
     string practitioner_id = 3;   // UUID v7 de la ficha de profesional del propietario
     bool already_existed = 4;     // La clínica ya existía y se devolvió sin recrearla
+}
+
+
+// ============================================================================
+// AGENDA Y CITAS
+// ============================================================================
+
+message ClinicLinkRequest {
+    string subdomain = 1;
+}
+
+message PublicClinic {
+    string organization_id = 1;
+    string name = 2;
+    ClinicStatus status = 3;
+    string timezone = 4;
+    optional string address = 5;
+}
+
+message PublicPractitioner {
+    string user_id = 1;
+    string name = 2;
+    optional string specialty = 3;
+}
+
+message PublicPractitioners {
+    repeated PublicPractitioner practitioners = 1;
+}
+
+message AvailabilityRequest {
+    string subdomain = 1;
+    string practitioner_user_id = 2;
+    string from = 3;
+    string to = 4;
+}
+
+message SlotInfo {
+    string id = 1;
+    string start = 2;
+    string end = 3;
+}
+
+message Availability {
+    repeated SlotInfo slots = 1;
+}
+
+message TimeBlockInfo {
+    int32 weekday = 1; // 1 = lunes … 7 = domingo
+    string start = 2;  // HH:MM local
+    string end = 3;    // HH:MM local
+}
+
+message SetWeeklyScheduleRequest {
+    string organization_id = 1;
+    int32 slot_minutes = 2;
+    repeated TimeBlockInfo blocks = 3;
+}
+
+message ScheduleExceptionInfo {
+    string id = 1;
+    string start = 2;
+    string end = 3;
+    optional string reason = 4;
+}
+
+message ScheduleResponse {
+    bool defined = 1;
+    int32 slot_minutes = 2;
+    repeated TimeBlockInfo blocks = 3;
+    repeated ScheduleExceptionInfo exceptions = 4;
+    string timezone = 5;
+}
+
+message AddScheduleExceptionRequest {
+    string organization_id = 1;
+    string start = 2;
+    string end = 3;
+    optional string reason = 4;
+}
+
+message RemoveScheduleExceptionRequest {
+    string organization_id = 1;
+    string exception_id = 2;
+}
+
+message BookAppointmentRequest {
+    string organization_id = 1;
+    string practitioner_user_id = 2;
+    string start = 3;
+}
+
+message NewPatientInfo {
+    string given_name = 1;
+    string family_name = 2;
+    optional string second_family_name = 3;
+    Identifier identifier = 4;
+    string phone = 5;
+    optional string birth_date = 6;
+}
+
+message BookForPatientRequest {
+    string organization_id = 1;
+    string practitioner_user_id = 2;
+    string start = 3;
+    oneof patient {
+        string patient_id = 4;
+        NewPatientInfo new_patient = 5;
+    }
+}
+
+enum AppointmentStatus {
+    APPOINTMENT_STATUS_UNSPECIFIED = 0;
+    APPOINTMENT_STATUS_BOOKED = 1;
+    APPOINTMENT_STATUS_ARRIVED = 2;
+    APPOINTMENT_STATUS_CANCELLED = 3;
+    APPOINTMENT_STATUS_NOSHOW = 4;
+}
+
+enum DocumentCheck {
+    DOCUMENT_CHECK_UNSPECIFIED = 0;
+    DOCUMENT_CHECK_MATCH = 1;
+    DOCUMENT_CHECK_MISMATCH = 2;
+}
+
+message AppointmentInfo {
+    string id = 1;
+    string organization_id = 2;
+    string clinic_name = 3;
+    string clinic_subdomain = 4;
+    string practitioner_user_id = 5;
+    string practitioner_name = 6;
+    string patient_id = 7;
+    optional string patient_name = 8;
+    string start = 9;
+    string end = 10;
+    AppointmentStatus status = 11;
+    DocumentCheck document_check = 12;
+}
+
+message AppointmentList {
+    repeated AppointmentInfo appointments = 1;
+}
+
+message ListMyAppointmentsRequest {}
+
+message ListClinicAppointmentsRequest {
+    string organization_id = 1;
+    string from = 2;
+    string to = 3;
+}
+
+message AppointmentIdRequest {
+    string appointment_id = 1;
+}
+
+message RescheduleAppointmentRequest {
+    string appointment_id = 1;
+    string practitioner_user_id = 2;
+    string start = 3;
+}
+
+message CheckInRequest {
+    string appointment_id = 1;
+    DocumentCheck document_check = 2;
+}
+
+message LinkSuggestionInfo {
+    string user_id = 1;
+    string name = 2;
+    string email = 3;
+}
+
+message CheckInResponse {
+    AppointmentInfo appointment = 1;
+    bool account_verified = 2;
+    repeated LinkSuggestionInfo link_suggestions = 3;
+}
+
+message PatientLinkRequest {
+    string organization_id = 1;
+    string patient_id = 2;
+}
+
+message LinkSuggestions {
+    repeated LinkSuggestionInfo suggestions = 1;
+}
+
+message LinkPatientAccountRequest {
+    string organization_id = 1;
+    string patient_id = 2;
+    string user_id = 3;
+    bool document_seen = 4;
+}
+
+message PatientLinkResponse {
+    string link_id = 1;
+}
+
+message UnlinkPatientAccountRequest {
+    string organization_id = 1;
+    string link_id = 2;
+    string reason = 3;
 }

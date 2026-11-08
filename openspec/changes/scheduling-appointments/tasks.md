@@ -32,7 +32,7 @@
 
 ## 4. Persistencia y puertos
 
-- [ ] 4.1 Implementar `ScheduleRepository` y `AppointmentRepository` sobre el esquema `scheduling`:
+- [x] 4.1 Implementar `ScheduleRepository` y `AppointmentRepository` sobre el esquema `scheduling`:
   - si la restricción `EXCLUDE` falla (`23P01`), devolver el error de dominio «cupo no disponible»;
   - reprogramar como un `UPDATE` en una transacción.
 
@@ -40,8 +40,8 @@
   - «Reservas simultáneas» con `tokio::join!`: exactamente una de las dos reservas tiene éxito;
   - «Nuevo cupo ocupado»: la cita conserva su cupo original;
   - el cruce entre clínicas de la misma red a nivel de citas, y que dos redes distintas no chocan aunque compartan base.
-- [ ] 4.2 Definir los puertos `ClinicDirectory`, `PatientRegistry`, `IdentityVerification`, `NotificationSender`, `ReminderScheduler` y `Clock`, con dobles en memoria en `scheduling/src/testing.rs`. Verificar: compilan y los usan las pruebas unitarias de los grupos 5 a 7.
-- [ ] 4.3 Implementar los adaptadores en `bin/clickcare`:
+- [x] 4.2 Definir los puertos `ClinicDirectory`, `PatientRegistry`, `IdentityVerification`, `NotificationSender`, `ReminderScheduler` y `Clock`, con dobles en memoria en `scheduling/src/testing.rs`. Verificar: compilan y los usan las pruebas unitarias de los grupos 5 a 7.
+- [x] 4.3 Implementar los adaptadores en `bin/clickcare`:
   - `ClinicDirectory` sobre `administration` (clínica por subdominio, membresías activas) y `user` (nombre, especialidad);
   - `PatientRegistry` sobre `PatientRepository`, que busca o crea el paciente de la clínica y resuelve los registros de una cuenta en la red, incluidos los vinculados;
   - `IdentityVerification` sobre un `set_document_verified` nuevo en `user`.
@@ -50,28 +50,28 @@
 
 ## 5. Casos de uso de agenda y citas
 
-- [ ] 5.1 `SetWeeklySchedule`, `GetSchedule`, `AddScheduleException` y `RemoveScheduleException`:
+- [x] 5.1 `SetWeeklySchedule`, `GetSchedule`, `AddScheduleException` y `RemoveScheduleException`:
   - autorizan con `ManageSchedule`;
   - comprueban que el horario no se cruce con otras clínicas de la misma red, con un advisory lock por red y médico, sin consultar otras redes;
   - rechazan excepciones que tienen citas.
 
   Verificar con pruebas unitarias para «Médico sin colegiatura confirmada», «Cruce con otra clínica de la red» (solo indica día y franja), «Clínicas de redes distintas», «Excepción con citas reservadas» y «Médico define horario sin colegiatura confirmada».
-- [ ] 5.2 Disponibilidad pública: `GetClinic`, `ListPractitioners` y `GetAvailability`, solo para clínicas activas y médicos activos con horario. Verificar con pruebas para «Paciente abre el enlace de la clínica» (sin datos de más), «Clínica pendiente» y «Médico invitado sin activar».
-- [ ] 5.3 `BookAppointment`, para que el paciente reserve para sí mismo:
+- [x] 5.2 Disponibilidad pública: `GetClinic`, `ListPractitioners` y `GetAvailability`, solo para clínicas activas y médicos activos con horario. Verificar con pruebas para «Paciente abre el enlace de la clínica» (sin datos de más), «Clínica pendiente» y «Médico invitado sin activar».
+- [x] 5.3 `BookAppointment`, para que el paciente reserve para sí mismo:
   - autoriza con `ConfirmAppointment`;
   - valida que el cupo exista en el horario;
   - registra al paciente en la clínica;
   - inserta la cita en `BOOKED` y su recordatorio en la misma transacción.
 
   Verificar con pruebas para «Paciente con datos completos», «Paciente sin documento» (`FAILED_PRECONDITION` con `ActionRequirements`), «Identidad sin verificar», «Cupo ocupado» y «Paciente reserva en una clínica pendiente».
-- [ ] 5.4 `BookForPatient`:
+- [x] 5.4 `BookForPatient`:
   - autoriza con `BookForPatient`;
   - el médico solo reserva en su propia agenda;
   - si el paciente es nuevo, exige sus datos y responde `INVALID_ARGUMENT` con el campo que falta.
 
   Verificar con pruebas para «Recepción reserva para un paciente sin cuenta», «Recepción sin los datos del paciente», «Médico reserva en la agenda de otro médico» y «Administrador reserva por un paciente».
-- [ ] 5.5 `ListMyAppointments` y `ListClinicAppointments`, en las que el médico ve solo lo suyo y nadie ve otra clínica. Verificar con pruebas para «Paciente revisa sus citas» (dos clínicas de la misma red) y «Médico revisa su agenda».
-- [ ] 5.6 `CancelAppointment` y `RescheduleAppointment`:
+- [x] 5.5 `ListMyAppointments` y `ListClinicAppointments`, en las que el médico ve solo lo suyo y nadie ve otra clínica. Verificar con pruebas para «Paciente revisa sus citas» (dos clínicas de la misma red) y «Médico revisa su agenda».
+- [x] 5.6 `CancelAppointment` y `RescheduleAppointment`:
   - el paciente actúa sobre lo suyo, y lo ajeno responde `NOT_FOUND`;
   - la clínica usa `ManageAppointment`, y el médico solo actúa sobre su agenda;
   - en ambos casos se actualiza el recordatorio.
@@ -80,26 +80,26 @@
 
 ## 6. Check-in y vínculo de pacientes
 
-- [ ] 6.1 `CheckIn`:
+- [x] 6.1 `CheckIn`:
   - autoriza con `CheckIn` y solo vale el día local de la cita;
   - registra quién y cuándo;
   - con `MATCH`, llama a `IdentityVerification` e invalida el contexto en `AccessContextBuilder`;
   - con `MISMATCH`, solo registra la llegada.
 
   Verificar con pruebas de integración para «Paciente llega», «Llegada en otro día», «Médico intenta registrar la llegada», «Recepción verifica el DNI» (luego `CompleteProfile` responde de solo lectura para el documento), «El documento no coincide», «Paciente sin cuenta» y «Administrador de otra clínica».
-- [ ] 6.2 `MarkNoShow`, solo después del inicio. Verificar con la prueba de que una cita «no asistió» no se puede cancelar ni reprogramar.
-- [ ] 6.3 `SuggestPatientLinks`: busca registros sin cuenta con el mismo documento, solo en la red y solo para recepción. Verificar con pruebas para «Paciente crea su cuenta y vuelve a la clínica», «Mismo documento en otra red» y «Paciente intenta reclamar un historial» (`PERMISSION_DENIED`, sin revelar si existe).
-- [ ] 6.4 `LinkPatientAccount`:
+- [x] 6.2 `MarkNoShow`, solo después del inicio. Verificar con la prueba de que una cita «no asistió» no se puede cancelar ni reprogramar.
+- [x] 6.3 `SuggestPatientLinks`: busca registros sin cuenta con el mismo documento, solo en la red y solo para recepción. Verificar con pruebas para «Paciente crea su cuenta y vuelve a la clínica», «Mismo documento en otra red» y «Paciente intenta reclamar un historial» (`PERMISSION_DENIED`, sin revelar si existe).
+- [x] 6.4 `LinkPatientAccount`:
   - exige `document_seen` y que el documento coincida;
   - crea el `patient_link` auditado;
   - verifica el documento de la cuenta e invalida su contexto de acceso.
 
   Verificar con pruebas para «Paciente que llamó por teléfono», «Recepción vincula con el DNI a la vista», «Documentos distintos», «Citas anteriores visibles» (el recordatorio pendiente pasa al correo de la cuenta) y «La cuenta ya tenía registro en la clínica» (un solo paciente en la búsqueda).
-- [ ] 6.5 `UnlinkPatientAccount`, solo para el dueño y con motivo. Cierra el vínculo sin mover citas. Verificar con la prueba «Vinculación por error»: la cuenta deja de ver las citas y quedan registradas la vinculación y su anulación.
+- [x] 6.5 `UnlinkPatientAccount`, solo para el dueño y con motivo. Cierra el vínculo sin mover citas. Verificar con la prueba «Vinculación por error»: la cuenta deja de ver las citas y quedan registradas la vinculación y su anulación.
 
 ## 7. Recordatorios
 
-- [ ] 7.1 Implementar el worker `scheduling-reminders`:
+- [x] 7.1 Implementar el worker `scheduling-reminders`:
   - el reclamo con `UPDATE … WHERE status='PENDING' AND due_at=$2`;
   - el barrido que devuelve a `PENDING` las filas en `SENDING` vencidas (`REMINDER_SENDING_TIMEOUT`), para que se reenvíen antes que perderse;
   - el envío por `NotificationSender`;
@@ -107,8 +107,8 @@
   - el barrido al arrancar, que también vuelve a encolar los `PENDING` vencidos.
 
   Verificar con pruebas, usando un `NotificationSender` espía y un `Clock` fijo, para «Cita reservada con días de anticipación», «Cita para dentro de 3 horas», «Paciente sin correo», «Cita cancelada», «Cita reprogramada», «Falla temporal del correo», «Aviso entregado dos veces», «Caída a mitad del envío» (una fila en `SENDING` vencida se reenvía) y «Reintentos agotados».
-- [ ] 7.2 Implementar el `ReminderScheduler` con apalis (`run_at_time`) y arrancar el worker junto al de `administration` en `bin/clickcare/src/infrastructure/mod.rs`. Verificar con una prueba de integración: reservar una cita a 1 minuto con `REMINDER_LEAD_HOURS=0` y comprobar que el espía recibe el aviso.
-- [ ] 7.3 Implementar `SmtpNotificationSender` (lettre) y `LogNotificationSender`, elegidos según `SMTP_HOST`:
+- [x] 7.2 Implementar el `ReminderScheduler` con apalis (`run_at_time`) y arrancar el worker junto al de `administration` en `bin/clickcare/src/infrastructure/mod.rs`. Verificar con una prueba de integración: reservar una cita a 1 minuto con `REMINDER_LEAD_HOURS=0` y comprobar que el espía recibe el aviso.
+- [x] 7.3 Implementar `SmtpNotificationSender` (lettre) y `LogNotificationSender`, elegidos según `SMTP_HOST`:
   - el texto del correo no lleva datos clínicos, y el log no lleva datos personales;
   - documentar las variables en `backend/AGENTS.md`.
 
@@ -116,8 +116,8 @@
 
 ## 8. API gRPC
 
-- [ ] 8.1 Definir en `proto/api.proto` los servicios `PublicSchedulingApi` (sin sesión) y `SchedulingApi` (con el interceptor), con sus mensajes. Registrar ambos en el servidor y en la DI. Verificar: `cargo build -p clickcare` y una prueba de que `SchedulingApi` sin credencial responde `UNAUTHENTICATED`, mientras que `PublicSchedulingApi` responde sin credencial.
-- [ ] 8.2 Mapear los errores:
+- [x] 8.1 Definir en `proto/api.proto` los servicios `PublicSchedulingApi` (sin sesión) y `SchedulingApi` (con el interceptor), con sus mensajes. Registrar ambos en el servidor y en la DI. Verificar: `cargo build -p clickcare` y una prueba de que `SchedulingApi` sin credencial responde `UNAUTHENTICATED`, mientras que `PublicSchedulingApi` responde sin credencial.
+- [x] 8.2 Mapear los errores:
   - «cupo no disponible» a `ABORTED`;
   - lo ajeno a `NOT_FOUND`;
   - los datos faltantes propios a `FAILED_PRECONDITION` con `ActionRequirements`;

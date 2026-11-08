@@ -4,9 +4,15 @@ use crate::infrastructure::grpc::clinic_api_impl::ClinicApiImpl;
 use crate::infrastructure::grpc::clinic_api_server::ClinicApiServer;
 use crate::infrastructure::grpc::patient_api_impl::PatientApiImpl;
 use crate::infrastructure::grpc::patient_api_server::PatientApiServer;
+use crate::infrastructure::grpc::public_scheduling_api_server::PublicSchedulingApiServer;
+use crate::infrastructure::grpc::scheduling_api_impl::{
+    PublicSchedulingApiImpl, SchedulingApiImpl,
+};
+use crate::infrastructure::grpc::scheduling_api_server::SchedulingApiServer;
 use crate::infrastructure::grpc::subdomain_resolver::SubdomainResolver;
 use crate::infrastructure::grpc::user_api_impl::UserApiImpl;
 use crate::infrastructure::grpc::user_api_server::UserApiServer;
+use crate::infrastructure::scheduling as scheduling_adapters;
 use administration::infrastructure::config as administration_di;
 use apalis_board::axum::framework::{ApiBuilder, RegisterRoute};
 use apalis_board::axum::ui::ServeUI;
@@ -19,6 +25,7 @@ pub mod cli;
 pub mod grpc;
 pub mod log;
 pub mod migration;
+pub mod scheduling;
 
 /// Inicia el servidor gRPC y gRPC-Web de ClickCare junto con los workers de eventos en segundo plano.
 ///
@@ -63,9 +70,15 @@ pub async fn start_server(
     let user_service_server = UserApiServer::new(services.user_api);
     let clinic_service_server =
         ClinicApiServer::with_interceptor(services.clinic_api, authenticator.interceptor());
+    let scheduling_service_server =
+        SchedulingApiServer::with_interceptor(services.scheduling.api, authenticator.interceptor());
+    let public_scheduling_server = PublicSchedulingApiServer::new(services.scheduling.public_api);
+    let reminders = services.scheduling.reminders;
+    let reminder_storage = services.scheduling.reminder_storage;
 
     let apalis_api = ApiBuilder::new(axum::Router::<()>::new())
         .register(administration.storage())
+        .register(reminder_storage.clone())
         .build();
     let apalis_board_router: axum::Router = axum::Router::new().nest("/api/v1", apalis_api);
 
@@ -73,6 +86,8 @@ pub async fn start_server(
         .add_service(patient_service_server)
         .add_service(user_service_server)
         .add_service(clinic_service_server)
+        .add_service(scheduling_service_server)
+        .add_service(public_scheduling_server)
         .add_service(reflection_server_v1alpha)
         .add_service(reflection_server_v1)
         .into_axum_router()
@@ -102,6 +117,7 @@ pub async fn start_server(
             result = server => result
                 .map_err(|e| ClickCareError::generic(format!("Error al iniciar el servidor: {}", e)))?,
             result = administration.run_worker() => result?,
+            result = SchedulingServices::run_reminders(reminders, reminder_storage) => result?,
         }
     } else {
         info!("Iniciando servidor gRPC/Web (worker de administración deshabilitado)...");
@@ -113,8 +129,61 @@ pub async fn start_server(
     Ok(())
 }
 
+/// Agenda: sus APIs, el worker de recordatorios y su cola.
+pub struct SchedulingServices {
+    pub public_api: PublicSchedulingApiImpl,
+    pub api: SchedulingApiImpl,
+    pub reminders: Arc<::scheduling::application::reminder_usecase::ReminderUseCases>,
+    pub reminder_storage:
+        apalis_postgres::PostgresStorage<::scheduling::infrastructure::worker::ReminderDue>,
+}
+
+impl SchedulingServices {
+    /// Corre el worker de recordatorios y, cada minuto, el barrido que reencola los
+    /// vencidos y reenvía los que quedaron colgados (antes repetido que perdido).
+    pub async fn run_reminders(
+        reminders: Arc<::scheduling::application::reminder_usecase::ReminderUseCases>,
+        storage: apalis_postgres::PostgresStorage<
+            ::scheduling::infrastructure::worker::ReminderDue,
+        >,
+    ) -> Result<(), ClickCareError> {
+        let sweeper = Arc::clone(&reminders);
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
+            loop {
+                interval.tick().await;
+                if let Err(error) = sweeper.sweep().await {
+                    tracing::warn!("Barrido de recordatorios fallido: {error}");
+                }
+            }
+        });
+        ::scheduling::infrastructure::worker::run_reminder_worker(storage, reminders).await
+    }
+}
+
+/// Parámetros de la agenda desde el entorno.
+fn scheduling_config() -> ::scheduling::application::state::SchedulingConfig {
+    let mut config = ::scheduling::application::state::SchedulingConfig::default();
+    let read = |name: &str| {
+        std::env::var(name)
+            .ok()
+            .and_then(|v| v.trim().parse::<i64>().ok())
+    };
+    if let Some(hours) = read("REMINDER_LEAD_HOURS") {
+        config.reminder_lead_hours = hours.max(0);
+    }
+    if let Some(attempts) = read("REMINDER_MAX_ATTEMPTS") {
+        config.reminder_max_attempts = i16::try_from(attempts.max(1)).unwrap_or(3);
+    }
+    if let Some(minutes) = read("REMINDER_SENDING_TIMEOUT") {
+        config.reminder_sending_timeout_minutes = minutes.max(1);
+    }
+    config
+}
+
 /// Servicios gRPC ya cableados, compartidos por el servidor y el arnés de pruebas.
 pub struct Services {
+    pub scheduling: SchedulingServices,
     pub administration: administration_di::DI,
     pub authenticator: Authenticator,
     pub user_api: UserApiImpl,
@@ -130,6 +199,11 @@ pub async fn build_services(
     database_url: Option<String>,
     user_overrides: user::infrastructure::config::DIOverrides,
 ) -> Result<Services, ClickCareError> {
+    let resolved_url = database_url
+        .clone()
+        .or_else(|| std::env::var("DATABASE_URL").ok())
+        .or_else(|| std::env::var("PG_URL").ok())
+        .unwrap_or_else(|| "postgres://user:password@localhost:5432".to_string());
     let user_di = user::infrastructure::config::new_with_overrides(
         user::infrastructure::config::DBType::Postgres(database_url.clone()),
         user_overrides,
@@ -177,13 +251,95 @@ pub async fn build_services(
         subdomain_resolver,
     );
 
+    let scheduling = build_scheduling(&resolved_url, &administration, &user_di, &access).await?;
+
     Ok(Services {
+        scheduling,
         administration,
         authenticator,
         user_api,
         clinic_api,
         patient_api,
     })
+}
+
+/// Arma la agenda: sus repositorios, la cola de recordatorios y los adaptadores de sus
+/// puertos sobre `administration` y `user`.
+async fn build_scheduling(
+    resolved_url: &str,
+    administration: &administration_di::DI,
+    user_di: &user::infrastructure::config::DI,
+    access: &Arc<AccessContextBuilder>,
+) -> Result<SchedulingServices, ClickCareError> {
+    let scheduling_err = |e: ::scheduling::domain::error::SchedulingError| {
+        ClickCareError::generic(format!("Error al preparar la agenda ({e})"))
+    };
+    let repositories = ::scheduling::infrastructure::config::repositories(resolved_url)
+        .await
+        .map_err(scheduling_err)?;
+    let reminder_storage = ::scheduling::infrastructure::worker::reminder_storage(resolved_url)
+        .await
+        .map_err(scheduling_err)?;
+    let patient_use_cases = Arc::new(
+        administration::application::patient_usecase::PatientUseCases::new(
+            administration.state.clone(),
+        ),
+    );
+    let scheduling_state = ::scheduling::application::state::SchedulingState {
+        schedules: repositories.schedules,
+        appointments: repositories.appointments,
+        reminders: repositories.reminders,
+        clinics: Arc::new(scheduling_adapters::ClinicDirectoryAdapter {
+            organizations: Arc::clone(&administration.state.organization_repository),
+            memberships: Arc::clone(&administration.state.membership_repository),
+            users: Arc::clone(&user_di.user_repository),
+        }),
+        patients: Arc::new(scheduling_adapters::PatientRegistryAdapter {
+            patients: Arc::clone(&administration.state.patient_repository),
+            links: Arc::clone(&administration.patient_links),
+            patient_use_cases,
+            users: Arc::clone(&user_di.user_repository),
+        }),
+        identity: Arc::new(scheduling_adapters::IdentityVerificationAdapter {
+            users: Arc::clone(&user_di.user_repository),
+            access: Arc::clone(access),
+        }),
+        notifier: scheduling_adapters::notification_sender()?,
+        scheduler: Arc::new(
+            ::scheduling::infrastructure::worker::ApalisReminderScheduler {
+                storage: reminder_storage.clone(),
+            },
+        ),
+        clock: Arc::new(::scheduling::application::integration::SystemClock),
+        config: scheduling_config(),
+    };
+    let schedule_use_cases = Arc::new(
+        ::scheduling::application::schedule_usecase::ScheduleUseCases::new(
+            scheduling_state.clone(),
+        ),
+    );
+    let scheduling = SchedulingServices {
+        public_api: PublicSchedulingApiImpl::new(Arc::clone(&schedule_use_cases)),
+        api: SchedulingApiImpl::new(
+            schedule_use_cases,
+            Arc::new(
+                ::scheduling::application::booking_usecase::BookingUseCases::new(
+                    scheduling_state.clone(),
+                ),
+            ),
+            Arc::new(
+                ::scheduling::application::reception_usecase::ReceptionUseCases::new(
+                    scheduling_state.clone(),
+                ),
+            ),
+            Arc::clone(access),
+        ),
+        reminders: Arc::new(
+            ::scheduling::application::reminder_usecase::ReminderUseCases::new(scheduling_state),
+        ),
+        reminder_storage,
+    };
+    Ok(scheduling)
 }
 
 /// Middleware CORS para peticiones gRPC-Web desde el navegador (ej. `http://localhost:5173`).

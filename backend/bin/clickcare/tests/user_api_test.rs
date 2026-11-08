@@ -219,9 +219,25 @@ pub async fn test_env() -> &'static TestEnv {
                     .await
                     .unwrap();
                     let authenticator = services.authenticator.clone();
+                    // Worker de recordatorios con su barrido, como en el servidor real.
+                    tokio::spawn(clickcare::infrastructure::SchedulingServices::run_reminders(
+                        std::sync::Arc::clone(&services.scheduling.reminders),
+                        services.scheduling.reminder_storage.clone(),
+                    ));
 
                     tokio::spawn(async move {
                         Server::builder()
+                            .add_service(
+                                clickcare::infrastructure::grpc::scheduling_api_server::SchedulingApiServer::with_interceptor(
+                                    services.scheduling.api,
+                                    authenticator.interceptor(),
+                                ),
+                            )
+                            .add_service(
+                                clickcare::infrastructure::grpc::public_scheduling_api_server::PublicSchedulingApiServer::new(
+                                    services.scheduling.public_api,
+                                ),
+                            )
                             .add_service(UserApiServer::new(services.user_api))
                             .add_service(ClinicApiServer::with_interceptor(
                                 services.clinic_api,

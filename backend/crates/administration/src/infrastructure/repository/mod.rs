@@ -1,6 +1,7 @@
 pub(crate) mod clinical_network_repository_impl;
 pub(crate) mod membership_repository_impl;
 pub(crate) mod organization_repository_impl;
+pub(crate) mod patient_link_repository_impl;
 pub(crate) mod patient_repository_impl;
 pub(crate) mod practitioner_repository_impl;
 

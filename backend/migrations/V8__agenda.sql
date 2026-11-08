@@ -5,7 +5,13 @@
 
 -- ── administration ──────────────────────────────────────────────────────────
 ALTER TABLE administration.organization
-    ADD COLUMN IF NOT EXISTS timezone TEXT NOT NULL DEFAULT 'America/Lima';
+    ADD COLUMN IF NOT EXISTS timezone TEXT NOT NULL DEFAULT 'America/Lima',
+    ADD COLUMN IF NOT EXISTS address  VARCHAR(300);
+
+-- Verificación presencial del documento de un paciente sin cuenta (check-in).
+ALTER TABLE administration.patient
+    ADD COLUMN IF NOT EXISTS document_verified_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS document_verified_by uuid;
 
 -- Vínculo de un paciente registrado sin cuenta con la cuenta que creó después. No
 -- fusiona registros: deshacerlo solo cierra el vínculo.

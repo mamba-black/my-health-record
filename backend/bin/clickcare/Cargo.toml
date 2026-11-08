@@ -14,6 +14,11 @@ test-support = ["user/test-support"]
 [dependencies]
 app_core.workspace = true
 administration.workspace = true
+scheduling.workspace = true
+jiff.workspace = true
+async-trait.workspace = true
+lettre.workspace = true
+apalis-postgres.workspace = true
 user.workspace = true
 clinic.workspace = true
 clinic_admin.workspace = true

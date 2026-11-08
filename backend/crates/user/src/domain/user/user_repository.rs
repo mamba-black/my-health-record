@@ -57,6 +57,16 @@ pub trait UserRepository: Send + Sync {
 
     async fn find_user_by_id(&self, user_id: &Uuid) -> Result<Option<User>, ClickCareError>;
 
+    /// Cuentas activas de la red con ese tipo y número de documento.
+    async fn find_users_by_document(
+        &self,
+        network_id: &Uuid,
+        identifier: &Identifier,
+    ) -> Result<Vec<User>, ClickCareError>;
+
+    /// Marca el documento como verificado en persona: el usuario ya no lo edita.
+    async fn set_document_verified(&self, user_id: &Uuid) -> Result<(), ClickCareError>;
+
     /// Marca la colegiatura como confirmada por una clínica: desde entonces no es editable.
     async fn set_license_verified(&self, user_id: &Uuid) -> Result<(), ClickCareError>;
 

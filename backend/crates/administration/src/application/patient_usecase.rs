@@ -55,7 +55,21 @@ impl PatientUseCases {
             ctx,
             &clinic_target(&organization),
         )?;
+        let patient = self.register_authorized(organization_id, data).await?;
+        info!(
+            "Paciente sin cuenta registrado: patient={} org={organization_id} por user={}",
+            patient.id, ctx.user_id
+        );
+        Ok(patient)
+    }
 
+    /// Registra el paciente sin volver a autorizar: lo usa la agenda al reservar en su
+    /// nombre, que ya autorizó `BookForPatient`.
+    pub async fn register_authorized(
+        &self,
+        organization_id: Uuid,
+        data: NewPatient,
+    ) -> Result<Patient, MembershipError> {
         let given_name = data.given_name.trim().to_string();
         let family_name = data.family_name.trim().to_string();
         let phone = data.phone.trim().to_string();
@@ -115,10 +129,6 @@ impl PatientUseCases {
         );
         let patient = Patient::without_account(Uuid::now_v7(), organization_id, person);
         self.state.patient_repository.save(&patient).await?;
-        info!(
-            "Paciente sin cuenta registrado: patient={} org={organization_id} por user={}",
-            patient.id, ctx.user_id
-        );
         Ok(patient)
     }
 }

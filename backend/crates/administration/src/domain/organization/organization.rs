@@ -27,7 +27,14 @@ pub struct Organization {
     pub trade_name: Option<String>,
     /// Código IPRESS (RENIPRESS).
     pub ipress_code: Option<String>,
+    /// Zona horaria IANA en que se interpretan los horarios de la clínica.
+    pub timezone: String,
+    /// Dirección de la clínica (va en los recordatorios).
+    pub address: Option<String>,
 }
+
+/// Zona horaria por defecto de una clínica.
+pub const DEFAULT_TIMEZONE: &str = "America/Lima";
 
 impl Organization {
     /// Crea una nueva organización de salud pendiente de activación (`PendingSetup`).
@@ -58,6 +65,8 @@ impl Organization {
             legal_name: None,
             trade_name: None,
             ipress_code: None,
+            timezone: DEFAULT_TIMEZONE.to_string(),
+            address: None,
         }
     }
 

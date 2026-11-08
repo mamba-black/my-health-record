@@ -5,6 +5,7 @@ use crate::application::state::AdministrationState;
 use crate::domain::clinical_network::clinical_network_repository::ClinicalNetworkRepository;
 use crate::domain::membership::membership_repository::MembershipRepository;
 use crate::domain::organization::organization_repository::OrganizationRepository;
+use crate::domain::patient::patient_link_repository::PatientLinkRepository;
 use crate::domain::patient::patient_repository::PatientRepository;
 use crate::domain::practitioner::practitioner_repository::PractitionerRepository;
 use crate::infrastructure::entrypoint::subscriber::user_created_handler::handle_user_created_event;
@@ -17,6 +18,7 @@ use crate::infrastructure::repository::membership_repository_impl::{
 use crate::infrastructure::repository::organization_repository_impl::{
     OrganizationRecord, OrganizationRepositoryImpl,
 };
+use crate::infrastructure::repository::patient_link_repository_impl::PatientLinkRepositoryImpl;
 use crate::infrastructure::repository::patient_repository_impl::{
     PatientRecord, PatientRepositoryImpl,
 };
@@ -67,6 +69,8 @@ pub struct DI {
     pub membership_use_cases: Arc<MembershipUseCases>,
     /// Organization raíz de cada dueño.
     pub root_organization_use_case: Arc<RootOrganizationUseCase>,
+    /// Vínculos de pacientes registrados sin cuenta (los usa la agenda).
+    pub patient_links: Arc<dyn PatientLinkRepository>,
 }
 
 // ─── Constructores ───────────────────────────────────────────────────────────
@@ -87,7 +91,8 @@ pub async fn new(
     trace!("URL de la base de datos: {database_url}");
 
     let storage = build_event_storage(&database_url).await?;
-    let state = build_state(&database_url, person_links).await?;
+    let (state, db) = build_state(&database_url, person_links).await?;
+    let patient_links: Arc<dyn PatientLinkRepository> = Arc::new(PatientLinkRepositoryImpl { db });
 
     let create_clinic_use_case = Arc::new(CreateClinicUseCaseImpl {
         state: state.clone(),
@@ -104,6 +109,7 @@ pub async fn new(
         create_clinic_use_case,
         membership_use_cases,
         root_organization_use_case,
+        patient_links,
     })
 }
 
@@ -180,7 +186,7 @@ async fn build_event_storage(
 async fn build_state(
     database_url: &str,
     person_links: Arc<dyn PersonLinkRegistry>,
-) -> Result<AdministrationState, ClickCareError> {
+) -> Result<(AdministrationState, Db), ClickCareError> {
     let db: Db = toasty::Db::builder()
         .models(models!(
             ClinicalNetworkRecord,
@@ -206,14 +212,17 @@ async fn build_state(
     let practitioner_repository: Arc<dyn PractitionerRepository> =
         Arc::new(PractitionerRepositoryImpl { db: db.clone() });
     let membership_repository: Arc<dyn MembershipRepository> =
-        Arc::new(MembershipRepositoryImpl { db });
+        Arc::new(MembershipRepositoryImpl { db: db.clone() });
 
-    Ok(AdministrationState {
-        clinical_network_repository,
-        organization_repository,
-        patient_repository,
-        practitioner_repository,
-        membership_repository,
-        person_links,
-    })
+    Ok((
+        AdministrationState {
+            clinical_network_repository,
+            organization_repository,
+            patient_repository,
+            practitioner_repository,
+            membership_repository,
+            person_links,
+        },
+        db,
+    ))
 }
