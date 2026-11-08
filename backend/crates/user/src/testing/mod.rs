@@ -52,6 +52,15 @@ impl UserRepository for MockUserRepositoryImpl {
         Ok(exists)
     }
 
+    async fn find_users_by_email(&self, email: &str) -> Result<Vec<User>, ClickCareError> {
+        let users = self.saved_users.lock().await;
+        Ok(users
+            .iter()
+            .filter(|user| user.active && user.email() == email)
+            .cloned()
+            .collect())
+    }
+
     async fn find_user_by_email(
         &self,
         network_id: &uuid::Uuid,

@@ -31,24 +31,41 @@ impl SignInUseCase {
             .validate_and_extract_email(&command.id_token)
             .await?;
         debug!(
-            "Iniciando sesión para email={} en network_id={}",
+            "Iniciando sesión para email={} en network_id={:?}",
             email, command.network_id
         );
 
-        let existing_user = self
-            .user_repository
-            .find_user_by_email(&command.network_id, &email)
-            .await
-            .map_err(SignInError::UnknownError)?;
+        let existing_user = match command.network_id {
+            Some(network_id) => self
+                .user_repository
+                .find_user_by_email(&network_id, &email)
+                .await
+                .map_err(SignInError::UnknownError)?,
+            // Sin el enlace de una clínica: la cuenta del correo, si es una sola. Cada
+            // dueño tiene su propia organización, así que no hay red por defecto que
+            // compartan.
+            None => {
+                let mut accounts = self
+                    .user_repository
+                    .find_users_by_email(&email)
+                    .await
+                    .map_err(SignInError::UnknownError)?;
+                if accounts.len() > 1 {
+                    return Err(SignInError::SeveralOrganizations(ClickCareError::generic(
+                        "Tu correo tiene cuentas en varias organizaciones: entra por el enlace de tu clínica",
+                    )));
+                }
+                accounts.pop()
+            }
+        };
 
         let Some(user) = existing_user else {
             warn!(
-                "Usuario con email={} no encontrado en network_id={}",
+                "Usuario con email={} no encontrado en network_id={:?}",
                 email, command.network_id
             );
             return Err(SignInError::UserNotFound(ClickCareError::generic(format!(
-                "No existe cuenta registrada para el correo {email} en la red clínica {}",
-                command.network_id
+                "No existe cuenta registrada para el correo {email}"
             ))));
         };
 
@@ -142,7 +159,7 @@ mod tests {
 
         let future_exp = jiff::Timestamp::now().as_second() + 3600;
         let command = SignInCommand {
-            network_id,
+            network_id: Some(network_id),
             id_token: build_mock_jwt(&email, Some(future_exp)),
             provider_id: "google.com".to_string(),
         };
@@ -185,7 +202,7 @@ mod tests {
         };
 
         let command = SignInCommand {
-            network_id: network_b,
+            network_id: Some(network_b),
             id_token: build_mock_jwt(&email, None),
             provider_id: "google.com".to_string(),
         };
@@ -209,7 +226,7 @@ mod tests {
 
         let malformed_result = use_case
             .execute(SignInCommand {
-                network_id,
+                network_id: Some(network_id),
                 id_token: "not-a-valid-jwt".to_string(),
                 provider_id: "google.com".to_string(),
             })
@@ -222,11 +239,72 @@ mod tests {
         let expired_epoch = jiff::Timestamp::now().as_second() - 60;
         let expired_result = use_case
             .execute(SignInCommand {
-                network_id,
+                network_id: Some(network_id),
                 id_token: build_mock_jwt("user@example.com", Some(expired_epoch)),
                 provider_id: "google.com".to_string(),
             })
             .await;
         assert!(matches!(expired_result, Err(SignInError::InvalidToken(_))));
+    }
+
+    fn user_in(network_id: Uuid, email: &str) -> User {
+        User::new(
+            Uuid::now_v7().to_string(),
+            network_id,
+            vec!["Ana".to_string()],
+            Some("Ruiz".to_string()),
+            None,
+            None,
+            false,
+            email.to_string(),
+            None,
+            None,
+        )
+        .expect("User creation must succeed")
+    }
+
+    /// Sin el enlace de una clínica se encuentra la cuenta del correo, sea de la red que sea.
+    #[tokio::test]
+    async fn sin_subdominio_encuentra_la_unica_cuenta_del_correo() {
+        let email = "duena@example.com";
+        let network = Uuid::now_v7();
+        let use_case = SignInUseCase {
+            user_repository: Arc::new(MockUserRepositoryImpl {
+                saved_users: Mutex::new(vec![user_in(network, email)]),
+            }),
+            token_service: Arc::new(MockTokenServiceImpl),
+        };
+        let response = use_case
+            .execute(SignInCommand {
+                network_id: None,
+                id_token: build_mock_jwt(email, None),
+                provider_id: "google.com".to_string(),
+            })
+            .await
+            .expect("encuentra la cuenta");
+        assert_eq!(response.user.network_id, network);
+    }
+
+    /// Con cuentas en varias organizaciones hay que entrar por el enlace de la clínica.
+    #[tokio::test]
+    async fn sin_subdominio_y_varias_organizaciones_pide_el_enlace() {
+        let email = "medico@example.com";
+        let use_case = SignInUseCase {
+            user_repository: Arc::new(MockUserRepositoryImpl {
+                saved_users: Mutex::new(vec![
+                    user_in(Uuid::now_v7(), email),
+                    user_in(Uuid::now_v7(), email),
+                ]),
+            }),
+            token_service: Arc::new(MockTokenServiceImpl),
+        };
+        let result = use_case
+            .execute(SignInCommand {
+                network_id: None,
+                id_token: build_mock_jwt(email, None),
+                provider_id: "google.com".to_string(),
+            })
+            .await;
+        assert!(matches!(result, Err(SignInError::SeveralOrganizations(_))));
     }
 }

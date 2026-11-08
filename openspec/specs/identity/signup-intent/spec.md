@@ -13,6 +13,18 @@ El sistema SHALL permitir que un usuario especifique su intención inicial media
 - **WHEN** un usuario envía `SignUpRequest` con `intent = INTENT_CLINIC_OWNER`
 - **THEN** el sistema registra la cuenta, genera un `organization_id` (UUIDv7), emite el evento `FounderRegistered(user_id, person_id, organization_id)` y retorna el contexto de sesión conteniendo el identificador de la organización creada
 
+#### Scenario: El dueño nace con su Organization raíz
+- **WHEN** un usuario se registra con `intent = INTENT_CLINIC_OWNER`, entre por el enlace que entre
+- **THEN** el sistema crea su Organization raíz, deja la cuenta en ella y la vincula por `Person.link` (ver `identity/organization-root`)
+
+#### Scenario: Un correo, una cuenta de dueño
+- **WHEN** un correo que ya tiene una cuenta de dueño intenta registrarse otra vez como dueño
+- **THEN** el servidor responde que la cuenta ya existe
+
+#### Scenario: Registro como Recepcionista
+- **WHEN** un usuario envía `SignUpRequest` con `intent = INTENT_RECEPTIONIST` por el enlace de una clínica
+- **THEN** la cuenta queda en la organización de esa clínica, con rol preferido «recepcionista» y sin crear ninguna clínica; para trabajar en ella pide entrar o acepta una invitación
+
 #### Scenario: Registro como Profesional Médico
 - **WHEN** un usuario envía `SignUpRequest` con `intent = INTENT_PRACTITIONER`
 - **THEN** el sistema registra el usuario sin exigir colegiatura CMP ni emitir `FounderRegistered`

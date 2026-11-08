@@ -5,8 +5,9 @@ use uuid::Uuid;
 /// Parámetros de entrada para el caso de uso de inicio de sesión (`SignInUseCase`).
 #[derive(Debug, Clone)]
 pub struct SignInCommand {
-    /// Red médica resuelta a partir del subdominio de la solicitud (UUID v7).
-    pub network_id: Uuid,
+    /// Red resuelta a partir del subdominio de la solicitud. `None` cuando se entra sin
+    /// el enlace de una clínica: se busca la cuenta del correo en cualquier red.
+    pub network_id: Option<Uuid>,
     /// Token JWT emitido por el proveedor de identidad (ej. Google).
     pub id_token: String,
     /// Identificador del proveedor de autenticación (ej. `"google.com"`).
@@ -27,6 +28,9 @@ pub enum SignInError {
     InvalidToken(ClickCareError),
     /// El usuario aún no está registrado en la red médica solicitada.
     UserNotFound(ClickCareError),
+    /// El correo tiene cuentas en varias organizaciones y no se entró por el enlace
+    /// de ninguna clínica.
+    SeveralOrganizations(ClickCareError),
     /// Error técnico o de infraestructura.
     UnknownError(ClickCareError),
 }

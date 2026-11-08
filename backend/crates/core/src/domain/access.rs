@@ -535,13 +535,9 @@ pub fn authorize(
                 MembershipRole::Receptionist,
             ],
         )?),
-        A::OpenFirstEncounter
-        | A::RecordEncounter
-        | A::IssuePrescription => Some(active_membership(
-            ctx,
-            target,
-            &[MembershipRole::Practitioner],
-        )?),
+        A::OpenFirstEncounter | A::RecordEncounter | A::IssuePrescription => Some(
+            active_membership(ctx, target, &[MembershipRole::Practitioner])?,
+        ),
         A::ConfigureClinic
         | A::InviteStaff
         | A::SuspendMember

@@ -1,5 +1,6 @@
 use crate::application::create_clinic_usecase::{CreateClinicUseCase, CreateClinicUseCaseImpl};
 use crate::application::membership_usecase::MembershipUseCases;
+use crate::application::root_organization::RootOrganizationUseCase;
 use crate::application::state::AdministrationState;
 use crate::domain::clinical_network::clinical_network_repository::ClinicalNetworkRepository;
 use crate::domain::membership::membership_repository::MembershipRepository;
@@ -28,6 +29,7 @@ use apalis::prelude::{Data, WorkerBuilder};
 use apalis_postgres::{Config, PgPool, PostgresStorage};
 use app_core::domain::error::ClickCareError;
 use app_core::domain::event::UserCreatedEvent;
+use app_core::domain::person_link::PersonLinkRegistry;
 use app_core::infrastructure::transport::UserCreatedEventDto;
 use std::env::var;
 use std::sync::Arc;
@@ -63,6 +65,8 @@ pub struct DI {
     pub create_clinic_use_case: Arc<CreateClinicUseCase>,
     /// Casos de uso de membresías y de configuración y activación de la clínica.
     pub membership_use_cases: Arc<MembershipUseCases>,
+    /// Organization raíz de cada dueño.
+    pub root_organization_use_case: Arc<RootOrganizationUseCase>,
 }
 
 // ─── Constructores ───────────────────────────────────────────────────────────
@@ -73,24 +77,33 @@ pub struct DI {
 /// de la cola de eventos y otra para los repositorios de entidades Toasty. Encolar o
 /// consumir un evento nunca comparte pool ni transacción con la persistencia del
 /// agregado.
-pub async fn new(database_type: DBType) -> Result<DI, ClickCareError> {
+/// `person_links` es el registro de `Person.link` del contexto `user`: lo conecta
+/// `bin/clickcare`, porque este crate no depende de `user`.
+pub async fn new(
+    database_type: DBType,
+    person_links: Arc<dyn PersonLinkRegistry>,
+) -> Result<DI, ClickCareError> {
     let database_url = resolve_db_url(database_type);
     trace!("URL de la base de datos: {database_url}");
 
     let storage = build_event_storage(&database_url).await?;
-    let state = build_state(&database_url).await?;
+    let state = build_state(&database_url, person_links).await?;
 
     let create_clinic_use_case = Arc::new(CreateClinicUseCaseImpl {
         state: state.clone(),
     });
 
     let membership_use_cases = Arc::new(MembershipUseCases::new(state.clone()));
+    let root_organization_use_case = Arc::new(RootOrganizationUseCase::new(Arc::clone(
+        &state.clinical_network_repository,
+    )));
 
     Ok(DI {
         storage,
         state,
         create_clinic_use_case,
         membership_use_cases,
+        root_organization_use_case,
     })
 }
 
@@ -164,7 +177,10 @@ async fn build_event_storage(
 }
 
 /// Abre la conexión de los repositorios de entidades y arma el estado del worker.
-async fn build_state(database_url: &str) -> Result<AdministrationState, ClickCareError> {
+async fn build_state(
+    database_url: &str,
+    person_links: Arc<dyn PersonLinkRegistry>,
+) -> Result<AdministrationState, ClickCareError> {
     let db: Db = toasty::Db::builder()
         .models(models!(
             ClinicalNetworkRecord,
@@ -198,5 +214,6 @@ async fn build_state(database_url: &str) -> Result<AdministrationState, ClickCar
         patient_repository,
         practitioner_repository,
         membership_repository,
+        person_links,
     })
 }

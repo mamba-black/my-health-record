@@ -7,7 +7,7 @@ Registra qué papel cumple cada usuario: un rol preferido de la cuenta, que solo
 ## Requirements
 
 ### Requirement: Rol preferido de la cuenta
-El sistema SHALL guardar el rol preferido de cada cuenta (paciente, médico o dueño de clínica) a partir de la intención declarada al registrarse, y SHALL permitir que el usuario lo cambie. El rol preferido SHALL usarse solo para decidir qué pantallas y datos se muestran; SHALL NOT conceder acceso a datos de ninguna clínica.
+El sistema SHALL guardar el rol preferido de cada cuenta (paciente, médico, recepcionista o dueño de clínica) a partir de la intención declarada al registrarse, y SHALL permitir que el usuario lo cambie. El rol preferido SHALL usarse solo para decidir qué pantallas y datos se muestran; SHALL NOT conceder acceso a datos de ninguna clínica.
 
 #### Scenario: Rol preferido no autoriza
 - **WHEN** un usuario con rol preferido «médico» y sin ninguna membresía busca pacientes
@@ -18,7 +18,7 @@ El sistema SHALL guardar el rol preferido de cada cuenta (paciente, médico o du
 - **THEN** su rol preferido es «paciente»
 
 ### Requirement: Membresía por clínica
-El sistema SHALL representar la relación de un usuario con una clínica como una membresía con clínica, usuario, rol (dueño, administrador o médico) y estado (invitada, pendiente de activación, activa o suspendida). Un usuario SHALL poder tener varias membresías, en distintas clínicas o con distintos roles en la misma clínica.
+El sistema SHALL representar la relación de un usuario con una clínica como una membresía con clínica, usuario, rol (dueño, administrador, médico o recepcionista) y estado (invitada, solicitada, pendiente de activación, activa o suspendida). Un usuario SHALL poder tener varias membresías, en distintas clínicas o con distintos roles en la misma clínica.
 
 #### Scenario: Dueño que también atiende
 - **WHEN** el dueño de una clínica se registra también como médico de esa clínica
@@ -34,6 +34,36 @@ Al crearse una clínica, el sistema SHALL crear la membresía de dueño de quien
 #### Scenario: Creación de clínica
 - **WHEN** un usuario crea una clínica
 - **THEN** existe una membresía de dueño para ese usuario y esa clínica en estado activo
+
+### Requirement: Ingreso a una clínica existente
+Quien no pertenece a una clínica SHALL poder entrar solo por invitación de un dueño o administrador (como médico, administrador o recepcionista) o pidiéndolo (como médico o recepcionista) y que un dueño o administrador lo apruebe. Ambas vías SHALL buscar solo dentro de la Organization raíz de la clínica (ver `identity/organization-root`). Pedir entrar SHALL exigir nombres, apellido paterno, teléfono, documento y una clínica activa.
+
+#### Scenario: Recepcionista pide entrar
+- **WHEN** una persona registrada por el enlace de la clínica pide entrar como recepcionista
+- **THEN** queda una membresía de recepcionista en estado solicitada, sin ningún permiso en la clínica
+
+#### Scenario: Dueño aprueba la solicitud
+- **WHEN** el dueño o un administrador aprueba la solicitud de un recepcionista
+- **THEN** la membresía pasa a activa
+
+#### Scenario: Médico aprobado
+- **WHEN** el dueño aprueba la solicitud de un médico
+- **THEN** la membresía queda pendiente de activación hasta que el médico active su perfil y la clínica confirme su colegiatura
+
+#### Scenario: Clínica de otra organización
+- **WHEN** una persona cuya cuenta pertenece a otra organización pide entrar a una clínica
+- **THEN** el servidor responde que no existe una clínica con ese enlace
+
+#### Scenario: Rechazo
+- **WHEN** el dueño rechaza una solicitud
+- **THEN** la membresía queda suspendida
+
+### Requirement: Rol de recepcionista
+El recepcionista SHALL atender la recepción de una clínica existente: registrar pacientes, incluso sin cuenta, y buscarlos y ver sus datos de contacto. SHALL NOT ver la historia clínica, configurar la clínica, invitar personal, aprobar solicitudes ni crear clínicas, ni siquiera desde su cuenta.
+
+#### Scenario: Recepcionista intenta crear una clínica
+- **WHEN** una cuenta con rol preferido recepcionista intenta crear una clínica
+- **THEN** el servidor responde «permiso denegado»
 
 ### Requirement: Activación de la membresía de médico
 Una membresía de médico SHALL nacer en estado invitada o pendiente de activación, y SHALL pasar a activa solo cuando el médico tenga registrados nombres, apellido paterno, teléfono, documento y colegiatura, y un dueño o administrador de esa clínica haya confirmado la colegiatura.

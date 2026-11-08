@@ -277,7 +277,8 @@ impl MembershipUseCases {
         subdomain: &str,
         role: MembershipRole,
     ) -> Result<MembershipWithClinic, MembershipError> {
-        let not_found = || MembershipError::NotFound("No existe una clínica con ese enlace".to_string());
+        let not_found =
+            || MembershipError::NotFound("No existe una clínica con ese enlace".to_string());
         let subdomain = subdomain.trim().to_lowercase();
         if subdomain.is_empty() {
             return Err(MembershipError::InvalidInput(
@@ -568,6 +569,7 @@ mod tests {
             patient_repository: unused.clone(),
             practitioner_repository: unused,
             membership_repository: memberships.clone(),
+            person_links: Arc::new(crate::testing::InMemoryPersonLinks::default()),
         };
         Fixture {
             use_cases: MembershipUseCases::new(state),

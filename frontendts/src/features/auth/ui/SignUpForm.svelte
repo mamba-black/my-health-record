@@ -107,7 +107,8 @@ const handleSignUpSubmit = async (event: Event) => {
       displayName: `${trimmedGivenName} ${familyName.trim()}`.trim(),
       createClinic: selectedIntent === SignUpIntent.INTENT_CLINIC_OWNER,
       intent: selectedIntent,
-    });
+      // El personal que indica una clínica queda en la organización de esa clínica.
+    }, asksForClinic && clinicSubdomain ? clinicSubdomain : undefined);
 
     log.info("Registro progresivo completado exitosamente:", response.userId);
     if (!response.session) {
@@ -126,7 +127,9 @@ const handleSignUpSubmit = async (event: Event) => {
     log.error("Error al registrar usuario:", error);
     if (error instanceof UserApiError && error.code === "ALREADY_EXISTS") {
       errorMessage =
-        "El correo o documento ingresado ya se encuentra registrado en esta red clínica.";
+        "El correo o documento ingresado ya está registrado en esta organización: inicia sesión.";
+    } else if (error instanceof UserApiError && error.code === "NOT_FOUND" && clinicSubdomain) {
+      errorMessage = "No existe una clínica con ese enlace. Revísalo con la clínica.";
     } else {
       errorMessage =
         error instanceof Error

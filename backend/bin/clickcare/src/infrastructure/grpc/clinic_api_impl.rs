@@ -181,7 +181,8 @@ impl ClinicApi for ClinicApiImpl {
         .map_err(|denied| denied_to_status(denied, Some(organization_id)))?;
         let invitee = self
             .user_repository
-            .find_user_by_email(&ctx.network_id, request.email.trim())
+            // Solo dentro de la organización de la clínica: nunca en otra red.
+            .find_user_by_email(&clinic.network_id, request.email.trim())
             .await
             .map_err(|error| Status::internal(error.to_string()))?
             .ok_or_else(|| {
@@ -349,7 +350,6 @@ mod mapper {
         CreateClinicCommand, CreateClinicError, CreateClinicResponse,
     };
     use tonic::Status;
-    use uuid::Uuid;
 
     /// Traduce el DTO plano de la API al comando del caso de uso.
     ///
@@ -357,16 +357,12 @@ mod mapper {
     /// estructura plana del DTO no cruza esa frontera.
     impl From<grpc::CreateClinicRequest> for CreateClinicCommand {
         fn from(request: grpc::CreateClinicRequest) -> Self {
-            let network_id = request
-                .network_id
-                .as_deref()
-                .and_then(|id| Uuid::parse_str(id).ok());
-
+            // `network_id` del contrato se ignora: la clínica cuelga siempre de la
+            // Organization raíz de su dueño.
             CreateClinicCommand {
                 owner_user_id: request.owner_user_id,
                 name: request.name,
                 subdomain: request.subdomain,
-                network_id,
                 tax_id: request.tax_id,
                 given_name: request.given_name,
                 family_name: request.family_name,

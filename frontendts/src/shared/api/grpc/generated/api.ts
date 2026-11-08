@@ -1129,9 +1129,10 @@ export interface CreateClinicRequest {
      */
     subdomain: string; // Subdominio exclusivo de la clínica (ej. "san-borja")
     /**
-     * @generated from protobuf field: optional string network_id = 11
+     * @deprecated
+     * @generated from protobuf field: optional string network_id = 11 [deprecated = true]
      */
-    networkId?: string; // Identificador de la red a la que asociar la clínica (opcional)
+    networkId?: string; // Ignorado: la clínica cuelga siempre de la Organization raíz de su dueño
 }
 /**
  * / Respuesta a la creación de una clínica.
@@ -4057,7 +4058,7 @@ class CreateClinicRequest$Type extends MessageType<CreateClinicRequest> {
                 case /* string subdomain */ 10:
                     message.subdomain = reader.string();
                     break;
-                case /* optional string network_id */ 11:
+                case /* optional string network_id = 11 [deprecated = true] */ 11:
                     message.networkId = reader.string();
                     break;
                 default:
@@ -4102,7 +4103,7 @@ class CreateClinicRequest$Type extends MessageType<CreateClinicRequest> {
         /* string subdomain = 10; */
         if (message.subdomain !== "")
             writer.tag(10, WireType.LengthDelimited).string(message.subdomain);
-        /* optional string network_id = 11; */
+        /* optional string network_id = 11 [deprecated = true]; */
         if (message.networkId !== undefined)
             writer.tag(11, WireType.LengthDelimited).string(message.networkId);
         let u = options.writeUnknownFields;

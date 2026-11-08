@@ -1,5 +1,5 @@
+use crate::application::root_organization::RootOrganizationUseCase;
 use crate::application::state::AdministrationState;
-use crate::domain::clinical_network::ClinicalNetwork;
 use crate::domain::membership::Membership;
 use crate::domain::organization::Organization;
 use crate::domain::patient::Patient;
@@ -7,6 +7,7 @@ use crate::domain::practitioner::Practitioner;
 use app_core::domain::access::{MembershipRole, MembershipStatus};
 use app_core::domain::error::ClickCareError;
 use app_core::domain::event::UserCreatedEvent;
+use app_core::domain::fhir::PersonLinkTarget;
 use tracing::info;
 use uuid::Uuid;
 
@@ -74,19 +75,20 @@ async fn ensure_organization(
         return Ok(organization_id);
     }
 
-    let default_network_id = Uuid::now_v7();
-    let network = ClinicalNetwork::new(
-        default_network_id,
-        format!("Red {}", event.person.name().text()),
-        true,
-    );
-    state.clinical_network_repository.save(&network).await?;
+    // La clínica cuelga de la Organization raíz del dueño, que ya existe si se registró
+    // como dueño; si no, nace ahora.
+    let root = RootOrganizationUseCase::new(state.clinical_network_repository.clone())
+        .ensure_for_owner(
+            event.user_id,
+            &format!("Organización de {}", event.person.name().text()),
+        )
+        .await?;
 
     let clinic_name = format!("Clínica de {}", event.person.name().text());
     let subdomain = format!("clinica-{}", event.user_id.simple());
     let organization = Organization::new(
         Uuid::now_v7(),
-        default_network_id,
+        root.id,
         subdomain,
         clinic_name,
         None,
@@ -98,6 +100,12 @@ async fn ensure_organization(
         "Organización creada: id={} para user_id={}",
         organization.id, event.user_id
     );
+    for target in [root.id, organization.id] {
+        state
+            .person_links
+            .link(&event.user_id, PersonLinkTarget::Organization(target))
+            .await?;
+    }
 
     Ok(organization.id)
 }
@@ -268,6 +276,13 @@ mod test {
             Ok(None)
         }
 
+        async fn find_by_owner(
+            &self,
+            _owner_user_id: &Uuid,
+        ) -> Result<Option<ClinicalNetwork>, ClickCareError> {
+            Ok(None)
+        }
+
         async fn save(&self, _network: &ClinicalNetwork) -> Result<(), ClickCareError> {
             self.record_save();
             Ok(())
@@ -374,6 +389,7 @@ mod test {
             patient_repository: patient,
             practitioner_repository: practitioner,
             membership_repository: membership,
+            person_links: Arc::new(crate::testing::InMemoryPersonLinks::default()),
         }
     }
 
@@ -458,7 +474,7 @@ mod test {
         .await
         .expect("El handler no debió fallar");
 
-        assert_eq!(network.saved_count(), 1, "Debió crear la red clínica");
+        assert_eq!(network.saved_count(), 1, "Debió crear la Organization raíz");
         assert_eq!(organization.saved_count(), 1, "Debió crear la organización");
         assert_eq!(
             practitioner.saved_count(),

@@ -1,12 +1,12 @@
 use crate::application::dto::create_clinic::*;
+use crate::application::root_organization::RootOrganizationUseCase;
 use crate::application::state::AdministrationState;
-use crate::domain::clinical_network::ClinicalNetwork;
 use crate::domain::membership::Membership;
 use crate::domain::organization::Organization;
 use crate::domain::practitioner::Practitioner;
 use app_core::application::UseCase;
 use app_core::domain::access::{MembershipRole, MembershipStatus};
-use app_core::domain::fhir::{ContactPoint, HumanName, Person};
+use app_core::domain::fhir::{ContactPoint, HumanName, Person, PersonLinkTarget};
 use async_trait::async_trait;
 use tracing::info;
 use uuid::{Uuid, Version};
@@ -57,8 +57,13 @@ impl UseCase for CreateClinicUseCaseImpl {
             let practitioner_id = self
                 .ensure_practitioner(&organization_id, &owner_user_id, &command)
                 .await?;
-
-            let network_id = command.network_id.unwrap_or(organization_id);
+            let network_id = self
+                .state
+                .organization_repository
+                .find_by_id(&organization_id)
+                .await?
+                .map(|organization| organization.network_id)
+                .unwrap_or(organization_id);
 
             return Ok(CreateClinicResponse {
                 organization_id,
@@ -78,19 +83,15 @@ impl UseCase for CreateClinicUseCaseImpl {
             return Err(CreateClinicError::SubdomainAlreadyExists(subdomain));
         }
 
-        let network_id = match command.network_id {
-            Some(id) => id,
-            None => {
-                let default_network_id = Uuid::now_v7();
-                let network =
-                    ClinicalNetwork::new(default_network_id, format!("Red {}", clinic_name), true);
-                self.state
-                    .clinical_network_repository
-                    .save(&network)
-                    .await?;
-                default_network_id
-            }
-        };
+        // La clínica cuelga siempre de la Organization raíz de su dueño (`partOf`): la
+        // red no la elige el cliente.
+        let root = RootOrganizationUseCase::new(self.state.clinical_network_repository.clone())
+            .ensure_for_owner(
+                owner_user_id,
+                &format!("Organización de {}", command.given_name.trim()),
+            )
+            .await?;
+        let network_id = root.id;
 
         let organization = Organization::new(
             Uuid::now_v7(),
@@ -124,6 +125,14 @@ impl UseCase for CreateClinicUseCaseImpl {
         let practitioner_id = self
             .ensure_practitioner(&organization.id, &owner_user_id, &command)
             .await?;
+
+        // Person.link del dueño: su raíz y la clínica nueva.
+        for target in [root.id, organization.id] {
+            self.state
+                .person_links
+                .link(&owner_user_id, PersonLinkTarget::Organization(target))
+                .await?;
+        }
 
         Ok(CreateClinicResponse {
             organization_id: organization.id,
@@ -277,6 +286,19 @@ mod test {
             Ok(None)
         }
 
+        async fn find_by_owner(
+            &self,
+            owner_user_id: &Uuid,
+        ) -> Result<Option<ClinicalNetwork>, ClickCareError> {
+            Ok(self
+                .saved_networks
+                .lock()
+                .expect("El mutex del espía no debió envenenarse")
+                .iter()
+                .find(|n| n.owner_user_id == Some(*owner_user_id))
+                .cloned())
+        }
+
         async fn save(&self, network: &ClinicalNetwork) -> Result<(), ClickCareError> {
             self.saved_networks
                 .lock()
@@ -395,6 +417,7 @@ mod test {
                 membership_repository: Arc::new(
                     crate::testing::InMemoryMembershipRepository::default(),
                 ),
+                person_links: Arc::new(crate::testing::InMemoryPersonLinks::default()),
             },
         }
     }
@@ -404,7 +427,6 @@ mod test {
             owner_user_id: owner_user_id.to_string(),
             name: "Clínica San Borja".to_string(),
             subdomain: "san-borja".to_string(),
-            network_id: None,
             tax_id: Some("20512345678".to_string()),
             given_name: "Ana".to_string(),
             family_name: Some("Ramírez".to_string()),
@@ -434,9 +456,16 @@ mod test {
         assert_eq!(clinics[0].tax_id.as_deref(), Some("20512345678"));
 
         let networks = spy.saved_networks.lock().unwrap();
-        assert_eq!(networks.len(), 1, "Debió crear una red por defecto");
-        assert!(networks[0].is_default);
-        assert_eq!(clinics[0].network_id, networks[0].id);
+        assert_eq!(
+            networks.len(),
+            1,
+            "Debió crear la Organization raíz del dueño"
+        );
+        assert_eq!(networks[0].owner_user_id, Some(owner_user_id));
+        assert_eq!(
+            clinics[0].network_id, networks[0].id,
+            "La clínica cuelga de la raíz"
+        );
 
         let fichas = spy.saved_practitioners.lock().unwrap();
         assert_eq!(fichas.len(), 1, "Debió crear la ficha del propietario");
@@ -449,25 +478,6 @@ mod test {
             CreateClinicUseCaseImpl::PENDING_MEDICAL_LICENSE,
             "Sin colegiatura declarada debe quedar la provisional"
         );
-    }
-
-    #[tokio::test]
-    async fn uses_provided_network_id_without_creating_default_network() {
-        let spy = SpyRepository::empty();
-        let owner_user_id = Uuid::now_v7();
-        let custom_network_id = Uuid::now_v7();
-
-        let mut cmd = command_for(&owner_user_id.to_string());
-        cmd.network_id = Some(custom_network_id);
-
-        let response = use_case_with(Arc::clone(&spy), Arc::clone(&spy), Arc::clone(&spy))
-            .execute(cmd)
-            .await
-            .expect("La creación de la clínica no debió fallar");
-
-        assert_eq!(response.network_id, custom_network_id);
-        let networks = spy.saved_networks.lock().unwrap();
-        assert!(networks.is_empty(), "No debió crear una red nueva");
     }
 
     /// Reintentar no debe producir una segunda clínica: se devuelve la existente.

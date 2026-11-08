@@ -16,6 +16,9 @@ export function completeProfile(
   return userApi.completeProfile(request);
 }
 
-export function signUpAccount(request: SignUpRequest): Promise<SignUpResponse> {
-  return userApi.signUp(request);
+export function signUpAccount(
+  request: SignUpRequest,
+  clinicSubdomain?: string,
+): Promise<SignUpResponse> {
+  return userApi.signUp(request, clinicSubdomain);
 }

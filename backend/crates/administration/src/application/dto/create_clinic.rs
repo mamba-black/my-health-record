@@ -11,7 +11,6 @@ pub struct CreateClinicCommand {
     pub owner_user_id: String,
     pub name: String,
     pub subdomain: String,
-    pub network_id: Option<Uuid>,
     pub tax_id: Option<String>,
     pub given_name: String,
     pub family_name: Option<String>,

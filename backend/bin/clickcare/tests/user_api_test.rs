@@ -438,9 +438,15 @@ mod administration_worker {
     async fn run_worker_until_done(pg_conn: &str, user_id: uuid::Uuid) -> Option<String> {
         let _worker_guard = WORKER_LOCK.lock().await;
 
-        let di = administration_di::new(administration_di::DBType::Postgres(Some(
-            pg_conn.to_string(),
-        )))
+        let user_di = user::infrastructure::config::new(
+            user::infrastructure::config::DBType::Postgres(Some(pg_conn.to_string())),
+        )
+        .await
+        .expect("Fallo al construir el DI de user");
+        let di = administration_di::new(
+            administration_di::DBType::Postgres(Some(pg_conn.to_string())),
+            std::sync::Arc::clone(&user_di.person_links),
+        )
         .await
         .expect("Fallo al construir el DI de administration");
 
@@ -1384,14 +1390,14 @@ mod access_control {
     async fn flujo_de_clinica_y_medico(#[future(awt)] test_env: &'static TestEnv) {
         let env = test_env;
         let owner = sign_up(env, "Duena", SignUpIntent::IntentClinicOwner).await;
-        let doctor = sign_up(env, "Doctor", SignUpIntent::IntentPractitioner).await;
+        let subdomain = format!("flujo-{}", owner.user_id.simple());
 
         let created = clinics(env)
             .await
             .create_clinic(authed(
                 CreateClinicRequest {
                     name: "Clínica Flujo".into(),
-                    subdomain: format!("flujo-{}", owner.user_id.simple()),
+                    subdomain: subdomain.clone(),
                     given_name: "Dueña".into(),
                     ..Default::default()
                 },
@@ -1401,6 +1407,15 @@ mod access_control {
             .expect("crear clínica")
             .into_inner();
         let organization_id = created.organization_id.clone();
+        // El médico se registra por el enlace de la clínica: su cuenta queda en la
+        // organización del dueño, que es donde la invitación lo busca.
+        let doctor = crate::support::sign_up_in(
+            env,
+            "Doctor",
+            SignUpIntent::IntentPractitioner,
+            Some(&subdomain),
+        )
+        .await;
 
         // Activar sin RUC ni datos del dueño: precondición con la lista exacta.
         let status = clinics(env)
@@ -1615,6 +1630,115 @@ mod access_control {
         assert_eq!(suspended.code(), Code::PermissionDenied);
     }
 
+    /// Organization raíz del dueño (`my-health-record-vrw`): cada dueño tiene la suya,
+    /// su cuenta vive en ella, sus clínicas cuelgan de ella (`partOf`) y queda vinculado
+    /// por `Person.link`. Sin red por defecto compartida entre dueños.
+    #[rstest]
+    #[tokio::test]
+    #[allow(deprecated)] // envía `network_id` a propósito: debe ignorarse
+    async fn cada_dueno_tiene_su_organizacion_raiz(#[future(awt)] test_env: &'static TestEnv) {
+        let env = test_env;
+        let owner_a = sign_up(env, "RaizA", SignUpIntent::IntentClinicOwner).await;
+        let owner_b = sign_up(env, "RaizB", SignUpIntent::IntentClinicOwner).await;
+        let create = |owner: &crate::support::Account, suffix: &str| CreateClinicRequest {
+            name: format!("Clínica {suffix}"),
+            subdomain: format!("raiz-{suffix}-{}", owner.user_id.simple()),
+            given_name: "Dueño".into(),
+            network_id: Some(Uuid::now_v7().to_string()), // se ignora
+            ..Default::default()
+        };
+        let a1 = clinics(env)
+            .await
+            .create_clinic(authed(create(&owner_a, "a1"), &owner_a.access_token))
+            .await
+            .expect("clínica A1")
+            .into_inner();
+        let b1 = clinics(env)
+            .await
+            .create_clinic(authed(create(&owner_b, "b1"), &owner_b.access_token))
+            .await
+            .expect("clínica B1")
+            .into_inner();
+        assert_ne!(
+            a1.network_id, b1.network_id,
+            "Dueños distintos, raíces distintas"
+        );
+
+        let conn = env.pg_connection_string.clone();
+        let (owner_a_id, a1_id) = (
+            owner_a.user_id,
+            Uuid::parse_str(&a1.organization_id).unwrap(),
+        );
+        let (account_network, root_owner, links): (Uuid, Uuid, i64) =
+            tokio::task::spawn_blocking(move || {
+                let mut db = ::postgres::Client::connect(&conn, ::postgres::NoTls).expect("conexión");
+                let account_network: Uuid = db
+                    .query_one(
+                        "select network_id from identity.user_account where id = $1",
+                        &[&owner_a_id],
+                    )
+                    .expect("cuenta")
+                    .get(0);
+                let root_owner: Uuid = db
+                    .query_one(
+                        "select n.owner_user_id from administration.organization o \
+                         join administration.clinical_network n on n.id = o.network_id \
+                         where o.id = $1",
+                        &[&a1_id],
+                    )
+                    .expect("raíz de la clínica")
+                    .get(0);
+                let links: i64 = db
+                    .query_one(
+                        "select count(*) from identity.person_link \
+                         where user_id = $1 and target_type = 'ORGANIZATION' \
+                         and target_id in ($2, (select network_id from administration.organization where id = $2))",
+                        &[&owner_a_id, &a1_id],
+                    )
+                    .expect("vínculos")
+                    .get(0);
+                (account_network, root_owner, links)
+            })
+            .await
+            .expect("tarea bloqueante");
+        assert_eq!(
+            account_network.to_string(),
+            a1.network_id,
+            "La cuenta vive en su raíz"
+        );
+        assert_eq!(root_owner, owner_a.user_id, "La raíz es del dueño");
+        assert_eq!(links, 2, "Person.link a la raíz y a la clínica");
+
+        // Sin subdominio, el dueño inicia sesión en su organización.
+        let signed_in = users(env)
+            .await
+            .sign_in(tonic::Request::new(SignInRequest {
+                id_token: crate::support::id_token(&owner_a.email),
+                provider_id: "google.com".into(),
+            }))
+            .await
+            .expect("iniciar sesión sin subdominio")
+            .into_inner();
+        assert_eq!(signed_in.user_id, owner_a.user_id.to_string());
+
+        // El mismo correo no abre una segunda organización.
+        let again = users(env)
+            .await
+            .sign_up(tonic::Request::new(SignUpRequest {
+                id_token: crate::support::id_token(&owner_a.email),
+                user_id: Uuid::now_v7().to_string(),
+                provider_id: "google.com".into(),
+                provider_name: "Google".into(),
+                email: owner_a.email.clone(),
+                given_name: "RaizA".into(),
+                intent: SignUpIntent::IntentClinicOwner as i32,
+                ..Default::default()
+            }))
+            .await
+            .expect_err("segunda cuenta de dueño");
+        assert_eq!(again.code(), Code::AlreadyExists);
+    }
+
     /// Rol recepcionista: pide entrar a una clínica existente, el dueño aprueba y registra
     /// pacientes sin cuenta (`identity/patient-account-linking`, «Paciente sin cuenta»).
     #[rstest]
@@ -1711,7 +1835,10 @@ mod access_control {
         let patient_dni = unique_dni();
         let not_yet = patients(env)
             .await
-            .register_patient(authed(new_patient(&patient_dni), &receptionist.access_token))
+            .register_patient(authed(
+                new_patient(&patient_dni),
+                &receptionist.access_token,
+            ))
             .await
             .expect_err("sin aprobar no registra");
         assert_eq!(not_yet.code(), Code::PermissionDenied);
@@ -1753,13 +1880,19 @@ mod access_control {
         // Ya aprobada, registra al paciente sin cuenta, una sola vez por documento.
         let patient = patients(env)
             .await
-            .register_patient(authed(new_patient(&patient_dni), &receptionist.access_token))
+            .register_patient(authed(
+                new_patient(&patient_dni),
+                &receptionist.access_token,
+            ))
             .await
             .expect("registrar paciente")
             .into_inner();
         let repeated = patients(env)
             .await
-            .register_patient(authed(new_patient(&patient_dni), &receptionist.access_token))
+            .register_patient(authed(
+                new_patient(&patient_dni),
+                &receptionist.access_token,
+            ))
             .await
             .expect_err("documento repetido");
         assert_eq!(repeated.code(), Code::AlreadyExists);

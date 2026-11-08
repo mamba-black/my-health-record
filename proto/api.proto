@@ -577,7 +577,7 @@ message CreateClinicRequest {
     optional string phone = 8;                 // Teléfono de contacto
     optional string medical_license_number = 9; // Colegiatura CMP/COP, si ya se conoce
     string subdomain = 10;                     // Subdominio exclusivo de la clínica (ej. "san-borja")
-    optional string network_id = 11;           // Identificador de la red a la que asociar la clínica (opcional)
+    optional string network_id = 11 [deprecated = true]; // Ignorado: la clínica cuelga siempre de la Organization raíz de su dueño
 }
 
 /// Respuesta a la creación de una clínica.

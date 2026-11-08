@@ -130,16 +130,20 @@ pub async fn build_services(
     database_url: Option<String>,
     user_overrides: user::infrastructure::config::DIOverrides,
 ) -> Result<Services, ClickCareError> {
-    let administration =
-        administration_di::new(administration_di::DBType::Postgres(database_url.clone())).await?;
-    let subdomain_resolver = Arc::new(SubdomainResolver::new(Arc::clone(
-        &administration.state.organization_repository,
-    )));
     let user_di = user::infrastructure::config::new_with_overrides(
-        user::infrastructure::config::DBType::Postgres(database_url),
+        user::infrastructure::config::DBType::Postgres(database_url.clone()),
         user_overrides,
     )
     .await?;
+    // `Person.link` es del contexto `user`; administración lo usa por su puerto.
+    let administration = administration_di::new(
+        administration_di::DBType::Postgres(database_url),
+        Arc::clone(&user_di.person_links),
+    )
+    .await?;
+    let subdomain_resolver = Arc::new(SubdomainResolver::new(Arc::clone(
+        &administration.state.organization_repository,
+    )));
 
     let authenticator = Authenticator::new(Arc::clone(&user_di.session_service));
     let access = Arc::new(AccessContextBuilder::new(
@@ -152,6 +156,7 @@ pub async fn build_services(
         authenticator.clone(),
         Arc::clone(&access),
         Arc::clone(&administration.membership_use_cases),
+        Arc::clone(&administration.root_organization_use_case),
         Arc::clone(&subdomain_resolver),
     );
     let clinic_api = ClinicApiImpl::new(

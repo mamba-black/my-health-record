@@ -22,7 +22,7 @@ La motivación está en `proposal.md`, y los requisitos en `specs/`. Lo que cond
   - El subdominio se resuelve en `SubdomainResolver` con la cabecera `x-subdomain`.
   - En desarrollo no hay subdominios reales: todo corre en `localhost`.
 - **No hay zona horaria por clínica**: se asume Lima.
-- **Las migraciones son de refinery**: `V6__recepcion_y_pacientes_sin_cuenta.sql` ya existe (rol recepcionista y `patient.user_id` nulo); la próxima es `V7`.
+- **Las migraciones son de refinery**: `V6__recepcion_y_pacientes_sin_cuenta.sql` ya existe (rol recepcionista y `patient.user_id` nulo) y `V7__organizacion_raiz.sql` también (Organization raíz del dueño y `identity.person_link`); la próxima es `V8`.
 
 ## Goals / Non-Goals
 
@@ -76,7 +76,7 @@ Al reservar, la aplicación vuelve a comprobar que el cupo existe en el horario 
 - **Descartado**: la regla del `AGENTS.md` de scheduling que dice «`Slot` como unidad de exclusión». Se reemplaza por esta restricción, que es más fuerte porque también evita citas que se crucen con duraciones distintas. Se actualiza el `AGENTS.md`.
 - **`btree_gist` en Neon**: está disponible. Se crea en la migración.
 
-### 3. Modelo de datos (`V7__agenda.sql`, esquema `scheduling`)
+### 3. Modelo de datos (`V8__agenda.sql`, esquema `scheduling`)
 
 - **`schedule`**: `id`, `network_id`, `organization_id`, `practitioner_user_id`, `slot_minutes`. Un registro por médico y clínica, con `UNIQUE (organization_id, practitioner_user_id)`.
 - **`schedule_block`**: `schedule_id`, `weekday` (1–7), `start_time`, `end_time`, que son horas locales.
@@ -230,7 +230,7 @@ La clínica va como campo `subdomain` en los mensajes públicos, no solo en la c
 
 ## Migration Plan
 
-1. `V7__agenda.sql`:
+1. `V8__agenda.sql`:
    - en `administration`: la zona horaria de la clínica, `patient.user_id` nulo y el índice único parcial;
    - el esquema `scheduling` con `btree_gist`.
    Es un cambio aditivo, y en Neon se aplica solo al arrancar.

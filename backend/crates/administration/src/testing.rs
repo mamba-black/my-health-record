@@ -173,8 +173,13 @@ impl crate::domain::clinical_network::clinical_network_repository::ClinicalNetwo
     async fn find_by_id(
         &self,
         _id: &Uuid,
-    ) -> Result<Option<crate::domain::clinical_network::ClinicalNetwork>, ClickCareError>
-    {
+    ) -> Result<Option<crate::domain::clinical_network::ClinicalNetwork>, ClickCareError> {
+        Ok(None)
+    }
+    async fn find_by_owner(
+        &self,
+        _owner_user_id: &Uuid,
+    ) -> Result<Option<crate::domain::clinical_network::ClinicalNetwork>, ClickCareError> {
         Ok(None)
     }
     async fn save(
@@ -190,10 +195,7 @@ impl crate::domain::patient::patient_repository::PatientRepository for NoopRepos
     async fn exists_by_user_id(&self, _o: &Uuid, _u: &Uuid) -> Result<bool, ClickCareError> {
         Ok(false)
     }
-    async fn save(
-        &self,
-        _patient: &crate::domain::patient::Patient,
-    ) -> Result<(), ClickCareError> {
+    async fn save(&self, _patient: &crate::domain::patient::Patient) -> Result<(), ClickCareError> {
         Ok(())
     }
     async fn search(
@@ -308,5 +310,93 @@ impl crate::domain::patient::patient_repository::PatientRepository for InMemoryP
             .iter()
             .find(|p| p.organization_id == *organization_id && p.id == *id)
             .cloned())
+    }
+}
+
+/// Organizations raíz en memoria, con el índice único por dueño.
+#[derive(Default)]
+pub struct InMemoryNetworkRepository {
+    pub networks: Mutex<Vec<crate::domain::clinical_network::ClinicalNetwork>>,
+}
+
+#[async_trait]
+impl crate::domain::clinical_network::clinical_network_repository::ClinicalNetworkRepository
+    for InMemoryNetworkRepository
+{
+    async fn find_by_id(
+        &self,
+        id: &Uuid,
+    ) -> Result<Option<crate::domain::clinical_network::ClinicalNetwork>, ClickCareError> {
+        Ok(self
+            .networks
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|n| n.id == *id)
+            .cloned())
+    }
+
+    async fn find_by_owner(
+        &self,
+        owner_user_id: &Uuid,
+    ) -> Result<Option<crate::domain::clinical_network::ClinicalNetwork>, ClickCareError> {
+        Ok(self
+            .networks
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|n| n.owner_user_id == Some(*owner_user_id))
+            .cloned())
+    }
+
+    async fn save(
+        &self,
+        network: &crate::domain::clinical_network::ClinicalNetwork,
+    ) -> Result<(), ClickCareError> {
+        let mut networks = self.networks.lock().unwrap();
+        if network.owner_user_id.is_some()
+            && networks
+                .iter()
+                .any(|n| n.owner_user_id == network.owner_user_id)
+        {
+            return Err(ClickCareError::generic("El dueño ya tiene una raíz"));
+        }
+        networks.push(network.clone());
+        Ok(())
+    }
+}
+
+/// Vínculos de la persona en memoria.
+#[derive(Default)]
+pub struct InMemoryPersonLinks {
+    pub links: Mutex<Vec<(Uuid, app_core::domain::fhir::PersonLinkTarget)>>,
+}
+
+#[async_trait]
+impl app_core::domain::person_link::PersonLinkRegistry for InMemoryPersonLinks {
+    async fn link(
+        &self,
+        user_id: &Uuid,
+        target: app_core::domain::fhir::PersonLinkTarget,
+    ) -> Result<(), ClickCareError> {
+        let mut links = self.links.lock().unwrap();
+        if !links.iter().any(|(u, t)| u == user_id && *t == target) {
+            links.push((*user_id, target));
+        }
+        Ok(())
+    }
+
+    async fn links_of(
+        &self,
+        user_id: &Uuid,
+    ) -> Result<Vec<app_core::domain::fhir::PersonLinkTarget>, ClickCareError> {
+        Ok(self
+            .links
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|(u, _)| u == user_id)
+            .map(|(_, t)| t.clone())
+            .collect())
     }
 }

@@ -3,6 +3,7 @@ use crate::domain::membership::membership_repository::MembershipRepository;
 use crate::domain::organization::organization_repository::OrganizationRepository;
 use crate::domain::patient::patient_repository::PatientRepository;
 use crate::domain::practitioner::practitioner_repository::PractitionerRepository;
+use app_core::domain::person_link::PersonLinkRegistry;
 use std::sync::Arc;
 
 /// Dependencias que el worker inyecta en los handlers de eventos.
@@ -17,4 +18,6 @@ pub struct AdministrationState {
     pub patient_repository: Arc<dyn PatientRepository>,
     pub practitioner_repository: Arc<dyn PractitionerRepository>,
     pub membership_repository: Arc<dyn MembershipRepository>,
+    /// `Person.link` de las cuentas: lo implementa el contexto `user`.
+    pub person_links: Arc<dyn PersonLinkRegistry>,
 }

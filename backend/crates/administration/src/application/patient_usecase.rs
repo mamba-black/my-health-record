@@ -164,6 +164,7 @@ mod tests {
             patient_repository: patients.clone(),
             practitioner_repository: Arc::new(crate::testing::NoopRepository),
             membership_repository: memberships,
+            person_links: Arc::new(crate::testing::InMemoryPersonLinks::default()),
         };
         Fixture {
             use_cases: PatientUseCases::new(state),
@@ -172,7 +173,11 @@ mod tests {
         }
     }
 
-    fn ctx(organization_id: Uuid, role: MembershipRole, status: MembershipStatus) -> RequestContext {
+    fn ctx(
+        organization_id: Uuid,
+        role: MembershipRole,
+        status: MembershipStatus,
+    ) -> RequestContext {
         RequestContext {
             user_id: Uuid::now_v7(),
             memberships: vec![
@@ -198,7 +203,11 @@ mod tests {
         let patient = f
             .use_cases
             .register(
-                &ctx(f.organization.id, MembershipRole::Receptionist, MembershipStatus::Active),
+                &ctx(
+                    f.organization.id,
+                    MembershipRole::Receptionist,
+                    MembershipStatus::Active,
+                ),
                 f.organization.id,
                 data(),
             )
@@ -215,7 +224,11 @@ mod tests {
         let result = f
             .use_cases
             .register(
-                &ctx(f.organization.id, MembershipRole::Admin, MembershipStatus::Active),
+                &ctx(
+                    f.organization.id,
+                    MembershipRole::Admin,
+                    MembershipStatus::Active,
+                ),
                 f.organization.id,
                 NewPatient {
                     phone: " ".to_string(),
@@ -229,7 +242,11 @@ mod tests {
     #[tokio::test]
     async fn documento_repetido_en_la_clinica() {
         let f = fixture();
-        let reception = ctx(f.organization.id, MembershipRole::Owner, MembershipStatus::Active);
+        let reception = ctx(
+            f.organization.id,
+            MembershipRole::Owner,
+            MembershipStatus::Active,
+        );
         f.use_cases
             .register(&reception, f.organization.id, data())
             .await
@@ -247,7 +264,11 @@ mod tests {
         let result = f
             .use_cases
             .register(
-                &ctx(f.organization.id, MembershipRole::Receptionist, MembershipStatus::Requested),
+                &ctx(
+                    f.organization.id,
+                    MembershipRole::Receptionist,
+                    MembershipStatus::Requested,
+                ),
                 f.organization.id,
                 data(),
             )

@@ -127,6 +127,22 @@ impl UserRepository for UserRepositoryImpl {
         map_row_to_user(row).map(Some)
     }
 
+    async fn find_users_by_email(&self, email: &str) -> Result<Vec<User>, ClickCareError> {
+        let rows = toasty::sql::query(format!(
+            "{USER_COLUMNS} from identity.user_account where email = $1 and active \
+             order by created_at limit 20"
+        ))
+        .bind(email.to_string())
+        .column_types(user_column_types())
+        .exec(&mut self.db.clone())
+        .await
+        .map_err(|error| {
+            error!("Error al buscar las cuentas del correo {email} ({error})");
+            ClickCareError::generic(error.to_string())
+        })?;
+        rows.into_iter().map(map_row_to_user).collect()
+    }
+
     async fn find_user_by_id(&self, user_id: &Uuid) -> Result<Option<User>, ClickCareError> {
         let rows = toasty::sql::query(format!(
             "{USER_COLUMNS} from identity.user_account where id = $1 limit 1"

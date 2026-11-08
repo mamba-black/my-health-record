@@ -60,7 +60,7 @@ Un médico SHALL poder unirse a una clínica que lo invitó y activar su perfil 
 - **THEN** el servidor responde «precondición no cumplida» indicando que falta la confirmación de la colegiatura
 
 ### Requirement: Acciones del dueño o administrador
-Un dueño o administrador con membresía activa SHALL poder configurar su clínica e invitar personal mientras la clínica esté pendiente o activa. Solo el dueño SHALL poder activar la clínica, y solo cuando tenga los datos exigidos.
+Un dueño o administrador con membresía activa SHALL poder configurar su clínica, invitar personal, ver al personal y aprobar o rechazar solicitudes de ingreso mientras la clínica esté pendiente o activa. También SHALL poder registrar pacientes sin cuenta en una clínica activa. Solo el dueño SHALL poder activar la clínica, y solo cuando tenga los datos exigidos.
 
 #### Scenario: Dueño configura antes de activar
 - **WHEN** el dueño de una clínica pendiente invita a un médico
@@ -68,6 +68,21 @@ Un dueño o administrador con membresía activa SHALL poder configurar su clíni
 
 #### Scenario: Administrador intenta activar
 - **WHEN** un administrador que no es dueño intenta activar la clínica
+- **THEN** el servidor responde «permiso denegado»
+
+### Requirement: Acciones del recepcionista
+Un recepcionista con membresía activa en una clínica activa SHALL poder registrar pacientes, incluso sin cuenta, y buscar y ver pacientes de su clínica. SHALL NOT abrir ni registrar atenciones, emitir recetas, configurar la clínica, invitar personal ni aprobar solicitudes. Una membresía solicitada o pendiente SHALL NOT conceder ninguna de estas acciones.
+
+#### Scenario: Recepcionista registra un paciente sin cuenta
+- **WHEN** un recepcionista activo registra a un paciente con nombres, apellido paterno, documento y teléfono
+- **THEN** el paciente queda en la clínica sin cuenta, y un segundo registro con el mismo documento se rechaza
+
+#### Scenario: Solicitud sin aprobar
+- **WHEN** un recepcionista cuya solicitud aún no se aprueba intenta registrar un paciente
+- **THEN** el servidor responde «permiso denegado»
+
+#### Scenario: Recepcionista intenta registrar una atención
+- **WHEN** un recepcionista activo intenta registrar una atención
 - **THEN** el servidor responde «permiso denegado»
 
 ### Requirement: Rechazo por datos faltantes

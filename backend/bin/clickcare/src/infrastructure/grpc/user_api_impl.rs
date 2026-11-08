@@ -6,10 +6,13 @@ use crate::infrastructure::grpc::subdomain_resolver::SubdomainResolver;
 use crate::infrastructure::grpc::user_api_server::UserApi;
 use crate::infrastructure::grpc::*;
 use administration::application::membership_usecase::{MembershipUseCases, MembershipWithClinic};
+use administration::application::root_organization::RootOrganizationUseCase;
 use app_core::domain::access::{
     self as access, ClinicStatus, FieldSubject, MembershipRole, MembershipStatus,
     ProfileField as Field, Role as DomainRole,
 };
+use app_core::domain::fhir::PersonLinkTarget;
+use app_core::domain::person_link::PersonLinkRegistry;
 use std::sync::Arc;
 use tonic::*;
 use tracing::{debug, error};
@@ -25,6 +28,7 @@ use user::application::use_case::refresh_session_usecase::{
     RefreshSessionError, RefreshSessionUseCase,
 };
 use user::application::use_case::sign_in_usecase::SignInUseCase;
+use user::domain::user::user_repository::UserRepository;
 use user::domain::user::{Sex as DomainSex, User};
 use user::infrastructure::config::DI as UserDI;
 
@@ -40,6 +44,9 @@ pub struct UserApiImpl {
     authenticator: Authenticator,
     access: Arc<AccessContextBuilder>,
     membership_use_cases: Arc<MembershipUseCases>,
+    root_organization_use_case: Arc<RootOrganizationUseCase>,
+    user_repository: Arc<dyn UserRepository>,
+    person_links: Arc<dyn PersonLinkRegistry>,
     /// Resolvedor de subdominio utilizado para determinar `network_id` de cada solicitud.
     pub subdomain_resolver: Arc<SubdomainResolver>,
 }
@@ -50,6 +57,7 @@ impl UserApiImpl {
         authenticator: Authenticator,
         access: Arc<AccessContextBuilder>,
         membership_use_cases: Arc<MembershipUseCases>,
+        root_organization_use_case: Arc<RootOrganizationUseCase>,
         subdomain_resolver: Arc<SubdomainResolver>,
     ) -> Self {
         Self {
@@ -61,6 +69,9 @@ impl UserApiImpl {
             authenticator,
             access,
             membership_use_cases,
+            root_organization_use_case,
+            user_repository: Arc::clone(&user_di.user_repository),
+            person_links: Arc::clone(&user_di.person_links),
             subdomain_resolver,
         }
     }
@@ -79,14 +90,53 @@ impl UserApiImpl {
 
 #[async_trait]
 impl UserApi for UserApiImpl {
-    /// Registra un nuevo usuario en la red clínica resuelta a partir del subdominio de la solicitud.
+    /// Registra un nuevo usuario.
+    ///
+    /// - Un dueño nace con su propia Organization raíz, y su cuenta queda en ella: no
+    ///   depende del enlace por el que se registró ni comparte red con otros dueños.
+    /// - El resto (pacientes y personal) queda en la red de la clínica cuyo enlace usó.
     #[tracing::instrument(skip(self, sign_up_request))]
     async fn sign_up(
         &self,
         sign_up_request: Request<SignUpRequest>,
     ) -> Result<Response<SignUpResponse>, Status> {
-        let (network_id, _organization_id) =
-            self.subdomain_resolver.resolve(&sign_up_request).await?;
+        #[allow(deprecated)]
+        let is_owner = match sign_up_request.get_ref().intent() {
+            SignUpIntent::IntentClinicOwner => true,
+            SignUpIntent::IntentUnspecified => sign_up_request.get_ref().create_clinic,
+            _ => false,
+        };
+        let (network_id, owner_root) = if is_owner {
+            let request = sign_up_request.get_ref();
+            let owner_user_id = uuid::Uuid::parse_str(request.user_id.trim())
+                .map_err(|_| Status::invalid_argument("El user_id no es un UUID válido"))?;
+            // Un correo tiene a lo más una cuenta de dueño: la segunda abriría otra
+            // organización para la misma persona.
+            let accounts = self
+                .user_repository
+                .find_users_by_email(request.email.trim())
+                .await
+                .map_err(|error| Status::internal(error.to_string()))?;
+            if accounts.iter().any(|account| account.is_owner) {
+                return Err(Status::already_exists(
+                    "Ya tienes una cuenta de dueño con ese correo: inicia sesión",
+                ));
+            }
+            let root = self
+                .root_organization_use_case
+                .ensure_for_owner(
+                    owner_user_id,
+                    &format!("Organización de {}", request.given_name.trim()),
+                )
+                .await
+                .map_err(|error| Status::internal(error.to_string()))?;
+            (root.id, Some(root.id))
+        } else {
+            (
+                self.subdomain_resolver.resolve(&sign_up_request).await?.0,
+                None,
+            )
+        };
 
         let sign_up_request = sign_up_request.into_inner();
 
@@ -106,6 +156,12 @@ impl UserApi for UserApiImpl {
             })?;
         let user_id = uuid::Uuid::parse_str(&created.user_id)
             .map_err(|error| Status::internal(error.to_string()))?;
+        if let Some(root_id) = owner_root {
+            self.person_links
+                .link(&user_id, PersonLinkTarget::Organization(root_id))
+                .await
+                .map_err(|error| Status::internal(error.to_string()))?;
+        }
 
         Ok(Response::new(SignUpResponse {
             status: SignUpStatus::Success as i32,
@@ -123,8 +179,16 @@ impl UserApi for UserApiImpl {
         &self,
         sign_in_request: Request<SignInRequest>,
     ) -> Result<Response<SignInResponse>, Status> {
-        let (network_id, _organization_id) =
-            self.subdomain_resolver.resolve(&sign_in_request).await?;
+        // Con el enlace de una clínica se busca en su red; sin él, la cuenta del correo.
+        let network_id = match self.subdomain_resolver.extract_subdomain(&sign_in_request) {
+            Some(subdomain) => Some(
+                self.subdomain_resolver
+                    .resolve_subdomain(&subdomain)
+                    .await?
+                    .0,
+            ),
+            None => None,
+        };
 
         let sign_in_request = sign_in_request.into_inner();
         let mut sign_in_command: SignInCommand = sign_in_request.into();
@@ -139,6 +203,9 @@ impl UserApi for UserApiImpl {
                 match sign_in_error {
                     SignInError::InvalidToken(error) => Status::unauthenticated(error.to_string()),
                     SignInError::UserNotFound(error) => Status::not_found(error.to_string()),
+                    SignInError::SeveralOrganizations(error) => {
+                        Status::failed_precondition(error.to_string())
+                    }
                     SignInError::UnknownError(error) => Status::internal(error.to_string()),
                 }
             })?
@@ -423,7 +490,7 @@ mod mapper {
     impl From<SignInRequest> for SignInCommand {
         fn from(sign_in_request: SignInRequest) -> Self {
             SignInCommand {
-                network_id: Uuid::nil(),
+                network_id: None,
                 id_token: sign_in_request.id_token,
                 provider_id: sign_in_request.provider_id,
             }

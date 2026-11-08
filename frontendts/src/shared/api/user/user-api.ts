@@ -122,9 +122,16 @@ export const userApi = {
     }
   },
 
-  async signUp(request: SignUpRequest): Promise<SignUpResponse> {
+  /**
+   * Registra la cuenta. Con `clinicSubdomain`, la cuenta queda en la organización de esa
+   * clínica (el personal que entra por su enlace); sin él, en la que resuelva el host.
+   */
+  async signUp(request: SignUpRequest, clinicSubdomain?: string): Promise<SignUpResponse> {
     try {
-      const { response } = await userApiClient.signUp(request);
+      const { response } = await userApiClient.signUp(
+        request,
+        clinicSubdomain ? { meta: { "x-subdomain": clinicSubdomain } } : undefined,
+      );
       return response;
     } catch (error) {
       throw toUserApiError(error);

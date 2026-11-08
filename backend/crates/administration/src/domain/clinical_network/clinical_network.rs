@@ -2,35 +2,46 @@ use bon::Builder;
 use derive_getters::Getters;
 use uuid::Uuid;
 
-/// Recurso de dominio que representa una Red de Clínicas (Clinical Network).
+/// Organization raíz del dueño (FHIR R4 `Organization` sin `partOf`): su empresa o
+/// grupo, y la unidad de aislamiento («red clínica»).
 ///
-/// Define el límite de autenticación, directorio de usuarios y federación (`network_id`).
-/// Toda clínica pertenece a una red médica; si es independiente, pertenece a una red implícita con `is_default = true`.
+/// Cada clínica es una `Organization` cuyo `partOf` apunta a la raíz de su dueño
+/// (`Organization::network_id`). Todas las clínicas de un mismo dueño cuelgan de la
+/// misma raíz, y ninguna regla cruza de una raíz a otra.
 #[derive(Debug, Clone, Getters, Builder, PartialEq, Eq)]
 pub struct ClinicalNetwork {
-    /// Identificador único de la red clínica (UUID v7).
+    /// Identificador único de la raíz (UUID v7). Es el `network_id` de sus clínicas.
     pub id: Uuid,
-    /// Nombre descriptivo o comercial de la red.
+    /// Nombre de la empresa o grupo.
     pub name: String,
-    /// Indica si es la red por defecto creada para una clínica independiente.
+    /// Marca heredada de las redes creadas antes de la Organization raíz.
     pub is_default: bool,
-    /// Estado activo/inactivo de la red.
+    /// Estado activo/inactivo.
     pub active: bool,
+    /// Dueño de la raíz. Cada dueño tiene una sola; `None` solo en redes heredadas.
+    pub owner_user_id: Option<Uuid>,
 }
 
 impl ClinicalNetwork {
-    /// Crea una nueva red médica con estado activo.
-    ///
-    /// # Parámetros
-    /// - `id`: Identificador único de la red (UUID v7).
-    /// - `name`: Nombre descriptivo o comercial de la red.
-    /// - `is_default`: `true` si es la red por defecto creada para una clínica individual/independiente.
+    /// Crea una red activa sin dueño (forma heredada).
     pub fn new(id: Uuid, name: String, is_default: bool) -> Self {
         Self {
             id,
             name,
             is_default,
             active: true,
+            owner_user_id: None,
+        }
+    }
+
+    /// Crea la Organization raíz de un dueño.
+    pub fn root(id: Uuid, name: String, owner_user_id: Uuid) -> Self {
+        Self {
+            id,
+            name,
+            is_default: false,
+            active: true,
+            owner_user_id: Some(owner_user_id),
         }
     }
 }

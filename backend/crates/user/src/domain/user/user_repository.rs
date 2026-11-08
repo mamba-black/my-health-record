@@ -51,6 +51,10 @@ pub trait UserRepository: Send + Sync {
     ) -> Result<Option<User>, ClickCareError>;
 
     /// Busca un usuario por su identificador único (UUID v7).
+    /// Cuentas activas con ese correo en **todas** las redes. Solo sirve para iniciar
+    /// sesión sin subdominio: encontrar la cuenta, nunca mezclar datos entre redes.
+    async fn find_users_by_email(&self, email: &str) -> Result<Vec<User>, ClickCareError>;
+
     async fn find_user_by_id(&self, user_id: &Uuid) -> Result<Option<User>, ClickCareError>;
 
     /// Marca la colegiatura como confirmada por una clínica: desde entonces no es editable.

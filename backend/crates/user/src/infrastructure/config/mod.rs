@@ -9,9 +9,13 @@ use crate::infrastructure::integration::event::apalis_publisher::ApalisIntegrati
 use crate::infrastructure::integration::event::logging_publisher::LoggingIntegrationEventPublisherImpl;
 pub use crate::infrastructure::integration::service::session_service_impl::JwtSessionServiceImpl;
 use crate::infrastructure::integration::service::token_service_impl::TokenServiceImpl;
+use crate::infrastructure::repository::person_link_repository_impl::{
+    InMemoryPersonLinkRegistry, PersonLinkRepositoryImpl,
+};
 use crate::infrastructure::repository::user_repository_impl::{UserAccount, UserRepositoryImpl};
 use app_core::application::integration::event_publisher::IntegrationEventPublisher;
 use app_core::domain::error::ClickCareError;
+use app_core::domain::person_link::PersonLinkRegistry;
 use std::env::var;
 use std::sync::Arc;
 use toasty::{Db, models};
@@ -38,6 +42,8 @@ pub struct DI {
     #[allow(dead_code)]
     /// Puerto de repositorio para persistencia de cuentas de usuario.
     pub user_repository: Arc<dyn UserRepository>,
+    /// `Person.link` de las cuentas (`identity.person_link`).
+    pub person_links: Arc<dyn PersonLinkRegistry>,
     /// Puerto para publicar eventos de dominio (ej. `UserCreatedEvent`).
     pub event_publisher: Arc<dyn IntegrationEventPublisher>,
     pub token_service: Arc<dyn TokenService>,
@@ -91,10 +97,23 @@ pub async fn new_with_overrides(
             }
         };
 
-    // ── user_repository ──────────────────────────────────────────────────────
-    let user_repository: Arc<dyn UserRepository> = match overrides.user_repository {
-        Some(repository) => repository,
-        None => build_user_repository(database_url.as_deref()).await?,
+    // ── user_repository y person_links ─────────────────────────────────────
+    let db = match database_url.as_deref() {
+        Some(url) => Some(build_db(url).await?),
+        None => None,
+    };
+    let user_repository: Arc<dyn UserRepository> = match (overrides.user_repository, &db) {
+        (Some(repository), _) => repository,
+        (None, Some(db)) => Arc::new(UserRepositoryImpl { db: db.clone() }),
+        (None, None) => {
+            return Err(ClickCareError::generic(
+                "DBType::Mock requiere un UserRepository en DIOverrides".to_string(),
+            ));
+        }
+    };
+    let person_links: Arc<dyn PersonLinkRegistry> = match db {
+        Some(db) => Arc::new(PersonLinkRepositoryImpl { db }),
+        None => Arc::new(InMemoryPersonLinkRegistry::default()),
     };
 
     // ── event_publisher ──────────────────────────────────────────────────────
@@ -136,6 +155,7 @@ pub async fn new_with_overrides(
         refresh_session_use_case,
         session_service,
         user_repository,
+        person_links,
         event_publisher,
         token_service,
     })
@@ -158,15 +178,7 @@ fn resolve_db_url(database_type: &DBType) -> Option<String> {
 }
 
 /// Construye la instancia de `UserRepository` conectada a Toasty PostgreSQL.
-async fn build_user_repository(
-    database_url: Option<&str>,
-) -> Result<Arc<dyn UserRepository>, ClickCareError> {
-    let Some(database_url_str) = database_url else {
-        return Err(ClickCareError::generic(
-            "DBType::Mock requiere un UserRepository en DIOverrides".to_string(),
-        ));
-    };
-
+async fn build_db(database_url_str: &str) -> Result<Db, ClickCareError> {
     trace!("URL de la base de datos: {database_url_str}");
     let db: Db = toasty::Db::builder()
         .models(models!(UserAccount))
@@ -179,7 +191,7 @@ async fn build_user_repository(
             ))
         })?;
 
-    Ok(Arc::new(UserRepositoryImpl { db }))
+    Ok(db)
 }
 
 /// Tipo de backend de persistencia configurado para el contexto de usuario.
