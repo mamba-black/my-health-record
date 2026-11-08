@@ -32,11 +32,13 @@ export default defineConfig({
     {
       command: "cargo run -p clickcare --features test-support",
       cwd: "../backend",
-      url: `${backendURL}/api/v1/queues`,
+      url: `${backendURL}/health`,
       reuseExistingServer: false,
       timeout: 300_000,
       env: {
         CLICKCARE_PORT: String(BACKEND_PORT),
+        // El frontend e2e llama al backend directo desde su origen.
+        CORS_ALLOWED_ORIGINS: baseURL,
         GOOGLE_JWKS_URL: `${FAKE_GOOGLE_URL}/certs`,
         PUBLIC_GOOGLE_CLIENT_ID: E2E_GOOGLE_CLIENT_ID,
         // En `debug` el backend imprime credenciales.

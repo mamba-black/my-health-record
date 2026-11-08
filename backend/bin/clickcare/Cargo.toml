@@ -65,6 +65,7 @@ rustls-native-certs.workspace = true
 fake.workspace = true
 regex.workspace = true
 apalis-board.workspace = true
+base64.workspace = true
 
 [build-dependencies]
 tonic-prost-build.workspace = true
@@ -81,3 +82,5 @@ testcontainers-modules.workspace = true
 postgres.workspace = true
 jiff.workspace = true
 libc.workspace = true
+tower.workspace = true
+http-body-util.workspace = true

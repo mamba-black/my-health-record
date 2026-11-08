@@ -490,7 +490,10 @@ cargo clippy --workspace -- -D warnings
   * **Nunca edites una migración ya aplicada**: refinery valida su checksum y el arranque falla. Todo cambio va en una migración nueva.
   * Las columnas de clave primaria usan `uuidv7()` como valor por defecto. `backend/ddl/schema.dbml` es solo un modelo de referencia.
 * **Cola de eventos**: el esquema `apalis` lo crean las migraciones embebidas de `apalis-postgres` al construir el DI (`PostgresStorage::setup`). No se versiona en `backend/migrations/`.
-* **Servidor**: escucha en `0.0.0.0:50051` con soporte gRPC-Web y reflexión habilitada.
+* **Servidor** (`bin/clickcare/src/infrastructure/http.rs`): gRPC y gRPC-Web con reflexión, más `GET /health` sin credenciales.
+  * `CLICKCARE_HOST` (`127.0.0.1` por defecto) y `CLICKCARE_PORT` (`50051`): dirección de escucha. En un contenedor o detrás de un proxy, `CLICKCARE_HOST=0.0.0.0`.
+  * `CORS_ALLOWED_ORIGINS` (`http://localhost:5173` por defecto): orígenes del navegador permitidos, separados por comas; admite `https://*.dominio` para los subdominios de las clínicas. `*` no se acepta. Un origen fuera de la lista no recibe cabeceras CORS y el navegador bloquea la respuesta. Con el proxy de Vite (`bun run dev`) el navegador no hace peticiones cruzadas.
+  * `QUEUE_BOARD_USER` y `QUEUE_BOARD_PASSWORD`: el tablero de colas de apalis (`/` y `/api/v1/queues`) exige HTTP Basic con esas credenciales. **Sin ambas, el tablero no se publica** (404).
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:970c3bf2 -->
 ## Beads Issue Tracker
