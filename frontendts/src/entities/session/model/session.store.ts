@@ -214,6 +214,26 @@ export const canRegisterPatients = derived(
     ) ?? false,
 );
 
+/** Clínicas activas donde atiende como médico activo («Mi agenda»). */
+export const practitionerClinics = derived(profileContext, ($context) =>
+  ($context?.memberships ?? []).filter(activeIn(MembershipRole.PRACTITIONER)),
+);
+
+/** Clínicas activas cuya agenda ve: como recepción o como médico (solo la suya). */
+export const agendaClinics = derived(profileContext, ($context) => {
+  const seen = new Set<string>();
+  return ($context?.memberships ?? [])
+    .filter(
+      activeIn(
+        MembershipRole.OWNER,
+        MembershipRole.ADMIN,
+        MembershipRole.RECEPTIONIST,
+        MembershipRole.PRACTITIONER,
+      ),
+    )
+    .filter((m) => !seen.has(m.organizationId) && seen.add(m.organizationId));
+});
+
 /** Ve «Mis clínicas»: tiene membresías o su cuenta es de personal (puede pedir entrar). */
 export const showsClinics = derived(
   profileContext,

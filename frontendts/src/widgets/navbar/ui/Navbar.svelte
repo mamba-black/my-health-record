@@ -1,7 +1,24 @@
 <script lang="ts">
-import { authStore, canRegisterPatients, canSearchPatients, showsClinics } from "$entities/session";
+import {
+  agendaClinics,
+  authStore,
+  canRegisterPatients,
+  canSearchPatients,
+  practitionerClinics,
+  showsClinics,
+} from "$entities/session";
 import { LogoutButton } from "$features/auth";
-import { COMPLETE_PROFILE, LOGIN, MY_CLINICS, REGISTER_PATIENT, ROOT, SEARCH } from "$shared/config";
+import {
+  CLINIC_AGENDA,
+  COMPLETE_PROFILE,
+  LOGIN,
+  MY_APPOINTMENTS,
+  MY_CLINICS,
+  MY_SCHEDULE,
+  REGISTER_PATIENT,
+  ROOT,
+  SEARCH,
+} from "$shared/config";
 
 const linkClass =
   "block py-2 px-3 text-gray-900 rounded-sm hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent";
@@ -46,6 +63,15 @@ let isMenuOpen = $state(false);
         </li>
         {#if $authStore.isAuthenticated && $canSearchPatients}
           <li><a class={linkClass} href="{SEARCH}">Busqueda</a></li>
+        {/if}
+        {#if $authStore.isAuthenticated}
+          <li><a class={linkClass} href="{MY_APPOINTMENTS}">Mis citas</a></li>
+        {/if}
+        {#if $authStore.isAuthenticated && $practitionerClinics.length > 0}
+          <li><a class={linkClass} href="{MY_SCHEDULE}">Mi agenda</a></li>
+        {/if}
+        {#if $authStore.isAuthenticated && $agendaClinics.length > 0}
+          <li><a class={linkClass} href="{CLINIC_AGENDA}">Agenda de la clínica</a></li>
         {/if}
         {#if $authStore.isAuthenticated && $canRegisterPatients}
           <li><a class={linkClass} href="{REGISTER_PATIENT}">Registrar paciente</a></li>

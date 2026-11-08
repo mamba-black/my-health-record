@@ -10,12 +10,18 @@
 // - practitioner-invited: médico invitado a la clínica e2e, solo con nombres.
 // - practitioner-invited-phone: igual, pero ya tiene teléfono.
 // - patient-with-practitioner-pending: rol preferido paciente y membresía de médico pendiente.
+// - patient-no-document: paciente con nombres, apellido y teléfono, sin documento.
+// - practitioner-scheduled: médico activo con horario de todos los días (00:00–23:30, 30 min)
+//   en la clínica e2e; su nombre incluye el correo para distinguirlo en paralelo.
+// - receptionist-active: recepcionista activo en la clínica e2e.
 const [scenario, email] = process.argv.slice(2);
 if (!scenario || !email) throw new Error("Uso: seed.ts <escenario> <correo>");
 
 // `DEFAULT_DEV_NETWORK_ID` del backend: la red que se usa sin subdominio.
 const NETWORK_ID = "0191eb44-4860-7000-8000-000000000001";
-const CLINIC_NETWORK_ID = "0191eb44-4860-7000-8000-0000000e2e01";
+// La clínica e2e cuelga de la misma organización (red) que las cuentas sembradas:
+// la agenda no cruza redes.
+const CLINIC_NETWORK_ID = NETWORK_ID;
 const CLINIC_ID = "0191eb44-4860-7000-8000-0000000e2e02";
 const CLINIC_OWNER_ID = "0191eb44-4860-7000-8000-0000000e2e03";
 const PATIENTS = [
@@ -33,7 +39,7 @@ interface Account {
   phone?: string;
   dni?: string;
   birthDate?: string;
-  preferredRole: "PATIENT" | "PRACTITIONER" | "CLINIC_OWNER";
+  preferredRole: "PATIENT" | "PRACTITIONER" | "CLINIC_OWNER" | "RECEPTIONIST";
   license?: boolean;
 }
 
@@ -98,13 +104,29 @@ async function addMembership(
   userId: string,
   status: "INVITED" | "PENDING" | "ACTIVE",
   licenseConfirmed = false,
+  role: "PRACTITIONER" | "RECEPTIONIST" = "PRACTITIONER",
 ): Promise<string> {
   const id = Bun.randomUUIDv7();
   await sql`
     insert into administration.membership (id, organization_id, user_id, role, status, license_confirmed_at)
-    values (${id}, ${CLINIC_ID}, ${userId}, 'PRACTITIONER', ${status},
+    values (${id}, ${CLINIC_ID}, ${userId}, ${role}, ${status},
       ${licenseConfirmed ? new Date() : null})`;
   return id;
+}
+
+/** Horario de todos los días en la clínica e2e, sin citas previas del médico. */
+async function publishSchedule(userId: string) {
+  await sql`delete from scheduling.appointment where practitioner_user_id = ${userId}`;
+  await sql`delete from scheduling.schedule where practitioner_user_id = ${userId}`;
+  const scheduleId = Bun.randomUUIDv7();
+  await sql`
+    insert into scheduling.schedule (id, network_id, organization_id, practitioner_user_id, slot_minutes)
+    values (${scheduleId}, ${CLINIC_NETWORK_ID}, ${CLINIC_ID}, ${userId}, 30)`;
+  for (let weekday = 1; weekday <= 7; weekday++) {
+    await sql`
+      insert into scheduling.schedule_block (schedule_id, weekday, start_time, end_time)
+      values (${scheduleId}, ${weekday}, '00:00', '23:30')`;
+  }
 }
 
 const completePerson = {
@@ -147,6 +169,36 @@ switch (scenario) {
       preferredRole: "PRACTITIONER",
     });
     membershipId = await addMembership(userId, "INVITED");
+    break;
+  case "patient-no-document":
+    userId = await upsertAccount({
+      givenName: "Paciente",
+      familyName: "Sindoc",
+      phone: "+51977666555",
+      preferredRole: "PATIENT",
+    });
+    break;
+  case "practitioner-scheduled":
+    await ensureClinic();
+    userId = await upsertAccount({
+      givenName: `Dra ${email.split("@")[0]}`,
+      ...completePerson,
+      dni: uniqueDni(),
+      preferredRole: "PRACTITIONER",
+      license: true,
+    });
+    membershipId = await addMembership(userId, "ACTIVE", true);
+    await publishSchedule(userId);
+    break;
+  case "receptionist-active":
+    await ensureClinic();
+    userId = await upsertAccount({
+      givenName: "Recepción",
+      ...completePerson,
+      dni: uniqueDni(),
+      preferredRole: "RECEPTIONIST",
+    });
+    membershipId = await addMembership(userId, "ACTIVE", false, "RECEPTIONIST");
     break;
   case "patient-with-practitioner-pending":
     await ensureClinic();

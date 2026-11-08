@@ -50,14 +50,21 @@ src/
 ├── routes/          # Adaptador delgado de SvelteKit: solo monta páginas y el layout
 ├── app/             # Layout global, guardia de autenticación y estilos (app/ui, app/styles)
 ├── pages/           # Una página por ruta: home, login, signup, patient-search,
-│                    # patient-profile, encounter, not-found
+│                    # patient-profile, encounter, not-found, clinic-public,
+│                    # my-appointments, my-schedule, clinic-agenda, register-patient
 ├── widgets/         # navbar, patient-detail, encounter-list, encounter-detail
 ├── features/
 │   ├── auth/        # api/auth.api.ts (signInWithGoogle, signUpAccount), ui/
-│   └── patient-search/  # api/, ui/
+│   ├── patient-search/  # api/, ui/
+│   ├── book-appointment/  # SlotPicker y reserva pendiente
+│   ├── manage-schedule/   # ScheduleEditor
+│   ├── reception/         # BookForPatientForm
+│   ├── clinic-staff/      # solicitudes de ingreso y personal
+│   └── register-patient/  # paciente sin cuenta
 ├── entities/
 │   ├── session/     # model/ (store de sesión)
 │   ├── patient/     # api/, model/, ui/
+│   ├── appointment/ # lib/ (estados y formato de fechas)
 │   └── encounter/   # model/
 └── shared/
     ├── api/         # index público: grpc/ (clientes gRPC-Web), user/ (userApi)
@@ -82,6 +89,20 @@ Fuente oficial: [`identity/progressive-profiling`](../openspec/specs/identity/pr
 * **Rol y membresías** (`entities/session`): `profileContext` guarda la respuesta de `GetProfileRequirements`; `canSearchPatients` y `hasClinicMemberships` deciden menús y rutas. `AppLayout` redirige a `/access-denied` las rutas de médico. Es solo presentación: el servidor autoriza igual.
 * **Acción que exige datos**: ejecútala con `runWithRequirements(() => api.accion(...))` de `$features/profile`. Si el servidor responde `FAILED_PRECONDITION` con `ActionRequirements`, se abre la ventana global «Completa tus datos» (`RequirementsDialog`, montada en `AppLayout`) con solo los datos faltantes, el acceso a «Editar todos mis datos», y «Completar»/«Rechazar». Al completar se guardan los datos y se reintenta la acción; devuelve `undefined` si el usuario sale sin continuar, y la página debe descartar el estado de la acción.
 * Etiquetas de datos y frases por acción: `entities/profile` (`FIELD_LABELS`, `ACTION_PURPOSE`).
+
+## 5.1. Agenda y citas
+
+Fuente oficial: `openspec/specs/scheduling/*` (o `openspec/changes/scheduling-appointments` mientras no se archive).
+
+| Ruta | Página | Quién | Qué hace |
+|---|---|---|---|
+| `/c/[subdomain]` | `pages/clinic-public` | Cualquiera, sin sesión | La clínica, sus médicos activos con horario y sus cupos libres. Reservar exige sesión: sin ella guarda el cupo (`features/book-appointment`) y vuelve tras iniciarla. La reserva usa `runWithRequirements` con `ACTION_CONFIRM_APPOINTMENT`. Recuerda el enlace (`shared/lib/clinic-link`) para que una cuenta nueva quede en la organización de esa clínica. |
+| `/appointments` | `pages/my-appointments` | Toda cuenta | «Mis citas»: cancelar y reprogramar (mismo médico, `SlotPicker`). |
+| `/schedule` | `pages/my-schedule` | Médico activo (`practitionerClinics`) | «Mi agenda»: horario semanal, ausencias (`features/manage-schedule`) y sus citas. |
+| `/clinic-agenda` | `pages/clinic-agenda` | Recepción o médico activo (`agendaClinics`) | Agenda del día; recepción reserva por un paciente (`features/reception`), registra la llegada con la verificación del documento, marca inasistencias y vincula pacientes sin cuenta con «Vi el documento físico». El médico solo ve y reserva en su agenda. |
+
+* Las fechas viajan en RFC 3339 (UTC) y se muestran en la zona de la clínica con `entities/appointment` (`formatDateTime`, `formatTime`).
+* La API pública (`publicSchedulingApi`) no lleva token: sus métodos están en `PUBLIC_METHODS` de `shared/api/grpc/client.ts`.
 
 ## 6. Comandos (desde `frontendts/`)
 

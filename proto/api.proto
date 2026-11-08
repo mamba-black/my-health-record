@@ -397,6 +397,7 @@ message Membership {
     MembershipRole role = 6;
     MembershipStatus status = 7;
     bool license_confirmed = 8;
+    string organization_subdomain = 9; // Enlace de la clínica (`/c/<subdominio>`)
 }
 
 message RequestMembershipRequest {

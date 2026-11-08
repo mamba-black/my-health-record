@@ -6,7 +6,7 @@ const sql = new Bun.SQL(process.env.PG_URL as string);
 const [account] = await sql`
   select given_name, family_name, second_family_name, document_type, document_value,
     phone, birth_date::text as birth_date, address, professional_body, license_number,
-    specialty
+    specialty, document_verified
   from identity.user_account where email = ${email}`;
 await sql.close();
 console.log(JSON.stringify(account));

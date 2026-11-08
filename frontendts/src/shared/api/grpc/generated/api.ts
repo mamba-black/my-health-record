@@ -484,6 +484,10 @@ export interface Membership {
      * @generated from protobuf field: bool license_confirmed = 8
      */
     licenseConfirmed: boolean;
+    /**
+     * @generated from protobuf field: string organization_subdomain = 9
+     */
+    organizationSubdomain: string; // Enlace de la clínica (`/c/<subdominio>`)
 }
 /**
  * @generated from protobuf message grpc.RequestMembershipRequest
@@ -3340,7 +3344,8 @@ class Membership$Type extends MessageType<Membership> {
             { no: 5, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "role", kind: "enum", T: () => ["grpc.MembershipRole", MembershipRole, "MEMBERSHIP_ROLE_"] },
             { no: 7, name: "status", kind: "enum", T: () => ["grpc.MembershipStatus", MembershipStatus, "MEMBERSHIP_STATUS_"] },
-            { no: 8, name: "license_confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 8, name: "license_confirmed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 9, name: "organization_subdomain", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<Membership>): Membership {
@@ -3353,6 +3358,7 @@ class Membership$Type extends MessageType<Membership> {
         message.role = 0;
         message.status = 0;
         message.licenseConfirmed = false;
+        message.organizationSubdomain = "";
         if (value !== undefined)
             reflectionMergePartial<Membership>(this, message, value);
         return message;
@@ -3385,6 +3391,9 @@ class Membership$Type extends MessageType<Membership> {
                     break;
                 case /* bool license_confirmed */ 8:
                     message.licenseConfirmed = reader.bool();
+                    break;
+                case /* string organization_subdomain */ 9:
+                    message.organizationSubdomain = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3422,6 +3431,9 @@ class Membership$Type extends MessageType<Membership> {
         /* bool license_confirmed = 8; */
         if (message.licenseConfirmed !== false)
             writer.tag(8, WireType.Varint).bool(message.licenseConfirmed);
+        /* string organization_subdomain = 9; */
+        if (message.organizationSubdomain !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.organizationSubdomain);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

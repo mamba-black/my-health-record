@@ -53,7 +53,7 @@ Cada Bounded Context está encapsulado en su propio crate dentro de `backend/cra
 | **Expediente de Pacientes** | `backend/crates/patient` | 🚧 Andamiaje | `Patient` | [backend/crates/patient/AGENTS.md](backend/crates/patient/AGENTS.md) |
 | **Clínica** | `backend/crates/clinic` | 🚧 Andamiaje | `Organization` | [backend/crates/clinic/AGENTS.md](backend/crates/clinic/AGENTS.md) |
 | **Administración de Clínica**| `backend/crates/clinic_admin`| 🚧 Andamiaje | Rol de administrador | [backend/crates/clinic_admin/AGENTS.md](backend/crates/clinic_admin/AGENTS.md) |
-| **Reserva de Citas** | `backend/crates/scheduling` | 📄 Solo diseño | `Schedule`, `Slot`, `Appointment` | [backend/crates/scheduling/AGENTS.md](backend/crates/scheduling/AGENTS.md) |
+| **Reserva de Citas** | `backend/crates/scheduling` | ✅ Implementado | `Schedule`, `Slot`, `Appointment` | [backend/crates/scheduling/AGENTS.md](backend/crates/scheduling/AGENTS.md) |
 | **Historia Clínica** | `backend/crates/clinical` | 📄 Solo diseño | `Encounter`, `Condition`, `AllergyIntolerance`, `CarePlan` | [backend/crates/clinical/AGENTS.md](backend/crates/clinical/AGENTS.md) |
 | **Laboratorio e Imágenes** | `backend/crates/diagnostics` | 📄 Solo diseño | `ServiceRequest`, `Observation`, `DiagnosticReport` | [backend/crates/diagnostics/AGENTS.md](backend/crates/diagnostics/AGENTS.md) |
 | **Farmacia e Insumos** | `backend/crates/pharmacy` | 📄 Solo diseño | `Medication`, `MedicationDispense`, `SupplyRequest` | [backend/crates/pharmacy/AGENTS.md](backend/crates/pharmacy/AGENTS.md) |

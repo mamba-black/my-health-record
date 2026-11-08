@@ -13,6 +13,7 @@ import { RequirementsDialog } from "$features/profile";
 import {
   ACCESS_DENIED,
   CALLBACK,
+  CLINIC_PUBLIC_PREFIX,
   HISTORY,
   LOGIN,
   Page,
@@ -27,9 +28,10 @@ import { Navbar } from "$widgets/navbar";
 let { children }: { children: Snippet } = $props();
 
 const PUBLIC_ROUTES = [ROOT, LOGIN, SIGNUP, CALLBACK];
-const isPublicRoute = $derived(
-  PUBLIC_ROUTES.some((route) => page.url.pathname === route),
-);
+// La página pública de una clínica (`/c/<subdominio>`) se ve sin sesión.
+const isPublicPath = (path: string) =>
+  PUBLIC_ROUTES.some((route) => path === route) || path.startsWith(CLINIC_PUBLIC_PREFIX);
+const isPublicRoute = $derived(isPublicPath(page.url.pathname));
 
 // Rutas por rol. Es solo presentación: el servidor aplica la autorización de todos modos.
 // Registrar pacientes: dueño, administrador o recepcionista activos.
@@ -65,7 +67,7 @@ $effect(() => {
 onMount(() => {
   const unsubscribe = authStore.subscribe(async ($auth) => {
     const currentPath = page.url.pathname;
-    const publicRoute = PUBLIC_ROUTES.some((route) => currentPath === route);
+    const publicRoute = isPublicPath(currentPath);
 
     if (!$auth.isAuthenticated && !publicRoute) {
       log.info(`User not authenticated. Redirecting ${currentPath} to login.`);

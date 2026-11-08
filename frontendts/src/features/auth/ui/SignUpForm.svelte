@@ -8,7 +8,7 @@ import {
 import { SignUpIntent, UserApiError } from "$shared/api";
 import { signUpAccount } from "../api/auth.api";
 import { LOGIN, MY_CLINICS } from "$shared/config";
-import { generateUuidV7, log } from "$shared/lib";
+import { generateUuidV7, log, rememberedClinicLink } from "$shared/lib";
 
 const pending = $derived($authStore.pendingRegistration);
 
@@ -70,6 +70,12 @@ const handleSignUpSubmit = async (event: Event) => {
     return;
   }
   const clinicSubdomain = subdomainOf(clinicLink);
+  // La cuenta queda en la organización de la clínica por cuyo enlace entró (el personal
+  // la escribe; el paciente llega desde `/c/<subdominio>`). El dueño nace con la suya.
+  const organizationLink =
+    selectedIntent === SignUpIntent.INTENT_CLINIC_OWNER
+      ? ""
+      : (asksForClinic && clinicSubdomain) || rememberedClinicLink();
   if (asksForClinic && clinicSubdomain && (!familyName.trim() || !trimmedDni)) {
     errorMessage =
       "Para pedir entrar a una clínica indica tu apellido paterno y tu DNI: la clínica los revisa para aprobar tu ingreso.";
@@ -108,7 +114,7 @@ const handleSignUpSubmit = async (event: Event) => {
       createClinic: selectedIntent === SignUpIntent.INTENT_CLINIC_OWNER,
       intent: selectedIntent,
       // El personal que indica una clínica queda en la organización de esa clínica.
-    }, asksForClinic && clinicSubdomain ? clinicSubdomain : undefined);
+    }, organizationLink || undefined);
 
     log.info("Registro progresivo completado exitosamente:", response.userId);
     if (!response.session) {

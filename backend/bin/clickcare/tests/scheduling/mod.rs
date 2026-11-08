@@ -641,6 +641,8 @@ mod api {
             .await
             .expect("reserva propia")
             .into_inner();
+        let elsewhere = sign_up(env, "RosaOtraRed", SignUpIntent::IntentPatient).await;
+        complete(env, &elsewhere, &walk_in_dni).await;
         let claim = api(env)
             .await
             .suggest_patient_links(authed(
@@ -670,6 +672,13 @@ mod api {
             suggestions
                 .iter()
                 .any(|s| s.user_id == account.user_id.to_string())
+        );
+        // «Mismo documento en otra red»: una cuenta de otra organización no se sugiere.
+        assert!(
+            !suggestions
+                .iter()
+                .any(|s| s.user_id == elsewhere.user_id.to_string()),
+            "las redes no se comparan"
         );
         let link = api(env)
             .await

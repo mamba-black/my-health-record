@@ -470,6 +470,7 @@ pub(crate) fn membership_to_proto(entry: &MembershipWithClinic) -> Membership {
             MembershipStatus::Suspended => grpc_gen::MembershipStatus::Suspended,
         } as i32,
         license_confirmed: membership.license_confirmed,
+        organization_subdomain: entry.organization.subdomain.clone(),
     }
 }
 

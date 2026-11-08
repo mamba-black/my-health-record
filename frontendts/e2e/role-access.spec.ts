@@ -95,3 +95,29 @@ test.describe("perfil según el rol", () => {
     await expect(page.locator("#profile-clinic-tax-id")).toHaveCount(0);
   });
 });
+
+// `scheduling-appointments`: cada rol ve solo sus entradas de agenda.
+test.describe("menú de agenda según el rol", () => {
+  const link = (page: Page, name: string) => page.getByRole("link", { name, exact: true });
+
+  test("Paciente", async ({ page }, testInfo) => {
+    await signInAs(page, "patient-complete", workerEmail("menu-paciente", testInfo.parallelIndex));
+    await expect(link(page, "Mis citas")).toBeVisible();
+    await expect(link(page, "Mi agenda")).toBeHidden();
+    await expect(link(page, "Agenda de la clínica")).toBeHidden();
+  });
+
+  test("Médico activo", async ({ page }, testInfo) => {
+    await signInAs(page, "practitioner-active", workerEmail("menu-medico", testInfo.parallelIndex));
+    await expect(link(page, "Mi agenda")).toBeVisible();
+    await expect(link(page, "Agenda de la clínica")).toBeVisible();
+    await expect(link(page, "Registrar paciente")).toBeHidden();
+  });
+
+  test("Recepcionista", async ({ page }, testInfo) => {
+    await signInAs(page, "receptionist-active", workerEmail("menu-recepcion", testInfo.parallelIndex));
+    await expect(link(page, "Agenda de la clínica")).toBeVisible();
+    await expect(link(page, "Registrar paciente")).toBeVisible();
+    await expect(link(page, "Mi agenda")).toBeHidden();
+  });
+});

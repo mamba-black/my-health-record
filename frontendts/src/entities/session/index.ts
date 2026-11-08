@@ -1,4 +1,5 @@
 export {
+  agendaClinics,
   type AuthState,
   authStore,
   canRegisterPatients,
@@ -8,6 +9,7 @@ export {
   hasClinicMemberships,
   loadProfileContext,
   type PendingRegistration,
+  practitionerClinics,
   preferredRole,
   profileContext,
   setAuthSession,

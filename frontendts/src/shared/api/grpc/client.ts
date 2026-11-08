@@ -5,11 +5,21 @@ import { grpcBaseUrl } from "./base-url";
 import {
   ClinicApiClient,
   PatientApiClient,
+  PublicSchedulingApiClient,
+  SchedulingApiClient,
   UserApiClient,
 } from "./generated/api.client";
 
 /** Operaciones que no llevan token de acceso. */
-const PUBLIC_METHODS = new Set(["SignUp", "SignIn", "RefreshSession"]);
+const PUBLIC_METHODS = new Set([
+  "SignUp",
+  "SignIn",
+  "RefreshSession",
+  // `PublicSchedulingApi`: la agenda pública de una clínica.
+  "GetClinic",
+  "ListPractitioners",
+  "GetAvailability",
+]);
 
 /** Agrega `authorization: Bearer <token>` a toda llamada protegida. */
 const sessionInterceptor: RpcInterceptor = {
@@ -34,3 +44,5 @@ export const grpcTransport = new GrpcWebFetchTransport({
 export const patientApiClient = new PatientApiClient(grpcTransport);
 export const userApiClient = new UserApiClient(grpcTransport);
 export const clinicApiClient = new ClinicApiClient(grpcTransport);
+export const schedulingApiClient = new SchedulingApiClient(grpcTransport);
+export const publicSchedulingApiClient = new PublicSchedulingApiClient(grpcTransport);

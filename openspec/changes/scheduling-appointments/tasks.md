@@ -127,16 +127,16 @@
 
 ## 9. Frontend
 
-- [ ] 9.1 Generar los clientes `schedulingApi` y `publicSchedulingApi` en `shared/api`, con la entidad `appointment` (modelo, estados y etiquetas). Verificar: `bun run check` sin errores.
-- [ ] 9.2 Página pública `/c/[subdomain]`:
+- [x] 9.1 Generar los clientes `schedulingApi` y `publicSchedulingApi` en `shared/api`, con la entidad `appointment` (modelo, estados y etiquetas). Verificar: `bun run check` sin errores.
+- [x] 9.2 Página pública `/c/[subdomain]`:
   - la clínica, sus médicos y los cupos de los próximos días;
   - al reservar, si no hay sesión, pide iniciarla y vuelve al mismo cupo;
   - reserva con `runWithRequirements(CONFIRM_APPOINTMENT)`.
 
   Verificar con un e2e: un paciente sin documento reserva, se abre la ventana «Completa tus datos», completa el documento y la cita queda confirmada sin volver a elegir el cupo. Con esto queda cubierto el escenario de `my-health-record-c2p`.
-- [ ] 9.3 «Mis citas» (`/appointments`), con cancelar y reprogramar. Verificar con e2e para cancelar (el cupo vuelve a verse libre en la página pública) y reprogramar.
-- [ ] 9.4 «Mi agenda» (`/schedule`), con el editor del horario semanal y de las excepciones, y sus citas. Verificar con un e2e: un médico activo con colegiatura confirmada guarda su horario y sus cupos aparecen en `/c/[subdomain]`.
-- [ ] 9.5 «Agenda de la clínica» (`/clinic-agenda`), con:
+- [x] 9.3 «Mis citas» (`/appointments`), con cancelar y reprogramar. Verificar con e2e para cancelar (el cupo vuelve a verse libre en la página pública) y reprogramar.
+- [x] 9.4 «Mi agenda» (`/schedule`), con el editor del horario semanal y de las excepciones, y sus citas. Verificar con un e2e: un médico activo con colegiatura confirmada guarda su horario y sus cupos aparecen en `/c/[subdomain]`.
+- [x] 9.5 «Agenda de la clínica» (`/clinic-agenda`), con:
   - la agenda del día;
   - la reserva en nombre de un paciente (buscar o registrar sin cuenta);
   - el check-in con verificación del documento;
@@ -145,24 +145,24 @@
   Verificar con dos e2e:
   - recepción registra la llegada con `MATCH`, y el perfil del paciente muestra el documento como verificado y no editable;
   - recepción vincula a un paciente registrado sin cuenta, y en «Mis citas» de esa cuenta aparecen sus citas anteriores.
-- [ ] 9.6 Mostrar en el `Navbar` las entradas «Mis citas», «Mi agenda» y «Agenda de la clínica» según el contexto de perfil, y documentar las páginas en `frontendts/AGENTS.md`. Verificar con el e2e `role-access.spec.ts` ampliado para que cada rol vea solo sus entradas.
+- [x] 9.6 Mostrar en el `Navbar` las entradas «Mis citas», «Mi agenda» y «Agenda de la clínica» según el contexto de perfil, y documentar las páginas en `frontendts/AGENTS.md`. Verificar con el e2e `role-access.spec.ts` ampliado para que cada rol vea solo sus entradas.
 
 ## 10. Documentación y cierre
 
-- [ ] 10.1 Actualizar la documentación:
+- [x] 10.1 Actualizar la documentación:
   - `backend/crates/scheduling/AGENTS.md`: implementado, la exclusión en `appointment` en lugar del `Slot`, y los puertos;
   - el mapa de crates del `AGENTS.md` raíz;
   - `backend/AGENTS.md`: las variables `SMTP_*`, `REMINDER_LEAD_HOURS`, `REMINDER_MAX_ATTEMPTS` y `REMINDER_SENDING_TIMEOUT`, y la regla de no cruzar redes clínicas en ninguna consulta;
 
   Verificar que los enlaces a `openspec/specs/scheduling/*` funcionan después de archivar.
-- [ ] 10.2 Integración completa:
+- [x] 10.2 Integración completa:
   - `cargo test --workspace`;
   - `cargo fmt --all -- --check`;
   - `bun run check`;
   - la suite e2e completa, y con `--repeat-each=2`.
 
   Escribir `verification.md` con la tabla escenario → prueba de los seis specs, y actualizar `my-health-record-c2p` con los escenarios de citas que quedan cubiertos.
-- [ ] 10.3 Abrir en beads la validación legal del contenido del recordatorio y de la vinculación de pacientes (Ley 29733), y anotar en `my-health-record-vxm` (correo) y `my-health-record-md1` (WhatsApp) lo que este cambio deja listo. Verificar con `bd show` de cada issue.
+- [x] 10.3 Abrir en beads la validación legal del contenido del recordatorio y de la vinculación de pacientes (Ley 29733), y anotar en `my-health-record-vxm` (correo) y `my-health-record-md1` (WhatsApp) lo que este cambio deja listo. Verificar con `bd show` de cada issue.
 
 ## Workflow follow-up
 

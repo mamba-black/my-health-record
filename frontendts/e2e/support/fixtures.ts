@@ -11,7 +11,10 @@ export type SeedScenario =
   | "practitioner-active"
   | "practitioner-invited"
   | "practitioner-invited-phone"
-  | "patient-with-practitioner-pending";
+  | "patient-with-practitioner-pending"
+  | "patient-no-document"
+  | "practitioner-scheduled"
+  | "receptionist-active";
 
 export interface SeedResult {
   userId: string;
@@ -27,6 +30,14 @@ const runDbScript = (script: string, ...args: string[]) =>
 export const seed = (scenario: SeedScenario, email: string): SeedResult =>
   JSON.parse(runDbScript("e2e/support/seed.ts", scenario, email));
 
+/** Cita de este momento del médico (ver `e2e/support/seed-appointment.ts`). */
+export const seedAppointment = (
+  doctorEmail: string,
+  mode: "account" | "walk-in",
+  patientEmail: string,
+): { appointmentId: string; patientId: string } =>
+  JSON.parse(runDbScript("e2e/support/seed-appointment.ts", doctorEmail, mode, patientEmail));
+
 /** Datos guardados de la cuenta (ver `e2e/support/read-account.ts`). */
 export const readAccount = (email: string) =>
   JSON.parse(runDbScript("e2e/support/read-account.ts", email));
@@ -38,6 +49,12 @@ export async function signInAs(
   email: string,
 ): Promise<SeedResult> {
   const result = seed(scenario, email);
+  await signInExisting(page, email);
+  return result;
+}
+
+/** Entra con una cuenta ya preparada, sin volver a sembrarla. */
+export async function signInExisting(page: Page, email: string): Promise<void> {
   await stubGoogleIdentity(page);
   await signInWithGoogle(page, await googleToken({ email }));
   // Si a la cuenta le faltan datos para su acción habitual, el aviso se ignora.
@@ -48,7 +65,6 @@ export async function signInAs(
     await warning.getByRole("button", { name: "Ignorar" }).click();
   }
   await expect(logout).toBeVisible();
-  return result;
 }
 
 /** Correo propio de cada worker: las pruebas en paralelo no se pisan. */
