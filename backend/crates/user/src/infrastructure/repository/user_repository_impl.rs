@@ -5,15 +5,20 @@ use app_core::domain::error::ClickCareError;
 use app_core::domain::fhir::Identifier;
 use async_trait::async_trait;
 use toasty::Db;
-use toasty::stmt::Type;
 use tracing::{debug, error};
 use uuid::Uuid;
 
+/// Fila de `identity.user_account`.
+///
+/// Los atributos `#[index]`/`#[unique]` solo generan los buscadores (`filter_by_*`):
+/// los índices los crean las migraciones de `backend/migrations/` y deben coincidir.
 #[derive(Debug, Clone, toasty::Model)]
 #[table = "user_account"]
+#[unique(network_id, email)]
 pub struct UserAccount {
     #[key]
     pub id: uuid::Uuid,
+    #[index]
     pub network_id: uuid::Uuid,
     pub active: bool,
     pub is_owner: bool,
@@ -23,7 +28,7 @@ pub struct UserAccount {
     pub second_family_name: Option<String>,
     pub document_type: Option<String>,
     pub document_value: Option<String>,
-    pub email: Option<String>,
+    pub email: String,
     pub phone: Option<String>,
     pub birth_date: Option<jiff::civil::Date>,
     pub address: Option<String>,
@@ -37,12 +42,83 @@ pub struct UserAccount {
     pub license_verified: bool,
     #[auto]
     pub created_at: jiff::Timestamp,
-    #[auto]
+    #[update(jiff::Timestamp::now())]
     pub updated_at: jiff::Timestamp,
+}
+
+impl TryFrom<UserAccount> for User {
+    type Error = ClickCareError;
+
+    fn try_from(account: UserAccount) -> Result<Self, Self::Error> {
+        let identifier = match (&account.document_type, account.document_value) {
+            (Some(document_type), Some(value)) if !value.is_empty() => {
+                Identifier::from_parts(document_type, value)
+            }
+            _ => None,
+        };
+
+        let mut user = User::new(
+            account.id.to_string(),
+            account.network_id,
+            vec![account.given_name],
+            account.family_name,
+            account.second_family_name,
+            identifier,
+            account.is_owner,
+            account.email,
+            account.phone,
+            account.birth_date.map(|date| date.to_string()),
+        )?;
+        user.active = account.active;
+        user.address = account.address;
+        user.preferred_role = Role::from_code(&account.preferred_role);
+        user.sex = account.sex.as_deref().and_then(Sex::from_code);
+        user.professional = ProfessionalProfile {
+            professional_body: account.professional_body,
+            license_number: account.license_number,
+            specialty: account.specialty,
+            rne: account.rne,
+        };
+        user.document_verified = account.document_verified;
+        user.license_verified = account.license_verified;
+        Ok(user)
+    }
 }
 
 pub(crate) struct UserRepositoryImpl {
     pub(crate) db: Db,
+}
+
+impl UserRepositoryImpl {
+    fn db(&self) -> Db {
+        self.db.clone()
+    }
+}
+
+/// Convierte un error de toasty en `ClickCareError`, dejando el detalle en el log.
+fn db_error(context: impl std::fmt::Display) -> impl FnOnce(toasty::Error) -> ClickCareError {
+    move |error| {
+        error!("{context}: {error}");
+        ClickCareError::generic(format!("{context}: {error}"))
+    }
+}
+
+/// Filtro por documento (`document_type` + `document_value`) dentro de una red.
+fn by_document(
+    network_id: Uuid,
+    identifier: &Identifier,
+) -> <UserAccount as toasty::schema::Model>::Query<toasty::stmt::List<UserAccount>> {
+    UserAccount::filter_by_network_id(network_id)
+        .filter(
+            UserAccount::fields()
+                .document_type()
+                .eq(identifier.type_code().to_string()),
+        )
+        .filter(
+            UserAccount::fields()
+                .document_value()
+                .eq(identifier.value().to_string()),
+        )
 }
 
 #[async_trait]
@@ -53,24 +129,14 @@ impl UserRepository for UserRepositoryImpl {
         identifier: Identifier,
     ) -> Result<bool, ClickCareError> {
         debug!("exist_user_by_document network_id: {network_id} identifier: {identifier}");
-
-        let dni = identifier.value().to_string();
-        let exist = toasty::sql::query(
-            "select 1 from identity.user_account where network_id = $1 and document_type = $2 and document_value = $3 limit 1",
-        )
-        .bind(*network_id)
-        .bind(identifier.type_code())
-        .bind(dni.clone())
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|e| {
-            error!(
-                "Error desconocido al tratar de buscar el user_account con dni:{} en network_id:{} ({})",
-                dni, network_id, e
-            );
-            ClickCareError::generic(e.to_string())
-        })?;
-        Ok(!exist.is_empty())
+        let found = by_document(*network_id, &identifier)
+            .first()
+            .exec(&mut self.db())
+            .await
+            .map_err(db_error(format!(
+                "Error al buscar user_account por documento en network_id:{network_id}"
+            )))?;
+        Ok(found.is_some())
     }
 
     async fn exist_user_by_email(
@@ -79,22 +145,7 @@ impl UserRepository for UserRepositoryImpl {
         email: &str,
     ) -> Result<bool, ClickCareError> {
         debug!("exist_user_by_email network_id: {network_id} email: {email}");
-
-        let exist = toasty::sql::query(
-            "select 1 from identity.user_account where network_id = $1 and email = $2 limit 1",
-        )
-        .bind(*network_id)
-        .bind(email.to_string())
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|e| {
-            error!(
-                "Error al buscar user_account con email:{} en network_id:{} ({})",
-                email, network_id, e
-            );
-            ClickCareError::generic(e.to_string())
-        })?;
-        Ok(!exist.is_empty())
+        Ok(self.find_user_by_email(network_id, email).await?.is_some())
     }
 
     async fn find_user_by_email(
@@ -103,60 +154,43 @@ impl UserRepository for UserRepositoryImpl {
         email: &str,
     ) -> Result<Option<User>, ClickCareError> {
         debug!("find_user_by_email network_id: {network_id} email: {email}");
-
-        let rows = toasty::sql::query(format!(
-            "{USER_COLUMNS} from identity.user_account where network_id = $1 and email = $2 limit 1"
-        ))
-        .bind(*network_id)
-        .bind(email.to_string())
-        .column_types(user_column_types())
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|error| {
-            error!(
-                "Error al consultar user_account con email:{} en network_id:{} ({})",
-                email, network_id, error
-            );
-            ClickCareError::generic(error.to_string())
-        })?;
-
-        let Some(row) = rows.into_iter().next() else {
-            return Ok(None);
-        };
-
-        map_row_to_user(row).map(Some)
+        UserAccount::filter_by_network_id_and_email(*network_id, email.to_string())
+            .first()
+            .exec(&mut self.db())
+            .await
+            .map_err(db_error(format!(
+                "Error al consultar user_account con email:{email} en network_id:{network_id}"
+            )))?
+            .map(User::try_from)
+            .transpose()
     }
 
     async fn find_users_by_email(&self, email: &str) -> Result<Vec<User>, ClickCareError> {
-        let rows = toasty::sql::query(format!(
-            "{USER_COLUMNS} from identity.user_account where email = $1 and active \
-             order by created_at limit 20"
-        ))
-        .bind(email.to_string())
-        .column_types(user_column_types())
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|error| {
-            error!("Error al buscar las cuentas del correo {email} ({error})");
-            ClickCareError::generic(error.to_string())
-        })?;
-        rows.into_iter().map(map_row_to_user).collect()
+        UserAccount::all()
+            .filter(UserAccount::fields().email().eq(email))
+            .filter(UserAccount::fields().active().eq(true))
+            .order_by(UserAccount::fields().created_at().asc())
+            .limit(20)
+            .exec(&mut self.db())
+            .await
+            .map_err(db_error(format!(
+                "Error al buscar las cuentas del correo {email}"
+            )))?
+            .into_iter()
+            .map(User::try_from)
+            .collect()
     }
 
     async fn find_user_by_id(&self, user_id: &Uuid) -> Result<Option<User>, ClickCareError> {
-        let rows = toasty::sql::query(format!(
-            "{USER_COLUMNS} from identity.user_account where id = $1 limit 1"
-        ))
-        .bind(*user_id)
-        .column_types(user_column_types())
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|error| {
-            error!("Error al consultar user_account con id:{user_id} ({error})");
-            ClickCareError::generic(error.to_string())
-        })?;
-
-        rows.into_iter().next().map(map_row_to_user).transpose()
+        UserAccount::filter_by_id(*user_id)
+            .first()
+            .exec(&mut self.db())
+            .await
+            .map_err(db_error(format!(
+                "Error al consultar user_account con id:{user_id}"
+            )))?
+            .map(User::try_from)
+            .transpose()
     }
 
     async fn find_users_by_document(
@@ -164,50 +198,39 @@ impl UserRepository for UserRepositoryImpl {
         network_id: &Uuid,
         identifier: &Identifier,
     ) -> Result<Vec<User>, ClickCareError> {
-        let rows = toasty::sql::query(format!(
-            "{USER_COLUMNS} from identity.user_account \
-             where network_id = $1 and document_type = $2 and document_value = $3 and active"
-        ))
-        .bind(*network_id)
-        .bind(identifier.type_code().to_string())
-        .bind(identifier.value().to_string())
-        .column_types(user_column_types())
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|error| {
-            error!("Error al buscar cuentas por documento en network_id:{network_id} ({error})");
-            ClickCareError::generic(error.to_string())
-        })?;
-        rows.into_iter().map(map_row_to_user).collect()
+        by_document(*network_id, identifier)
+            .filter(UserAccount::fields().active().eq(true))
+            .exec(&mut self.db())
+            .await
+            .map_err(db_error(format!(
+                "Error al buscar cuentas por documento en network_id:{network_id}"
+            )))?
+            .into_iter()
+            .map(User::try_from)
+            .collect()
     }
 
     async fn set_document_verified(&self, user_id: &Uuid) -> Result<(), ClickCareError> {
-        toasty::sql::query(
-            "update identity.user_account set document_verified = true, \
-             updated_at = current_timestamp where id = $1",
-        )
-        .bind(*user_id)
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|error| {
-            error!("Error al verificar el documento de user_account {user_id}: {error}");
-            ClickCareError::generic(error.to_string())
-        })?;
+        UserAccount::filter_by_id(*user_id)
+            .update()
+            .document_verified(true)
+            .exec(&mut self.db())
+            .await
+            .map_err(db_error(format!(
+                "Error al verificar el documento de user_account {user_id}"
+            )))?;
         Ok(())
     }
 
     async fn set_license_verified(&self, user_id: &Uuid) -> Result<(), ClickCareError> {
-        toasty::sql::query(
-            "update identity.user_account set license_verified = true, \
-             updated_at = current_timestamp where id = $1",
-        )
-        .bind(*user_id)
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|error| {
-            error!("Error al confirmar la colegiatura de user_account {user_id}: {error}");
-            ClickCareError::generic(error.to_string())
-        })?;
+        UserAccount::filter_by_id(*user_id)
+            .update()
+            .license_verified(true)
+            .exec(&mut self.db())
+            .await
+            .map_err(db_error(format!(
+                "Error al confirmar la colegiatura de user_account {user_id}"
+            )))?;
         Ok(())
     }
 
@@ -216,71 +239,75 @@ impl UserRepository for UserRepositoryImpl {
         user_id: &Uuid,
         profile: &ProfileUpdate,
     ) -> Result<(), ClickCareError> {
-        let text = |value: &Option<String>| value.clone().unwrap_or_default();
-        let (document_type, document_value) = profile
-            .identifier
-            .as_ref()
-            .map(|identifier| {
-                (
-                    identifier.type_code().to_string(),
-                    identifier.value().to_string(),
-                )
-            })
-            .unwrap_or_default();
-        // Cada dato vacío conserva el valor actual de la columna.
-        let updated = toasty::sql::query(
-            "update identity.user_account set \
-             given_name = coalesce(nullif($1::text, ''), given_name), \
-             family_name = coalesce(nullif($2::text, ''), family_name), \
-             second_family_name = coalesce(nullif($3::text, ''), second_family_name), \
-             document_type = coalesce(nullif($4::text, ''), document_type), \
-             document_value = coalesce(nullif($5::text, ''), document_value), \
-             phone = coalesce(nullif($6::text, ''), phone), \
-             birth_date = coalesce((nullif($7::text, ''))::date, birth_date), \
-             address = coalesce(nullif($8::text, ''), address), \
-             sex = coalesce(nullif($9::text, ''), sex), \
-             professional_body = coalesce(nullif($10::text, ''), professional_body), \
-             license_number = coalesce(nullif($11::text, ''), license_number), \
-             specialty = coalesce(nullif($12::text, ''), specialty), \
-             rne = coalesce(nullif($13::text, ''), rne), \
-             preferred_role = coalesce(nullif($14::text, ''), preferred_role), \
-             updated_at = current_timestamp \
-             where id = $15 returning id",
-        )
-        .bind(text(&profile.given_name))
-        .bind(text(&profile.family_name))
-        .bind(text(&profile.second_family_name))
-        .bind(document_type)
-        .bind(document_value)
-        .bind(text(&profile.phone))
-        .bind(text(&profile.birth_date))
-        .bind(text(&profile.address))
-        .bind(profile.sex.map(Sex::code).unwrap_or_default().to_string())
-        .bind(text(&profile.professional_body))
-        .bind(text(&profile.license_number))
-        .bind(text(&profile.specialty))
-        .bind(text(&profile.rne))
-        .bind(
-            profile
-                .preferred_role
-                .map(Role::code)
-                .unwrap_or_default()
-                .to_string(),
-        )
-        .bind(*user_id)
-        .column_types([Type::Uuid])
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|e| {
-            error!("Error al actualizar user_account con id {user_id}: {e}");
-            ClickCareError::generic(e.to_string())
-        })?;
+        let mut db = self.db();
+        let mut account = UserAccount::filter_by_id(*user_id)
+            .first()
+            .exec(&mut db)
+            .await
+            .map_err(db_error(format!(
+                "Error al consultar user_account con id {user_id}"
+            )))?
+            .ok_or_else(|| {
+                ClickCareError::generic(format!("No existe user_account con id {user_id}"))
+            })?;
 
-        if updated.is_empty() {
-            return Err(ClickCareError::generic(format!(
-                "No existe user_account con id {user_id}"
-            )));
+        // Cada dato vacío conserva el valor actual de la columna.
+        let given = |value: &Option<String>| {
+            value
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string)
+        };
+        let birth_date = given(&profile.birth_date)
+            .map(|date| date.parse::<jiff::civil::Date>())
+            .transpose()
+            .map_err(|e| ClickCareError::generic(format!("Fecha de nacimiento inválida: {e}")))?;
+
+        let mut update = account.update();
+        if let Some(value) = given(&profile.given_name) {
+            update.set_given_name(value);
         }
+        if let Some(value) = given(&profile.family_name) {
+            update.set_family_name(Some(value));
+        }
+        if let Some(value) = given(&profile.second_family_name) {
+            update.set_second_family_name(Some(value));
+        }
+        if let Some(identifier) = &profile.identifier {
+            update.set_document_type(Some(identifier.type_code().to_string()));
+            update.set_document_value(Some(identifier.value().to_string()));
+        }
+        if let Some(value) = given(&profile.phone) {
+            update.set_phone(Some(value));
+        }
+        if let Some(value) = birth_date {
+            update.set_birth_date(Some(value));
+        }
+        if let Some(value) = given(&profile.address) {
+            update.set_address(Some(value));
+        }
+        if let Some(sex) = profile.sex {
+            update.set_sex(Some(sex.code().to_string()));
+        }
+        if let Some(value) = given(&profile.professional_body) {
+            update.set_professional_body(Some(value));
+        }
+        if let Some(value) = given(&profile.license_number) {
+            update.set_license_number(Some(value));
+        }
+        if let Some(value) = given(&profile.specialty) {
+            update.set_specialty(Some(value));
+        }
+        if let Some(value) = given(&profile.rne) {
+            update.set_rne(Some(value));
+        }
+        if let Some(role) = profile.preferred_role {
+            update.set_preferred_role(role.code().to_string());
+        }
+        update.exec(&mut db).await.map_err(db_error(format!(
+            "Error al actualizar user_account con id {user_id}"
+        )))?;
         Ok(())
     }
 
@@ -302,7 +329,10 @@ impl UserRepository for UserRepositoryImpl {
             .telecom()
             .iter()
             .find(|c| matches!(c.system, crate::domain::user::ContactPointSystem::Email))
-            .map(|c| c.value.clone());
+            .map(|c| c.value.clone())
+            .ok_or_else(|| {
+                ClickCareError::generic(format!("La cuenta {} no tiene correo", user.id))
+            })?;
 
         let phone = user
             .person
@@ -357,135 +387,4 @@ impl UserRepository for UserRepositoryImpl {
 
         Ok(())
     }
-}
-
-fn next_uuid_column(
-    fields: &mut std::vec::IntoIter<toasty::stmt::Value>,
-    column_name: &str,
-) -> Result<Uuid, ClickCareError> {
-    let field_value = fields.next().ok_or_else(|| {
-        ClickCareError::generic(format!("Falta columna {column_name} en user_account"))
-    })?;
-    Uuid::try_from(field_value).map_err(|error| {
-        ClickCareError::generic(format!(
-            "Columna {column_name} no es un UUID válido: {error}"
-        ))
-    })
-}
-
-fn next_bool_column(
-    fields: &mut std::vec::IntoIter<toasty::stmt::Value>,
-    column_name: &str,
-) -> Result<bool, ClickCareError> {
-    let field_value = fields.next().ok_or_else(|| {
-        ClickCareError::generic(format!("Falta columna {column_name} en user_account"))
-    })?;
-    bool::try_from(field_value).map_err(|error| {
-        ClickCareError::generic(format!("Columna {column_name} no es booleana: {error}"))
-    })
-}
-
-fn next_string_column(
-    fields: &mut std::vec::IntoIter<toasty::stmt::Value>,
-    column_name: &str,
-) -> Result<String, ClickCareError> {
-    let field_value = fields.next().ok_or_else(|| {
-        ClickCareError::generic(format!("Falta columna {column_name} en user_account"))
-    })?;
-    String::try_from(field_value).map_err(|error| {
-        ClickCareError::generic(format!("Columna {column_name} no es texto: {error}"))
-    })
-}
-
-/// Columnas de `user_account` en el orden que espera [`map_row_to_user`].
-const USER_COLUMNS: &str = "select id, network_id, active, is_owner, given_name, \
-     coalesce(family_name, ''), coalesce(second_family_name, ''), \
-     coalesce(document_type, ''), coalesce(document_value, ''), \
-     coalesce(email, ''), coalesce(phone, ''), \
-     coalesce(birth_date::text, ''), coalesce(address, ''), \
-     preferred_role, coalesce(sex, ''), coalesce(professional_body, ''), \
-     coalesce(license_number, ''), coalesce(specialty, ''), coalesce(rne, ''), \
-     document_verified, license_verified";
-
-fn user_column_types() -> [Type; 21] {
-    [
-        Type::Uuid,
-        Type::Uuid,
-        Type::Bool,
-        Type::Bool,
-        Type::String,
-        Type::String,
-        Type::String,
-        Type::String,
-        Type::String,
-        Type::String,
-        Type::String,
-        Type::String,
-        Type::String,
-        Type::String,
-        Type::String,
-        Type::String,
-        Type::String,
-        Type::String,
-        Type::String,
-        Type::Bool,
-        Type::Bool,
-    ]
-}
-
-fn map_row_to_user(row: toasty::stmt::Value) -> Result<User, ClickCareError> {
-    let mut fields = row.into_record().fields.into_iter();
-    let non_empty = |value: String| (!value.is_empty()).then_some(value);
-
-    let user_id = next_uuid_column(&mut fields, "id")?;
-    let network_id = next_uuid_column(&mut fields, "network_id")?;
-    let active = next_bool_column(&mut fields, "active")?;
-    let is_owner = next_bool_column(&mut fields, "is_owner")?;
-    let given_name = next_string_column(&mut fields, "given_name")?;
-    let family_name = non_empty(next_string_column(&mut fields, "family_name")?);
-    let second_family_name = non_empty(next_string_column(&mut fields, "second_family_name")?);
-    let document_type = next_string_column(&mut fields, "document_type")?;
-    let document_value = next_string_column(&mut fields, "document_value")?;
-    let email = next_string_column(&mut fields, "email")?;
-    let phone = non_empty(next_string_column(&mut fields, "phone")?);
-    let birth_date = non_empty(next_string_column(&mut fields, "birth_date")?);
-    let address = non_empty(next_string_column(&mut fields, "address")?);
-    let preferred_role = Role::from_code(&next_string_column(&mut fields, "preferred_role")?);
-    let sex = Sex::from_code(&next_string_column(&mut fields, "sex")?);
-    let professional = ProfessionalProfile {
-        professional_body: non_empty(next_string_column(&mut fields, "professional_body")?),
-        license_number: non_empty(next_string_column(&mut fields, "license_number")?),
-        specialty: non_empty(next_string_column(&mut fields, "specialty")?),
-        rne: non_empty(next_string_column(&mut fields, "rne")?),
-    };
-    let document_verified = next_bool_column(&mut fields, "document_verified")?;
-    let license_verified = next_bool_column(&mut fields, "license_verified")?;
-
-    let identifier = if document_value.is_empty() {
-        None
-    } else {
-        Identifier::from_parts(&document_type, document_value)
-    };
-
-    let mut user = User::new(
-        user_id.to_string(),
-        network_id,
-        vec![given_name],
-        family_name,
-        second_family_name,
-        identifier,
-        is_owner,
-        email,
-        phone,
-        birth_date,
-    )?;
-    user.active = active;
-    user.address = address;
-    user.preferred_role = preferred_role;
-    user.sex = sex;
-    user.professional = professional;
-    user.document_verified = document_verified;
-    user.license_verified = license_verified;
-
-    Ok(user)
 }

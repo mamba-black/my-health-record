@@ -1,11 +1,9 @@
 use crate::domain::practitioner::Practitioner;
 use crate::domain::practitioner::practitioner_repository::PractitionerRepository;
-use crate::infrastructure::repository::first_uuid_column;
 use app_core::domain::error::ClickCareError;
 use app_core::infrastructure::transport::PersonDto;
 use async_trait::async_trait;
 use toasty::Db;
-use toasty::stmt::Type;
 use tracing::error;
 use uuid::Uuid;
 
@@ -13,8 +11,11 @@ use uuid::Uuid;
 ///
 /// Igual que en el expediente del paciente, el recurso FHIR `Person` se guarda
 /// serializado como JSON en una sola columna en lugar de aplanarse.
+///
+/// `#[unique(organization_id, user_id)]` refleja `uq_practitioner_org_user` (V1).
 #[derive(Debug, Clone, toasty::Model)]
 #[table = "practitioner"]
+#[unique(organization_id, user_id)]
 pub struct PractitionerRecord {
     #[key]
     pub id: uuid::Uuid,
@@ -27,7 +28,7 @@ pub struct PractitionerRecord {
     pub person: String,
     #[auto]
     pub created_at: jiff::Timestamp,
-    #[auto]
+    #[update(jiff::Timestamp::now())]
     pub updated_at: jiff::Timestamp,
 }
 
@@ -42,30 +43,19 @@ impl PractitionerRepository for PractitionerRepositoryImpl {
         organization_id: &Uuid,
         user_id: &Uuid,
     ) -> Result<Option<Uuid>, ClickCareError> {
-        let rows = toasty::sql::query(
-            "select id from administration.practitioner \
-             where organization_id = $1 and user_id = $2 limit 1",
-        )
-        .bind(*organization_id)
-        .bind(*user_id)
-        .column_types([Type::Uuid])
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|error| {
-            error!(
-                "Error al consultar la ficha de profesional de user_id={user_id} en la clínica {organization_id}: {error}"
-            );
-            ClickCareError::generic(format!(
-                "Error al consultar la ficha de profesional de user_id={user_id} en la clínica {organization_id} ({error})"
-            ))
-        })?;
-
-        first_uuid_column(rows).map_err(|error| {
-            error!(
-                "El id de la ficha de user_id={user_id} en la clínica {organization_id} no es un UUID: {error}"
-            );
-            error
-        })
+        PractitionerRecord::filter_by_organization_id_and_user_id(*organization_id, *user_id)
+            .first()
+            .exec(&mut self.db.clone())
+            .await
+            .map(|record| record.map(|record| record.id))
+            .map_err(|error| {
+                error!(
+                    "Error al consultar la ficha de profesional de user_id={user_id} en la clínica {organization_id}: {error}"
+                );
+                ClickCareError::generic(format!(
+                    "Error al consultar la ficha de profesional de user_id={user_id} en la clínica {organization_id} ({error})"
+                ))
+            })
     }
 
     async fn save(&self, practitioner: &Practitioner) -> Result<(), ClickCareError> {

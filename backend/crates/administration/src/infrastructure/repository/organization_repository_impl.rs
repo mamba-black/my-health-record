@@ -1,21 +1,24 @@
 use crate::domain::organization::Organization;
 use crate::domain::organization::organization_repository::OrganizationRepository;
-use crate::infrastructure::repository::first_uuid_column;
+use crate::infrastructure::repository::db_error;
 use app_core::domain::access::ClinicStatus;
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;
 use toasty::Db;
-use toasty::stmt::Type;
-use tracing::error;
 use uuid::Uuid;
 
 /// Fila de la tabla `administration.organization`.
+///
+/// Los atributos `#[unique]`/`#[index]` solo generan los buscadores (`filter_by_*`):
+/// los índices los crean las migraciones de `backend/migrations/` y deben coincidir.
 #[derive(Debug, Clone, toasty::Model)]
 #[table = "organization"]
 pub struct OrganizationRecord {
     #[key]
     pub id: uuid::Uuid,
+    #[index]
     pub network_id: uuid::Uuid,
+    #[unique]
     pub subdomain: String,
     pub name: String,
     pub tax_id: Option<String>,
@@ -25,10 +28,41 @@ pub struct OrganizationRecord {
     pub legal_name: Option<String>,
     pub trade_name: Option<String>,
     pub ipress_code: Option<String>,
+    pub timezone: String,
+    pub address: Option<String>,
     #[auto]
     pub created_at: jiff::Timestamp,
-    #[auto]
+    #[update(jiff::Timestamp::now())]
     pub updated_at: jiff::Timestamp,
+}
+
+impl TryFrom<OrganizationRecord> for Organization {
+    type Error = ClickCareError;
+
+    fn try_from(record: OrganizationRecord) -> Result<Self, Self::Error> {
+        let status = ClinicStatus::from_code(&record.status).ok_or_else(|| {
+            ClickCareError::generic(format!("Estado de clínica desconocido: {}", record.status))
+        })?;
+        Ok(Organization {
+            id: record.id,
+            network_id: record.network_id,
+            subdomain: record.subdomain,
+            name: record.name,
+            tax_id: non_empty(record.tax_id),
+            owner_user_id: record.owner_user_id,
+            status,
+            legal_name: non_empty(record.legal_name),
+            trade_name: non_empty(record.trade_name),
+            ipress_code: non_empty(record.ipress_code),
+            timezone: record.timezone,
+            address: non_empty(record.address),
+        })
+    }
+}
+
+/// Un texto vacío equivale a no tener el dato.
+fn non_empty(value: Option<String>) -> Option<String> {
+    value.filter(|value| !value.is_empty())
 }
 
 pub(crate) struct OrganizationRepositoryImpl {
@@ -41,68 +75,33 @@ impl OrganizationRepository for OrganizationRepositoryImpl {
         &self,
         owner_user_id: &Uuid,
     ) -> Result<Option<Uuid>, ClickCareError> {
-        let rows = toasty::sql::query(
-            "select id from administration.organization where owner_user_id = $1 limit 1",
-        )
-        .bind(*owner_user_id)
-        .column_types([Type::Uuid])
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|error| {
-            error!("Error al consultar la organización de owner_user_id={owner_user_id}: {error}");
-            ClickCareError::generic(format!(
-                "Error al consultar la organización de owner_user_id={owner_user_id} ({error})"
-            ))
-        })?;
-
-        first_uuid_column(rows).map_err(|error| {
-            error!(
-                "El id de la organización de owner_user_id={owner_user_id} no es válido: {error}"
-            );
-            error
-        })
+        OrganizationRecord::all()
+            .filter(
+                OrganizationRecord::fields()
+                    .owner_user_id()
+                    .eq(*owner_user_id),
+            )
+            .first()
+            .exec(&mut self.db.clone())
+            .await
+            .map(|record| record.map(|record| record.id))
+            .map_err(db_error(format!(
+                "Error al consultar la organización de owner_user_id={owner_user_id}"
+            )))
     }
 
     async fn find_organization_and_network_by_subdomain(
         &self,
         subdomain: &str,
     ) -> Result<Option<(Uuid, Uuid)>, ClickCareError> {
-        let rows = toasty::sql::query(
-            "select id, network_id from administration.organization where subdomain = $1 limit 1",
-        )
-        .bind(subdomain.to_string())
-        .column_types([Type::Uuid, Type::Uuid])
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|error| {
-            error!("Error al consultar la organización por subdominio={subdomain}: {error}");
-            ClickCareError::generic(format!(
-                "Error al consultar la organización por subdominio={subdomain} ({error})"
-            ))
-        })?;
-
-        let Some(row) = rows.into_iter().next() else {
-            return Ok(None);
-        };
-
-        let mut fields = row.into_record().fields.into_iter();
-        let organization_id_value = fields.next().ok_or_else(|| {
-            ClickCareError::generic("Falta columna id en la consulta de organización".to_string())
-        })?;
-        let network_id_value = fields.next().ok_or_else(|| {
-            ClickCareError::generic(
-                "Falta columna network_id en la consulta de organización".to_string(),
-            )
-        })?;
-
-        let organization_id = Uuid::try_from(organization_id_value).map_err(|error| {
-            ClickCareError::generic(format!("Columna id no es un UUID válido: {error}"))
-        })?;
-        let network_id = Uuid::try_from(network_id_value).map_err(|error| {
-            ClickCareError::generic(format!("Columna network_id no es un UUID válido: {error}"))
-        })?;
-
-        Ok(Some((organization_id, network_id)))
+        OrganizationRecord::filter_by_subdomain(subdomain.to_string())
+            .first()
+            .exec(&mut self.db.clone())
+            .await
+            .map(|record| record.map(|record| (record.id, record.network_id)))
+            .map_err(db_error(format!(
+                "Error al consultar la organización por subdominio={subdomain}"
+            )))
     }
 
     async fn save(&self, organization: &Organization) -> Result<(), ClickCareError> {
@@ -118,130 +117,46 @@ impl OrganizationRepository for OrganizationRepositoryImpl {
             legal_name: organization.legal_name.clone(),
             trade_name: organization.trade_name.clone(),
             ipress_code: organization.ipress_code.clone(),
+            timezone: organization.timezone.clone(),
+            address: organization.address.clone(),
         })
         .exec(&mut self.db.clone())
         .await
-        .map_err(|error| {
-            error!(
-                "Error al guardar la organización id={}: {error}",
-                organization.id
-            );
-            ClickCareError::generic(format!(
-                "Error al guardar la organización id={} ({error})",
-                organization.id
-            ))
-        })?;
+        .map_err(db_error(format!(
+            "Error al guardar la organización id={}",
+            organization.id
+        )))?;
 
         Ok(())
     }
 
     async fn find_by_id(&self, id: &Uuid) -> Result<Option<Organization>, ClickCareError> {
-        let rows = toasty::sql::query(
-            "select id, network_id, subdomain, name, coalesce(tax_id, ''), owner_user_id, status, \
-             coalesce(legal_name, ''), coalesce(trade_name, ''), coalesce(ipress_code, ''), \
-             timezone, coalesce(address, '') \
-             from administration.organization where id = $1 limit 1",
-        )
-        .bind(*id)
-        .column_types([
-            Type::Uuid,
-            Type::Uuid,
-            Type::String,
-            Type::String,
-            Type::String,
-            Type::Uuid,
-            Type::String,
-            Type::String,
-            Type::String,
-            Type::String,
-            Type::String,
-            Type::String,
-        ])
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|error| {
-            error!("Error al consultar la organización id={id}: {error}");
-            ClickCareError::generic(format!(
-                "Error al consultar la organización id={id} ({error})"
-            ))
-        })?;
-
-        let Some(row) = rows.into_iter().next() else {
-            return Ok(None);
-        };
-        let mut fields = row.into_record().fields.into_iter();
-        let mut next = |name: &str| {
-            fields.next().ok_or_else(|| {
-                ClickCareError::generic(format!("Falta la columna {name} de organization"))
-            })
-        };
-        let uuid = |value: toasty::stmt::Value| {
-            Uuid::try_from(value).map_err(|e| ClickCareError::generic(e.to_string()))
-        };
-        let text = |value: toasty::stmt::Value| {
-            String::try_from(value).map_err(|e| ClickCareError::generic(e.to_string()))
-        };
-        let optional = |value: String| (!value.is_empty()).then_some(value);
-
-        let id = uuid(next("id")?)?;
-        let network_id = uuid(next("network_id")?)?;
-        let subdomain = text(next("subdomain")?)?;
-        let name = text(next("name")?)?;
-        let tax_id = optional(text(next("tax_id")?)?);
-        let owner_user_id = uuid(next("owner_user_id")?)?;
-        let status_code = text(next("status")?)?;
-        let status = ClinicStatus::from_code(&status_code).ok_or_else(|| {
-            ClickCareError::generic(format!("Estado de clínica desconocido: {status_code}"))
-        })?;
-        let legal_name = optional(text(next("legal_name")?)?);
-        let trade_name = optional(text(next("trade_name")?)?);
-        let ipress_code = optional(text(next("ipress_code")?)?);
-        let timezone = text(next("timezone")?)?;
-        let address = optional(text(next("address")?)?);
-
-        Ok(Some(Organization {
-            id,
-            network_id,
-            subdomain,
-            name,
-            tax_id,
-            owner_user_id,
-            status,
-            legal_name,
-            trade_name,
-            ipress_code,
-            timezone,
-            address,
-        }))
+        OrganizationRecord::filter_by_id(*id)
+            .first()
+            .exec(&mut self.db.clone())
+            .await
+            .map_err(db_error(format!(
+                "Error al consultar la organización id={id}"
+            )))?
+            .map(Organization::try_from)
+            .transpose()
     }
 
     async fn update_setup(&self, organization: &Organization) -> Result<(), ClickCareError> {
-        toasty::sql::query(
-            "update administration.organization set status = $1, active = $2, \
-             tax_id = nullif($3::text, ''), legal_name = nullif($4::text, ''), \
-             trade_name = nullif($5::text, ''), ipress_code = nullif($6::text, ''), \
-             updated_at = current_timestamp where id = $7",
-        )
-        .bind(organization.status.code().to_string())
-        .bind(organization.status == ClinicStatus::Active)
-        // Toasty no infiere el tipo de un `NULL` en SQL crudo: viaja como texto vacío.
-        .bind(organization.tax_id.clone().unwrap_or_default())
-        .bind(organization.legal_name.clone().unwrap_or_default())
-        .bind(organization.trade_name.clone().unwrap_or_default())
-        .bind(organization.ipress_code.clone().unwrap_or_default())
-        .bind(organization.id)
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|error| {
-            error!(
-                "Error al actualizar la organización id={}: {error}",
+        OrganizationRecord::filter_by_id(organization.id)
+            .update()
+            .status(organization.status.code().to_string())
+            .active(organization.status == ClinicStatus::Active)
+            .tax_id(non_empty(organization.tax_id.clone()))
+            .legal_name(non_empty(organization.legal_name.clone()))
+            .trade_name(non_empty(organization.trade_name.clone()))
+            .ipress_code(non_empty(organization.ipress_code.clone()))
+            .exec(&mut self.db.clone())
+            .await
+            .map_err(db_error(format!(
+                "Error al actualizar la organización id={}",
                 organization.id
-            );
-            ClickCareError::generic(format!(
-                "Error al actualizar la organización id={} ({error})",
-                organization.id
-            ))
-        })?;
+            )))?;
         Ok(())
     }
 }

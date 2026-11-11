@@ -1,5 +1,10 @@
 // Modelo DBML de referencia, generado del antiguo `ddl/table.sql`. La fuente de verdad
-// del esquema son las migraciones de `backend/migrations/`; este modelo puede estar desactualizado.
+// del esquema son las migraciones de `backend/migrations/`.
+//
+// OBSOLETO (2026-11-11): todo este modelo es el esquema legado. `clinic`, `patient` y
+// `patient_search` ya no se crean (comentadas en V1) y los reemplazan
+// `administration.organization` y `administration.patient`; `user_account` hoy es
+// `identity.user_account` con otras columnas. No lo uses como referencia del esquema actual.
 
 Table user_account {
   id uuid [pk]

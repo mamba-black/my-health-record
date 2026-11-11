@@ -1,33 +1,50 @@
 use crate::domain::patient::patient_link_repository::{PatientLink, PatientLinkRepository};
-use crate::infrastructure::repository::first_uuid_column;
+use crate::infrastructure::repository::patient_repository_impl::PatientRecord;
+use crate::infrastructure::repository::{db_error, uuid_column};
 use app_core::domain::error::ClickCareError;
 use async_trait::async_trait;
 use toasty::Db;
-use toasty::stmt::{Type, Value};
-use tracing::error;
+use toasty::stmt::Type;
 use uuid::Uuid;
+
+/// Fila de la tabla `administration.patient_link`.
+///
+/// El índice único parcial `uq_patient_link_active` (un vínculo activo por registro)
+/// y `idx_patient_link_user` los crea V8; toasty no expresa índices parciales, así que
+/// aquí solo se declara el buscador por `patient_id`.
+#[derive(Debug, Clone, toasty::Model)]
+#[table = "patient_link"]
+pub struct PatientLinkRecord {
+    #[key]
+    pub id: uuid::Uuid,
+    pub network_id: uuid::Uuid,
+    pub organization_id: uuid::Uuid,
+    #[index]
+    pub patient_id: uuid::Uuid,
+    pub user_id: uuid::Uuid,
+    pub linked_by: uuid::Uuid,
+    #[default(jiff::Timestamp::now())]
+    pub linked_at: jiff::Timestamp,
+    pub unlinked_by: Option<uuid::Uuid>,
+    pub unlinked_at: Option<jiff::Timestamp>,
+    pub unlink_reason: Option<String>,
+}
+
+impl From<PatientLinkRecord> for PatientLink {
+    fn from(record: PatientLinkRecord) -> Self {
+        PatientLink {
+            id: record.id,
+            network_id: record.network_id,
+            organization_id: record.organization_id,
+            patient_id: record.patient_id,
+            user_id: record.user_id,
+            linked_by: record.linked_by,
+        }
+    }
+}
 
 pub(crate) struct PatientLinkRepositoryImpl {
     pub(crate) db: Db,
-}
-
-fn failure(context: &str, error: impl std::fmt::Display) -> ClickCareError {
-    error!("{context}: {error}");
-    ClickCareError::generic(format!("{context} ({error})"))
-}
-
-fn uuids(rows: Vec<Value>) -> Result<Vec<Uuid>, ClickCareError> {
-    rows.into_iter()
-        .map(|row| {
-            let value = row
-                .into_record()
-                .fields
-                .into_iter()
-                .next()
-                .ok_or_else(|| ClickCareError::generic("Sin columnas"))?;
-            Uuid::try_from(value).map_err(|e| ClickCareError::generic(e.to_string()))
-        })
-        .collect()
 }
 
 #[async_trait]
@@ -37,17 +54,15 @@ impl PatientLinkRepository for PatientLinkRepositoryImpl {
         organization_id: &Uuid,
         user_id: &Uuid,
     ) -> Result<Option<Uuid>, ClickCareError> {
-        let rows = toasty::sql::query(
-            "select id from administration.patient \
-             where organization_id = $1 and user_id = $2 limit 1",
-        )
-        .bind(*organization_id)
-        .bind(*user_id)
-        .column_types([Type::Uuid])
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|e| failure("Error al buscar el registro de la cuenta", e))?;
-        first_uuid_column(rows)
+        PatientRecord::filter_by_organization_id(*organization_id)
+            .filter(PatientRecord::fields().user_id().eq(Some(*user_id)))
+            .first()
+            .exec(&mut self.db.clone())
+            .await
+            .map(|record| record.map(|record| record.id))
+            .map_err(db_error(
+                "Error al buscar el registro de la cuenta".to_string(),
+            ))
     }
 
     async fn records_of_account(
@@ -55,6 +70,7 @@ impl PatientLinkRepository for PatientLinkRepositoryImpl {
         network_id: &Uuid,
         user_id: &Uuid,
     ) -> Result<Vec<Uuid>, ClickCareError> {
+        // SQL crudo por necesidad: join con organization y unión con los vínculos.
         let rows = toasty::sql::query(
             "select p.id from administration.patient p \
                join administration.organization o on o.id = p.organization_id \
@@ -68,11 +84,14 @@ impl PatientLinkRepository for PatientLinkRepositoryImpl {
         .column_types([Type::Uuid])
         .exec(&mut self.db.clone())
         .await
-        .map_err(|e| failure("Error al buscar los registros de la cuenta", e))?;
-        uuids(rows)
+        .map_err(db_error(
+            "Error al buscar los registros de la cuenta".to_string(),
+        ))?;
+        uuid_column(rows)
     }
 
     async fn account_of(&self, patient_id: &Uuid) -> Result<Option<Uuid>, ClickCareError> {
+        // SQL crudo por necesidad: left join con el vínculo activo y `coalesce`.
         let rows = toasty::sql::query(
             "select coalesce(p.user_id, l.user_id) from administration.patient p \
                left join administration.patient_link l \
@@ -83,65 +102,36 @@ impl PatientLinkRepository for PatientLinkRepositoryImpl {
         .column_types([Type::Uuid])
         .exec(&mut self.db.clone())
         .await
-        .map_err(|e| failure("Error al buscar la cuenta del registro", e))?;
-        first_uuid_column(rows)
+        .map_err(db_error(
+            "Error al buscar la cuenta del registro".to_string(),
+        ))?;
+        Ok(uuid_column(rows)?.into_iter().next())
     }
 
     async fn active_link(&self, patient_id: &Uuid) -> Result<Option<PatientLink>, ClickCareError> {
-        let rows = toasty::sql::query(
-            "select id, network_id, organization_id, patient_id, user_id, linked_by \
-             from administration.patient_link where patient_id = $1 and unlinked_at is null",
-        )
-        .bind(*patient_id)
-        .column_types([const { Type::Uuid }; 6])
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|e| failure("Error al leer el vínculo del registro", e))?;
-        let Some(row) = rows.into_iter().next() else {
-            return Ok(None);
-        };
-        let ids = row
-            .into_record()
-            .fields
-            .into_iter()
-            .map(|v| Uuid::try_from(v).map_err(|e| ClickCareError::generic(e.to_string())))
-            .collect::<Result<Vec<_>, _>>()?;
-        let [
-            id,
-            network_id,
-            organization_id,
-            patient_id,
-            user_id,
-            linked_by,
-        ] = ids[..]
-        else {
-            return Err(ClickCareError::generic("Vínculo incompleto"));
-        };
-        Ok(Some(PatientLink {
-            id,
-            network_id,
-            organization_id,
-            patient_id,
-            user_id,
-            linked_by,
-        }))
+        PatientLinkRecord::filter_by_patient_id(*patient_id)
+            .filter(PatientLinkRecord::fields().unlinked_at().is_none())
+            .first()
+            .exec(&mut self.db.clone())
+            .await
+            .map(|record| record.map(PatientLink::from))
+            .map_err(db_error(
+                "Error al leer el vínculo del registro".to_string(),
+            ))
     }
 
     async fn insert(&self, link: &PatientLink) -> Result<(), ClickCareError> {
-        toasty::sql::statement(
-            "insert into administration.patient_link \
-               (id, network_id, organization_id, patient_id, user_id, linked_by) \
-             values ($1, $2, $3, $4, $5, $6)",
-        )
-        .bind(link.id)
-        .bind(link.network_id)
-        .bind(link.organization_id)
-        .bind(link.patient_id)
-        .bind(link.user_id)
-        .bind(link.linked_by)
+        toasty::create!(PatientLinkRecord {
+            id: link.id,
+            network_id: link.network_id,
+            organization_id: link.organization_id,
+            patient_id: link.patient_id,
+            user_id: link.user_id,
+            linked_by: link.linked_by,
+        })
         .exec(&mut self.db.clone())
         .await
-        .map_err(|e| failure("Error al vincular el registro", e))?;
+        .map_err(db_error("Error al vincular el registro".to_string()))?;
         Ok(())
     }
 
@@ -152,21 +142,31 @@ impl PatientLinkRepository for PatientLinkRepositoryImpl {
         unlinked_by: &Uuid,
         reason: &str,
     ) -> Result<Option<Uuid>, ClickCareError> {
-        let rows = toasty::sql::query(
-            "update administration.patient_link \
-               set unlinked_by = $3, unlinked_at = now(), unlink_reason = $4 \
-             where id = $1 and organization_id = $2 and unlinked_at is null \
-             returning user_id",
-        )
-        .bind(*link_id)
-        .bind(*organization_id)
-        .bind(*unlinked_by)
-        .bind(reason.to_string())
-        .column_types([Type::Uuid])
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|e| failure("Error al deshacer el vínculo", e))?;
-        first_uuid_column(rows)
+        let fields = PatientLinkRecord::fields();
+        let open_link = || {
+            PatientLinkRecord::filter_by_id(*link_id)
+                .filter(fields.organization_id().eq(*organization_id))
+                .filter(fields.unlinked_at().is_none())
+        };
+        let mut db = self.db.clone();
+        let Some(link) = open_link()
+            .first()
+            .exec(&mut db)
+            .await
+            .map_err(db_error("Error al leer el vínculo a deshacer".to_string()))?
+        else {
+            return Ok(None);
+        };
+        // El filtro repite `unlinked_at is null`: un cierre concurrente no se pisa.
+        open_link()
+            .update()
+            .unlinked_by(Some(*unlinked_by))
+            .unlinked_at(Some(jiff::Timestamp::now()))
+            .unlink_reason(Some(reason.to_string()))
+            .exec(&mut db)
+            .await
+            .map_err(db_error("Error al deshacer el vínculo".to_string()))?;
+        Ok(Some(link.user_id))
     }
 
     async fn mark_document_verified(
@@ -174,15 +174,15 @@ impl PatientLinkRepository for PatientLinkRepositoryImpl {
         patient_id: &Uuid,
         verified_by: &Uuid,
     ) -> Result<(), ClickCareError> {
-        toasty::sql::statement(
-            "update administration.patient \
-               set document_verified_at = now(), document_verified_by = $2 where id = $1",
-        )
-        .bind(*patient_id)
-        .bind(*verified_by)
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|e| failure("Error al verificar el documento del paciente", e))?;
+        PatientRecord::filter_by_id(*patient_id)
+            .update()
+            .document_verified_at(Some(jiff::Timestamp::now()))
+            .document_verified_by(Some(*verified_by))
+            .exec(&mut self.db.clone())
+            .await
+            .map_err(db_error(
+                "Error al verificar el documento del paciente".to_string(),
+            ))?;
         Ok(())
     }
 }

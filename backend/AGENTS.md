@@ -488,6 +488,7 @@ cargo clippy --workspace -- -D warnings
   * Viven en `backend/migrations/` como `V{n}__descripcion.sql` (p. ej. `V3__agregar_genero.sql`). Se embeben en el binario al compilar (`embed_migrations!`) y `clickcare` aplica las pendientes **al arrancar**, antes de construir el DI (`bin/clickcare/src/infrastructure/migration.rs`). Cada migración corre en su propia transacción.
   * El historial está en `public.refinery_schema_history`, separado de `_sqlx_migrations` de apalis.
   * **Nunca edites una migración ya aplicada**: refinery valida su checksum y el arranque falla. Todo cambio va en una migración nueva.
+  * Única excepción hasta hoy (2026-11-11): en `V1` se comentaron las tablas legadas `public.clinic`, `public.patient` y `public.patient_search`, y la base de Neon se recreó desde cero. Una base creada antes de esa fecha falla al arrancar por el checksum de `V1`: hay que recrearla (borrar los esquemas `identity`, `administration`, `scheduling`, `apalis`, `clickcare` y las tablas de `public`).
   * Las columnas de clave primaria usan `uuidv7()` como valor por defecto. `backend/ddl/schema.dbml` es solo un modelo de referencia.
 * **Cola de eventos**: el esquema `apalis` lo crean las migraciones embebidas de `apalis-postgres` al construir el DI (`PostgresStorage::setup`). No se versiona en `backend/migrations/`.
 * **Servidor** (`bin/clickcare/src/infrastructure/http.rs`): gRPC y gRPC-Web con reflexión, más `GET /health` sin credenciales.

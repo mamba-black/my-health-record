@@ -10,7 +10,7 @@ use crate::infrastructure::integration::event::logging_publisher::LoggingIntegra
 pub use crate::infrastructure::integration::service::session_service_impl::JwtSessionServiceImpl;
 use crate::infrastructure::integration::service::token_service_impl::TokenServiceImpl;
 use crate::infrastructure::repository::person_link_repository_impl::{
-    InMemoryPersonLinkRegistry, PersonLinkRepositoryImpl,
+    InMemoryPersonLinkRegistry, PersonLinkRecord, PersonLinkRepositoryImpl,
 };
 use crate::infrastructure::repository::user_repository_impl::{UserAccount, UserRepositoryImpl};
 use app_core::application::integration::event_publisher::IntegrationEventPublisher;
@@ -181,7 +181,7 @@ fn resolve_db_url(database_type: &DBType) -> Option<String> {
 async fn build_db(database_url_str: &str) -> Result<Db, ClickCareError> {
     trace!("URL de la base de datos: {database_url_str}");
     let db: Db = toasty::Db::builder()
-        .models(models!(UserAccount))
+        .models(models!(UserAccount, PersonLinkRecord))
         .connect(database_url_str)
         .await
         .map_err(|error| {

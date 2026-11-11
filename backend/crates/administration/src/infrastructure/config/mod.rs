@@ -18,7 +18,9 @@ use crate::infrastructure::repository::membership_repository_impl::{
 use crate::infrastructure::repository::organization_repository_impl::{
     OrganizationRecord, OrganizationRepositoryImpl,
 };
-use crate::infrastructure::repository::patient_link_repository_impl::PatientLinkRepositoryImpl;
+use crate::infrastructure::repository::patient_link_repository_impl::{
+    PatientLinkRecord, PatientLinkRepositoryImpl,
+};
 use crate::infrastructure::repository::patient_repository_impl::{
     PatientRecord, PatientRepositoryImpl,
 };
@@ -193,7 +195,8 @@ async fn build_state(
             OrganizationRecord,
             PatientRecord,
             PractitionerRecord,
-            MembershipRecord
+            MembershipRecord,
+            PatientLinkRecord
         ))
         .connect(database_url)
         .await

@@ -1,11 +1,11 @@
 use crate::domain::patient::Patient;
 use crate::domain::patient::patient_repository::PatientRepository;
+use crate::infrastructure::repository::{db_error, uuid_column};
 use app_core::domain::error::ClickCareError;
 use app_core::domain::fhir::Identifier;
 use app_core::infrastructure::transport::PersonDto;
 use async_trait::async_trait;
 use toasty::Db;
-use toasty::stmt::{Type, Value};
 use tracing::error;
 use uuid::Uuid;
 
@@ -14,25 +14,73 @@ use uuid::Uuid;
 /// El recurso FHIR `Person` se guarda serializado como JSON en una sola columna en
 /// lugar de aplanarse en columnas sueltas: así el expediente conserva el recurso
 /// completo tal como llegó en el evento, sin perder campos ni duplicar el modelo.
+///
+/// Los índices los crean las migraciones de `backend/migrations/`: `uq_patient_org_user`
+/// (V1) no se declara como `#[unique]` porque `user_id` puede ser nulo y toasty no
+/// admite columnas nulas en un índice compuesto.
 #[derive(Debug, Clone, toasty::Model)]
 #[table = "patient"]
 pub struct PatientRecord {
     #[key]
     pub id: uuid::Uuid,
     /// Discriminador de inquilino: la clínica dueña del expediente.
+    #[index]
     pub organization_id: uuid::Uuid,
     /// Vacío cuando recepción registró al paciente sin cuenta.
     pub user_id: Option<uuid::Uuid>,
     pub active: bool,
     pub person: String,
+    pub document_verified_at: Option<jiff::Timestamp>,
+    pub document_verified_by: Option<uuid::Uuid>,
     #[auto]
     pub created_at: jiff::Timestamp,
-    #[auto]
+    #[update(jiff::Timestamp::now())]
     pub updated_at: jiff::Timestamp,
 }
 
 pub(crate) struct PatientRepositoryImpl {
     pub(crate) db: Db,
+}
+
+impl TryFrom<PatientRecord> for Patient {
+    type Error = ClickCareError;
+
+    fn try_from(record: PatientRecord) -> Result<Self, Self::Error> {
+        let person: PersonDto = serde_json::from_str(&record.person).map_err(|error| {
+            ClickCareError::generic(format!(
+                "La Person del expediente {} no es válida ({error})",
+                record.id
+            ))
+        })?;
+        let mut patient =
+            Patient::without_account(record.id, record.organization_id, person.into());
+        patient.user_id = record.user_id;
+        patient.active = record.active;
+        Ok(patient)
+    }
+}
+
+/// Expedientes de una clínica, a partir de los ids que devolvió una consulta en SQL crudo.
+async fn load_patients(
+    db: &Db,
+    organization_id: Uuid,
+    ids: Vec<Uuid>,
+) -> Result<Vec<Patient>, ClickCareError> {
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let fields = PatientRecord::fields();
+    PatientRecord::filter_by_organization_id(organization_id)
+        .filter(fields.id().in_list(ids))
+        .order_by(fields.created_at().asc())
+        .exec(&mut db.clone())
+        .await
+        .map_err(db_error(format!(
+            "Error al cargar los expedientes de la clínica {organization_id}"
+        )))?
+        .into_iter()
+        .map(Patient::try_from)
+        .collect()
 }
 
 #[async_trait]
@@ -42,24 +90,15 @@ impl PatientRepository for PatientRepositoryImpl {
         organization_id: &Uuid,
         user_id: &Uuid,
     ) -> Result<bool, ClickCareError> {
-        let rows = toasty::sql::query(
-            "select 1 from administration.patient \
-             where organization_id = $1 and user_id = $2 limit 1",
-        )
-        .bind(*organization_id)
-        .bind(*user_id)
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|error| {
-            error!(
-                "Error al consultar el expediente de user_id={user_id} en la clínica {organization_id}: {error}"
-            );
-            ClickCareError::generic(format!(
-                "Error al consultar el expediente de user_id={user_id} en la clínica {organization_id} ({error})"
-            ))
-        })?;
-
-        Ok(!rows.is_empty())
+        let found = PatientRecord::filter_by_organization_id(*organization_id)
+            .filter(PatientRecord::fields().user_id().eq(Some(*user_id)))
+            .first()
+            .exec(&mut self.db.clone())
+            .await
+            .map_err(db_error(format!(
+                "Error al consultar el expediente de user_id={user_id} en la clínica {organization_id}"
+            )))?;
+        Ok(found.is_some())
     }
 
     async fn save(&self, patient: &Patient) -> Result<(), ClickCareError> {
@@ -84,13 +123,10 @@ impl PatientRepository for PatientRepositoryImpl {
         })
         .exec(&mut self.db.clone())
         .await
-        .map_err(|error| {
-            error!("Error al guardar el expediente id={}: {error}", patient.id);
-            ClickCareError::generic(format!(
-                "Error al guardar el expediente id={} ({error})",
-                patient.id
-            ))
-        })?;
+        .map_err(db_error(format!(
+            "Error al guardar el expediente id={}",
+            patient.id
+        )))?;
 
         Ok(())
     }
@@ -100,10 +136,11 @@ impl PatientRepository for PatientRepositoryImpl {
         organization_id: &Uuid,
         name: &str,
     ) -> Result<Vec<Patient>, ClickCareError> {
-        // Búsqueda simple sobre el JSON de la `Person`: suficiente para la escala actual.
+        // SQL crudo por necesidad: busca texto dentro del JSON de la `Person` y descarta
+        // con un join los registros ya vinculados a una cuenta. Solo devuelve ids.
         let pattern = format!("%{}%", name.trim().to_lowercase());
         let rows = toasty::sql::query(
-            "select id, organization_id, user_id, active, person from administration.patient \
+            "select id from administration.patient \
              where organization_id = $1 and active and lower(person) like $2 \
                and not exists ( \
                  select 1 from administration.patient_link l \
@@ -114,16 +151,13 @@ impl PatientRepository for PatientRepositoryImpl {
         )
         .bind(*organization_id)
         .bind(pattern)
-        .column_types(patient_column_types())
+        .column_types([toasty::stmt::Type::Uuid])
         .exec(&mut self.db.clone())
         .await
-        .map_err(|error| {
-            error!("Error al buscar pacientes de la clínica {organization_id}: {error}");
-            ClickCareError::generic(format!(
-                "Error al buscar pacientes de la clínica {organization_id} ({error})"
-            ))
-        })?;
-        rows.into_iter().map(map_patient_row).collect()
+        .map_err(db_error(format!(
+            "Error al buscar pacientes de la clínica {organization_id}"
+        )))?;
+        load_patients(&self.db, *organization_id, uuid_column(rows)?).await
     }
 
     async fn find_by_document(
@@ -131,31 +165,32 @@ impl PatientRepository for PatientRepositoryImpl {
         organization_id: &Uuid,
         identifier: &Identifier,
     ) -> Result<Option<Patient>, ClickCareError> {
-        // La `Person` se guarda con la forma de `PersonDto`: el documento es un objeto
-        // con una sola clave, el nombre de la variante (`{"DNI": "12345678"}`).
+        // SQL crudo por necesidad: el documento vive dentro del JSON de la `Person`, con
+        // la forma de `PersonDto` (`{"DNI": "12345678"}`). Solo devuelve el id.
         let key = match identifier {
             Identifier::DNI(_) => "DNI",
             Identifier::CE(_) => "CE",
             Identifier::Passport(_) => "Passport",
         };
         let rows = toasty::sql::query(
-            "select id, organization_id, user_id, active, person from administration.patient \
+            "select id from administration.patient \
              where organization_id = $1 and (person::jsonb -> 'identifier' ->> $2) = $3 \
              order by created_at limit 1",
         )
         .bind(*organization_id)
         .bind(key.to_string())
         .bind(identifier.value().to_string())
-        .column_types(patient_column_types())
+        .column_types([toasty::stmt::Type::Uuid])
         .exec(&mut self.db.clone())
         .await
-        .map_err(|error| {
-            error!("Error al buscar por documento en la clínica {organization_id}: {error}");
-            ClickCareError::generic(format!(
-                "Error al buscar por documento en la clínica {organization_id} ({error})"
-            ))
-        })?;
-        rows.into_iter().next().map(map_patient_row).transpose()
+        .map_err(db_error(format!(
+            "Error al buscar por documento en la clínica {organization_id}"
+        )))?;
+        let ids = uuid_column(rows)?;
+        Ok(load_patients(&self.db, *organization_id, ids)
+            .await?
+            .into_iter()
+            .next())
     }
 
     async fn find_by_id(
@@ -163,53 +198,17 @@ impl PatientRepository for PatientRepositoryImpl {
         organization_id: &Uuid,
         id: &Uuid,
     ) -> Result<Option<Patient>, ClickCareError> {
-        let rows = toasty::sql::query(
-            "select id, organization_id, user_id, active, person from administration.patient \
-             where organization_id = $1 and id = $2 limit 1",
-        )
-        .bind(*organization_id)
-        .bind(*id)
-        .column_types(patient_column_types())
-        .exec(&mut self.db.clone())
-        .await
-        .map_err(|error| {
-            error!("Error al consultar el expediente {id}: {error}");
-            ClickCareError::generic(format!("Error al consultar el expediente {id} ({error})"))
-        })?;
-        rows.into_iter().next().map(map_patient_row).transpose()
+        PatientRecord::filter_by_id(*id)
+            .filter(
+                PatientRecord::fields()
+                    .organization_id()
+                    .eq(*organization_id),
+            )
+            .first()
+            .exec(&mut self.db.clone())
+            .await
+            .map_err(db_error(format!("Error al consultar el expediente {id}")))?
+            .map(Patient::try_from)
+            .transpose()
     }
-}
-
-fn patient_column_types() -> [Type; 5] {
-    [Type::Uuid, Type::Uuid, Type::Uuid, Type::Bool, Type::String]
-}
-
-fn map_patient_row(row: Value) -> Result<Patient, ClickCareError> {
-    let mut fields = row.into_record().fields.into_iter();
-    let mut next = |name: &str| {
-        fields
-            .next()
-            .ok_or_else(|| ClickCareError::generic(format!("Falta la columna {name} de patient")))
-    };
-    let uuid =
-        |value: Value| Uuid::try_from(value).map_err(|e| ClickCareError::generic(e.to_string()));
-    let id = uuid(next("id")?)?;
-    let organization_id = uuid(next("organization_id")?)?;
-    let user_id = match next("user_id")? {
-        Value::Null => None,
-        value => Some(uuid(value)?),
-    };
-    let active =
-        bool::try_from(next("active")?).map_err(|e| ClickCareError::generic(e.to_string()))?;
-    let person_json =
-        String::try_from(next("person")?).map_err(|e| ClickCareError::generic(e.to_string()))?;
-    let person: PersonDto = serde_json::from_str(&person_json).map_err(|error| {
-        ClickCareError::generic(format!(
-            "La Person del expediente {id} no es válida ({error})"
-        ))
-    })?;
-    let mut patient = Patient::without_account(id, organization_id, person.into());
-    patient.user_id = user_id;
-    patient.active = active;
-    Ok(patient)
 }
