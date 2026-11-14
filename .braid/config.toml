@@ -1,0 +1,5 @@
+schema_version = 9
+id_prefix = "cc"
+id_len = 4
+auto_pull = true
+auto_push = true
