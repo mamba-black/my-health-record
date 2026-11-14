@@ -3,7 +3,7 @@ schema_version: 9
 id: cc-1lpo
 title: Fechas con zona (TIMESTAMPTZ) y repositorios con el Model de toasty en vez de mapeo manual
 priority: P2
-status: open
+status: done
 deps:
 - cc-g8bf
 - cc-1ldq
@@ -17,6 +17,7 @@ tags:
 - persistence
 owner: null
 created_at: 2026-11-11T06:42:06.051628477Z
+completed_at: 2026-11-14T03:16:39.928278954Z
 acceptance:
 - V9 convierte a TIMESTAMPTZ todas las columnas TIMESTAMP (user_account, clinical_network, organization, practitioner, patient, membership, person_link), interpretando los valores existentes como UTC
 - Los toasty::Model leen filas sin pánico (hoy jiff::Timestamp choca con TIMESTAMP sin zona)
