@@ -3,13 +3,14 @@ schema_version: 9
 id: cc-1ldq
 title: Model de toasty en organization_repository_impl
 priority: P2
-status: open
+status: done
 deps: []
 tags:
 - backend
 - persistence
 owner: null
 created_at: 2026-11-11T07:53:52.189370344Z
+completed_at: 2026-11-14T02:23:52.237349867Z
 acceptance:
 - Lecturas con filter_by_id / filter_by_subdomain (#[unique]) / owner_user_id
 - update_setup con update() tipado
